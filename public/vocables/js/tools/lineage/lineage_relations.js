@@ -393,7 +393,7 @@ Lineage_relations = (function () {
                                 font: {multi: true, size: 10},
 
                                 dashes: true,
-                                color: Lineage_classes.objectPropertyColor
+                                color: Lineage_classes.restrictionColor
                             })
 
 
