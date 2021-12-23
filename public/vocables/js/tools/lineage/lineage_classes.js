@@ -147,11 +147,12 @@ var Lineage_classes = (function () {
                 var str = "<a href='" + wikiUrl + "' target='_blank'>" + "Wiki page..." + "</a>"
                 $("#lineage_sourceDescriptionDiv").html(str)
                 self.registerSourceImports(sourceLabel)
-                if (!self.mainSource) {
-                    self.initUI();
-                }
-                Lineage_relations.init()
 
+                if (!self.mainSource) {
+                  self.initUI();
+                }
+
+                Lineage_relations.init()
 
 
             })
