@@ -153,17 +153,17 @@ var color=Lineage_classes.getSourceColor(source)*/
 
     self.showMergeNodesDialog = function (fromNode, toNode) {
         if (fromNode) {
-            Lineage_classes.selection.clearNodesSelection();
-            Lineage_classes.selection.addNodeToSelection(fromNode);
+            Lineage_graphSelectionActions.clearNodesSelection();
+            Lineage_graphSelectionActions.addNodeToSelection(fromNode);
         }
-        if (Lineage_classes.nodesSelection.length == 0) return alert("no nodes selected");
+        if (Lineage_graphSelectionActions.nodesSelection.length == 0) return alert("no nodes selected");
         $("#mainDialogDiv").load("snippets/lineage/lineageAggregateMergeNodesDialog.html", function () {
             common.fillSelectOptions("LineageMerge_targetSourceSelect", [Lineage_classes.mainSource]);
             if (toNode) {
                 $("#LineageMerge_targetNodeUriSelect").val(toNode.data.id);
             }
 
-            var jstreeData = Lineage_classes.selection.getSelectedNodesTree();
+            var jstreeData = Lineage_graphSelectionActions.getSelectedNodesTree();
 
             var options = {
                 withCheckboxes: true,
