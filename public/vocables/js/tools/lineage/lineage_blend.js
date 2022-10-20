@@ -2,7 +2,7 @@
 // !!!!!!!!  const util = require("../../../../../bin/util.");
 var Lineage_blend = (function () {
     var self = {};
-    self.authorizedProperties={}
+    self.authorizedProperties = {};
 
     self.addNodeToAssociationNode = function (node, role, allowAddToGraphButton) {
         if (role == "source") {
@@ -951,7 +951,6 @@ var xx = result
                 self.sourceNode = visjsGraph.data.nodes.get(edgeData.from).data;
                 self.targetNode = visjsGraph.data.nodes.get(edgeData.to).data;
 
-
                 let options = {
                     openAll: true,
                     selectTreeNodeFn: function (event, obj) {
@@ -1057,36 +1056,35 @@ var xx = result
                                 //   Sparql_OWL.getNodeParents(Lineage_classes.mainSource, null, [self.sourceNode.id, self.targetNode.id], ancestorsDepth, {}, function (err, result) {
                                 if (err) return callbackSeries(err);
                                 var topLevelOntologyPattern = Config.topLevelOntologies[Config.currentTopLevelOntology].uriPattern;
-                                var sourceNodeFirsttopLevelOntologyAncestorLabel=""
-                                var targetNodeFirsttopLevelOntologyAncestorLabel=""
+                                var sourceNodeFirsttopLevelOntologyAncestorLabel = "";
+                                var targetNodeFirsttopLevelOntologyAncestorLabel = "";
                                 result.forEach(function (item) {
                                     if (!sourceNodeFirsttopLevelOntologyAncestor && item.class.value == self.sourceNode.id) {
                                         if (item.superClass.value.indexOf(topLevelOntologyPattern) > -1) {
                                             sourceNodeFirsttopLevelOntologyAncestor = item.superClass.value;
-                                            sourceNodeFirsttopLevelOntologyAncestorLabel= item.superClassLabel?item.superClassLabel.value:Sparql_common.getLabelFromURI(item.superClass.value)
+                                            sourceNodeFirsttopLevelOntologyAncestorLabel = item.superClassLabel ? item.superClassLabel.value : Sparql_common.getLabelFromURI(item.superClass.value);
                                         }
                                     }
                                     if (!targetNodeFirsttopLevelOntologyAncestor && item.class.value == self.targetNode.id) {
                                         if (item.superClass.value.indexOf(topLevelOntologyPattern) > -1) {
                                             targetNodeFirsttopLevelOntologyAncestor = item.superClass.value;
-                                            targetNodeFirsttopLevelOntologyAncestorLabel= item.superClassLabel?item.superClassLabel.value:Sparql_common.getLabelFromURI(item.superClass.value)
+                                            targetNodeFirsttopLevelOntologyAncestorLabel = item.superClassLabel ? item.superClassLabel.value : Sparql_common.getLabelFromURI(item.superClass.value);
                                         }
                                     }
                                 });
-                                var title= (self.sourceNode.label + " -> " + self.targetNode.label)+"<br>";
+                                var title = self.sourceNode.label + " -> " + self.targetNode.label + "<br>";
 
                                 if (!sourceNodeFirsttopLevelOntologyAncestor || !targetNodeFirsttopLevelOntologyAncestor) {
                                     // alert("no matching topLevelOntology superClass");
-                                    title+="no matching superClass in " + Config.currentTopLevelOntology
+                                    title += "no matching superClass in " + Config.currentTopLevelOntology;
                                     MainController.UI.message("no matching superClass in " + Config.currentTopLevelOntology);
                                     return callbackSeries();
                                 }
 
+                                title += "<i>" + Config.currentTopLevelOntology + " : " + sourceNodeFirsttopLevelOntologyAncestorLabel + " -> " + targetNodeFirsttopLevelOntologyAncestorLabel + "</i>";
+                                $("#lineageAddEdgeDialog_Title").html(title);
 
-                             title+="<i>"+ Config.currentTopLevelOntology+" : "+sourceNodeFirsttopLevelOntologyAncestorLabel + " -> " + targetNodeFirsttopLevelOntologyAncestorLabel+"</i>";
-                                $("#lineageAddEdgeDialog_Title").html(title)
-
-                            self.getAuthorizedProperties(
+                                self.getAuthorizedProperties(
                                     Config.currentTopLevelOntology,
                                     sourceNodeFirsttopLevelOntologyAncestor,
                                     targetNodeFirsttopLevelOntologyAncestor,
@@ -1344,96 +1342,82 @@ callbackSeries();
     };
 
     self.getAuthorizedProperties = function (sourceLabel, domain, range, callback) {
+        self.loadSourcePossiblePredicates(sourceLabel, false, function (err, allProps) {
+            if (err) return alert(err);
 
-        self.loadSourcePossiblePredicates(sourceLabel,false,function(err,allProps) {
-            if(err)
-                return alert(err)
+            let props = {};
 
-                let props = {};
+            var subProposMap = {};
 
-                var subProposMap = {};
+            allProps.forEach(function (item) {
+                if (item.prop.value.indexOf("concret") > -1) var x = 3;
+                let type = "";
+                let ok = false;
+                if (!item.range && item.domain && (item.domain.value == domain || item.domaintype == "bnode")) {
+                    type = "D";
+                    ok = true;
+                } else if (!item.domain && item.range && (item.range.value == range || item.domaintype == "bnode")) {
+                    type = "R";
+                    ok = true;
+                } else if (item.domain && item.range && item.domain.value == domain && item.range.value == range) ok = true;
 
-                allProps.forEach(function(item) {
-                    if (item.prop.value.indexOf("concret") > -1) var x = 3;
-                    let type = "";
-                    let ok = false;
-                    if (!item.range && item.domain && (item.domain.value == domain || item.domaintype == "bnode")) {
-                        type = "D";
-                        ok = true;
-                    } else if (!item.domain && item.range && (item.range.value == range || item.domaintype == "bnode")) {
-                        type = "R";
-                        ok = true;
-                    } else if (item.domain && item.range && item.domain.value == domain && item.range.value == range) ok = true;
-
-                    if (ok) {
+                if (ok) {
+                    props[item.prop.value] = {
+                        prop: item.prop.value,
+                        label: item.propLabel ? item.propLabel.value : Sparql_common.getLabelFromURI(item.prop.value),
+                        type: type,
+                    };
+                }
+            });
+            if (true || Object.keys(props).length == 0) {
+                allProps.forEach(function (item) {
+                    if (item.isGenericProperty) {
                         props[item.prop.value] = {
                             prop: item.prop.value,
                             label: item.propLabel ? item.propLabel.value : Sparql_common.getLabelFromURI(item.prop.value),
-                            type: type,
+                            isGenericProperty: item.isGenericProperty,
                         };
                     }
                 });
-                if (true || Object.keys(props).length == 0) {
-                    allProps.forEach(function(item) {
-                        if (item.isGenericProperty) {
-                            props[item.prop.value] = {
-                                prop: item.prop.value,
-                                label: item.propLabel ? item.propLabel.value : Sparql_common.getLabelFromURI(item.prop.value),
-                                isGenericProperty: item.isGenericProperty,
-                            };
-                        }
-                    });
-                }
-                return callback(null, props);
-
-        })
-
-
+            }
+            return callback(null, props);
+        });
     };
 
-
-
-
-
-    self.loadSourcePossiblePredicates=function(sourceLabel,reload,callback){
+    self.loadSourcePossiblePredicates = function (sourceLabel, reload, callback) {
         if (!self.authorizedProperties) self.authorizedProperties = {};
 
-        if(self.authorizedProperties[sourceLabel] && !reload && callback)
-            return callback(null,self.authorizedProperties[sourceLabel])
+        if (self.authorizedProperties[sourceLabel] && !reload && callback) return callback(null, self.authorizedProperties[sourceLabel]);
 
-            var allProps;
-            async.series(
-              [
-                  function (callbackSeries) {
-                      Sparql_OWL.getInferredPropertiesDomainsAndRanges(sourceLabel, {}, function (err, _result) {
-                          if (err) return callbackSeries(err);
+        var allProps;
+        async.series(
+            [
+                function (callbackSeries) {
+                    Sparql_OWL.getInferredPropertiesDomainsAndRanges(sourceLabel, {}, function (err, _result) {
+                        if (err) return callbackSeries(err);
 
-                          allProps = _result;
-                          return callbackSeries();
-                      });
-                  },
-                  function (callbackSeries) {
-                      Sparql_OWL.getPropertiesWithoutDomainsAndRanges(sourceLabel, {}, function (err, _result2) {
-                          if (err) return callbackSeries(err);
-                          // allProps = allProps.concat(_result2)
-                          _result2.forEach(function (item) {
-                              item.isGenericProperty = true;
-                              allProps.push(item);
-                          });
-                          return callbackSeries();
-                      });
-                  },
-              ],
-              function (err) {
-                  self.authorizedProperties[sourceLabel] = allProps;
-                  if(callback)
-                  return callback(err, allProps);
-
-              }
-            );
-    }
-
-
+                        allProps = _result;
+                        return callbackSeries();
+                    });
+                },
+                function (callbackSeries) {
+                    Sparql_OWL.getPropertiesWithoutDomainsAndRanges(sourceLabel, {}, function (err, _result2) {
+                        if (err) return callbackSeries(err);
+                        // allProps = allProps.concat(_result2)
+                        _result2.forEach(function (item) {
+                            item.isGenericProperty = true;
+                            allProps.push(item);
+                        });
+                        return callbackSeries();
+                    });
+                },
+            ],
+            function (err) {
+                self.authorizedProperties[sourceLabel] = allProps;
+                if (callback) return callback(err, allProps);
+            }
+        );
+    };
 
     self.getSourcePossiblePredicatesAndObject = function (source, callback) {
         var predicates = [];
