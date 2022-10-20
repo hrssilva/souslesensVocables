@@ -950,7 +950,7 @@ var xx = result
             $("#LineagePopup").load("snippets/lineage/lineageAddEdgeDialog.html", function () {
                 self.sourceNode = visjsGraph.data.nodes.get(edgeData.from).data;
                 self.targetNode = visjsGraph.data.nodes.get(edgeData.to).data;
-                $("#lineageAddEdgeDialog_Title").html(self.sourceNode.label + " -> " + self.targetNode.label);
+
 
                 let options = {
                     openAll: true,
@@ -1041,9 +1041,7 @@ var xx = result
                                     },
                                 });
                             }
-                            // var data = ["owl:sameAs"]
-                            //  common.fillSelectOptions("lineageAddEdgeDialog_generalPropertiesTreeDiv", data)
-                            //   common.jstree.loadJsTree("lineageAddEdgeDialog_generalPropertiesTreeDiv", jstreedata2, options);
+
                             callbackSeries();
                         },
 
@@ -1059,27 +1057,36 @@ var xx = result
                                 //   Sparql_OWL.getNodeParents(Lineage_classes.mainSource, null, [self.sourceNode.id, self.targetNode.id], ancestorsDepth, {}, function (err, result) {
                                 if (err) return callbackSeries(err);
                                 var topLevelOntologyPattern = Config.topLevelOntologies[Config.currentTopLevelOntology].uriPattern;
-
+                                var sourceNodeFirsttopLevelOntologyAncestorLabel=""
+                                var targetNodeFirsttopLevelOntologyAncestorLabel=""
                                 result.forEach(function (item) {
                                     if (!sourceNodeFirsttopLevelOntologyAncestor && item.class.value == self.sourceNode.id) {
                                         if (item.superClass.value.indexOf(topLevelOntologyPattern) > -1) {
                                             sourceNodeFirsttopLevelOntologyAncestor = item.superClass.value;
+                                            sourceNodeFirsttopLevelOntologyAncestorLabel= item.superClassLabel?item.superClassLabel.value:Sparql_common.getLabelFromURI(item.superClass.value)
                                         }
                                     }
-                                    if (!sourceNodeFirsttopLevelOntologyAncestor && item.class.value == self.targetNode.id) {
+                                    if (!targetNodeFirsttopLevelOntologyAncestor && item.class.value == self.targetNode.id) {
                                         if (item.superClass.value.indexOf(topLevelOntologyPattern) > -1) {
                                             targetNodeFirsttopLevelOntologyAncestor = item.superClass.value;
+                                            targetNodeFirsttopLevelOntologyAncestorLabel= item.superClassLabel?item.superClassLabel.value:Sparql_common.getLabelFromURI(item.superClass.value)
                                         }
                                     }
                                 });
+                                var title= (self.sourceNode.label + " -> " + self.targetNode.label)+"<br>";
 
                                 if (!sourceNodeFirsttopLevelOntologyAncestor || !targetNodeFirsttopLevelOntologyAncestor) {
                                     // alert("no matching topLevelOntology superClass");
+                                    title+="no matching superClass in " + Config.currentTopLevelOntology
                                     MainController.UI.message("no matching superClass in " + Config.currentTopLevelOntology);
                                     return callbackSeries();
                                 }
 
-                                self.getAuthorizedProperties(
+
+                             title+="<i>"+ Config.currentTopLevelOntology+" : "+sourceNodeFirsttopLevelOntologyAncestorLabel + " -> " + targetNodeFirsttopLevelOntologyAncestorLabel+"</i>";
+                                $("#lineageAddEdgeDialog_Title").html(title)
+
+                            self.getAuthorizedProperties(
                                     Config.currentTopLevelOntology,
                                     sourceNodeFirsttopLevelOntologyAncestor,
                                     targetNodeFirsttopLevelOntologyAncestor,
@@ -1338,7 +1345,7 @@ callbackSeries();
 
     self.getAuthorizedProperties = function (sourceLabel, domain, range, callback) {
 
-        self.getSourcePossiblePredicates(sourceLabel,function(err,allProps) {
+        self.loadSourcePossiblePredicates(sourceLabel,false,function(err,allProps) {
             if(err)
                 return alert(err)
 
@@ -1388,10 +1395,10 @@ callbackSeries();
 
 
 
-    self.getSourcePossiblePredicates=function(sourceLabel,callback){
+    self.loadSourcePossiblePredicates=function(sourceLabel,reload,callback){
         if (!self.authorizedProperties) self.authorizedProperties = {};
 
-        if(self.authorizedProperties[sourceLabel])
+        if(self.authorizedProperties[sourceLabel] && !reload && callback)
             return callback(null,self.authorizedProperties[sourceLabel])
 
             var allProps;
@@ -1419,6 +1426,7 @@ callbackSeries();
               ],
               function (err) {
                   self.authorizedProperties[sourceLabel] = allProps;
+                  if(callback)
                   return callback(err, allProps);
 
               }
