@@ -253,6 +253,12 @@ Certain version need migration of data. Run the script for the following version
 node scripts/sources_access_control_migration_treeview.js -c config -w
 ```
 
+#### Release 1.30
+
+```bash
+node scripts/controller-migration.js -c config -w
+```
+
 SouslesensVocables will be available at [localhost:3010](http://localhost:3010).
 
 ## Contribute to souslesensVocable
