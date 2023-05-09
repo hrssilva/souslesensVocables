@@ -17,10 +17,12 @@ var async = require("async");
 var fs = require("fs");
 
 const { configPath, config } = require("../model/config");
+
 //const { getAllowedSources, filterSources, sortObjectByKey, resourceFetched } = require("../api/v1/paths/utils");
 //const util = require("util");
 
 var ConfigManager = {
+
     // TODO move to model/config
     getGeneralConfig: function (callback) {
         var editableConfig = config;
