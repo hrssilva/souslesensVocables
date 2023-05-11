@@ -10,6 +10,10 @@ import visjsGraph from "../../../graph/visjsGraph2.js";
 
 var Lineage_linkedData_graph = (function() {
 	self.testVisjsData = { nodes: [], edges: [] };
+    self.context = "linkedData_graph";
+    self.tableShape = "square";
+    self.columnShape = "diamond";
+    self.databaseShape = " database";
     self.defaultShape = "dot";
 	self.defaultShapeSize = 5;
    	self.orphanShape = "square";
@@ -91,19 +95,19 @@ var Lineage_linkedData_graph = (function() {
         };*/
     }
     self.dataNodeGraphFromColumns = function (/*@type String*/ tableName, /*@type [String]*/ columns) {
-        var nodeId = 999; // Fixed for testing only
     	self.testVisjsData = { nodes: [], edges: [] };
         var tableNode = {
             id: tableName,
             label: tableName,
             shadow: self.nodeShadow,
-            shape: self.namedIndividualShape,
+            shape: self.tableShape,
             size: self.defaultShapeSize,
             color: self.namedIndividualColor, 
             data: {
                 id: tableName,
                 label: tableName + "_hasColumn",
-                source: tableName
+                type: "table",
+                context: self.context,
             }
         };
         
@@ -112,14 +116,17 @@ var Lineage_linkedData_graph = (function() {
             var currNode = {
                 id: tableName + '.' + column,
                 label: column,
+                level: 1,
                 shadow: self.nodeShadow,
-                shape: self.namedIndividualShape,
+                shape: self.columnShape,
                 size: self.defaultShapeSize,
                 color: self.namedIndividualColor,
                 data: {
-                    id: tableName + '.' + column,
+                    column: tableName + '.' + column,
                     label: column + "_isColumnOf",
-                    source: tableNode.id,
+                    database: tableNode.id,
+                    type: "column",
+                    context: self.context,
                 }
             };
             testVisjsData.nodes.push(currNode);
@@ -132,7 +139,6 @@ var Lineage_linkedData_graph = (function() {
                 to: currNode.id,
                 ahs: self.defaultEdgeArrowType
             });
-            nodeId += 1;   
         });
     };
     
