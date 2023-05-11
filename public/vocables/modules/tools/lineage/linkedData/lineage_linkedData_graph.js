@@ -92,31 +92,32 @@ var Lineage_linkedData_graph = (function() {
     }
     self.dataNodeGraphFromColumns = function (/*@type String*/ tableName, /*@type [String]*/ columns) {
         var nodeId = 999; // Fixed for testing only
+    	self.testVisjsData = { nodes: [], edges: [] };
         var tableNode = {
-            id: nodeId - 1,
+            id: tableName,
             label: tableName,
             shadow: self.nodeShadow,
             shape: self.namedIndividualShape,
             size: self.defaultShapeSize,
             color: self.namedIndividualColor, 
             data: {
-                id: nodeId - 1,
+                id: tableName,
                 label: tableName + "_hasColumn",
-                source: nodeId - 1
+                source: tableName
             }
         };
         
         testVisjsData.nodes.push(tableNode);
         columns.forEach((column) => {
             var currNode = {
-                id: nodeId,
+                id: tableName + '.' + column,
                 label: column,
                 shadow: self.nodeShadow,
                 shape: self.namedIndividualShape,
                 size: self.defaultShapeSize,
                 color: self.namedIndividualColor,
                 data: {
-                    id: nodeId,
+                    id: tableName + '.' + column,
                     label: column + "_isColumnOf",
                     source: tableNode.id,
                 }
@@ -125,7 +126,7 @@ var Lineage_linkedData_graph = (function() {
 
                    
             testVisjsData.edges.push({
-                id: nodeId + 100,
+                id: tableName + '_hasColumn_' + column,
                 from: tableNode.id,
                 label: "hasColumn",
                 to: currNode.id,
