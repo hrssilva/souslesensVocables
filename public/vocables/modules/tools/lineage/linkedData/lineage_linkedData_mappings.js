@@ -7,6 +7,8 @@ import Sparql_generic from "../../../sparqlProxies/sparql_generic.js";
 import Sparql_proxy from "../../../sparqlProxies/sparql_proxy.js";
 import Sparql_OWL from "../../../sparqlProxies/sparql_OWL.js";
 
+import Lineage_linkedData_graph from "./lineage_linkedData_graph.js"
+
 //www.nstauthority.co.uk/data-centre/data-downloads-and-publications/well-data/
 
 var Lineage_linkedData_mappings = (function () {
@@ -72,6 +74,16 @@ self.graphTable(KGcreator.currentTreeNode);
                 self.showSampledata(KGcreator.currentTreeNode, null, "mainDialogDiv");
             },
         };
+        
+        items.displayAsGraph = {
+            label: "Display as graph",
+            action: function (_e) {
+                Lineage_linkedData_graph.displayAsGraph(KGcreator.currentTreeNode, "KGcreator_csvTreeDiv");
+                Lineage_linkedData_graph.drawTest();
+            },
+        };
+       
+       
 
         return items;
     };
@@ -129,7 +141,7 @@ self.graphTable(KGcreator.currentTreeNode);
             column: jstreeNode.data.id,
             table: jstreeNode.parent,
             database: KGcreator.currentCsvDir || KGcreator.currentDbName,
-            contex: self.context,
+            context: self.context,
             type: "column",
         };
 
@@ -975,6 +987,12 @@ self.graphTable(KGcreator.currentTreeNode);
         };
         return items;
     };
+
+    self.dataNodeGraphTest = function () {
+        Lineage_linkedData_graph.dataNodeGraphFromColumns("Prod_data.csv", ["Case ID","Activity","Resource","Start Timestamp","Complete Timestamp","Span","Work Order  Qty","Part Desc.","Worker ID","Report Type","Qty Completed","Qty Rejected","Qty for MRB","Rework"]);
+        Lineage_linkedData_graph.dataNodeTriplesFromFile("Prod_data.csv", ["Case ID","Activity","Resource","Start Timestamp","Complete Timestamp","Span","Work Order  Qty","Part Desc.","Worker ID","Report Type","Qty Completed","Qty Rejected","Qty for MRB","Rework"]);
+        Lineage_linkedData_graph.drawTest();
+    }
 
     return self;
 })();
