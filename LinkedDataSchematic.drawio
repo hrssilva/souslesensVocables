@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" modified="2023-06-07T14:41:08.828Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0" etag="7jwgun55Mi332BZaR-cD" version="21.3.7" type="github">
+  <diagram name="Página-1" id="XvS91QaNDRL9XMEobmnc">
+    <mxGraphModel dx="1434" dy="774" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-1" target="dnzm_Y2kzyYdDm8OLgll-14" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-1" value="Relational&lt;br&gt;&lt;div&gt;DB&lt;br&gt;&lt;/div&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" parent="1" vertex="1">
+          <mxGeometry x="70" y="550" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-2" value="DB Schema" style="whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="60" y="380" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-3" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-2" target="dnzm_Y2kzyYdDm8OLgll-4" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="350" y="540" as="sourcePoint" />
+            <mxPoint x="310" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-4" value="DataModel Graph" style="whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="260" y="380" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-5" value="" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-2" target="dnzm_Y2kzyYdDm8OLgll-1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="420" as="sourcePoint" />
+            <mxPoint x="400" y="490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-6" target="dnzm_Y2kzyYdDm8OLgll-4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-6" target="dnzm_Y2kzyYdDm8OLgll-8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-6" target="dnzm_Y2kzyYdDm8OLgll-10" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-6" value="SLSV LinkedData Mappings UI" style="ellipse;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="240" y="150" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-8" value="Domain Ontology" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="60" y="150" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-10" target="dnzm_Y2kzyYdDm8OLgll-12" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-10" value="Mapping Triples" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="470" y="160" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-12" target="dnzm_Y2kzyYdDm8OLgll-15" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-12" value="Executable Mappings" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="470" y="350" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-14" target="dnzm_Y2kzyYdDm8OLgll-15" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-14" value="SLSV LinkedData Sparql UI" style="ellipse;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="670" y="160" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-15" target="dnzm_Y2kzyYdDm8OLgll-16" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-15" value="Sparql/SQL engine (Ontop?)" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="490" y="520" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=1;entryDx=0;entryDy=-15;entryPerimeter=0;" parent="1" source="dnzm_Y2kzyYdDm8OLgll-16" target="dnzm_Y2kzyYdDm8OLgll-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dnzm_Y2kzyYdDm8OLgll-16" value="SQL Query" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="290" y="585" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
