@@ -1062,7 +1062,7 @@ self.saveMappings({classId:classId})
                     self.mainJsonEditorModified = false;
 
                     if (!self.currentJsonObject.graphUri) {
-                        currentJsonObject.graphUri = self.currentGraphUri || "";
+                        self.currentJsonObject.graphUri = self.currentGraphUri || "";
                     } else {
                         self.currentGraphUri = self.currentJsonObject.graphUri;
                     }
