@@ -66,6 +66,8 @@
         <script type="module" src="modules/uiWidgets/nodeInfosWidget.js"></script>
         <script type="module" src="modules/uiWidgets/searchWidget.js"></script>
 
+        <script type="module" src="modules/tools/lineage/lineage_rules.js"></script>
+
         <script type="module" src="modules/tools/owlEditor.js"></script>
 
         <script type="module" src="modules/tools/Standardizer.js"></script>
@@ -83,9 +85,17 @@
         <script type="module" src="modules/tools/ontologiesStats.js"></script>
 
         <script src="config/app_config.js"></script>
-        <!--    <script src="config/app_config_draft_tools.js"></script>-->
 
         <script type="module" src="modules/shared/authentification.js"></script>
+        <script type="module">
+            import { allTools, loadToolsAndPlugins } from "./config/tools.js";
+
+            try {
+                await loadToolsAndPlugins();
+            } catch (error) {
+                console.error("Failed to load tools and plugins", error);
+            }
+        </script>
 
         <script type="module" src="modules/sparqlProxies/sparql_proxy.js"></script>
         <script type="module" src="modules/sparqlProxies/sparql_generic.js"></script>
@@ -108,8 +118,7 @@
         <script type="module" src="modules/tools/lineage/lineage_reasoner.js"></script>
 
         <script type="module" src="modules/tools/lineage/lineage_similars.js"></script>
-
-        <script type="module" src="config/tools_m.js"></script>
+        <script type="module" src="modules/shared/graphLoader.js"></script>
 
         <link
             rel="stylesheet"
@@ -208,7 +217,7 @@
                     $("#mainDialogDiv").dialog({
                         autoOpen: false,
                         height: 800,
-                        width: 1000,
+                        width: $(document).width() * 0.85,
                         modal: false,
                     });
 

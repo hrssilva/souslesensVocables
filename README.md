@@ -59,16 +59,18 @@ Edit the `.env` file:
 
 The `DATA_ROOT_DIR` is defined by default to `/tmp`, change it for data persistance.
 
-| variable                       | description                                                          |
-| ------------------------------ | -------------------------------------------------------------------- |
-| `TAG`                          | souslesensVocable release. Same as you checkout at the previous step |
-| `VOCABLES_LISTEN_PORT`         | Port of souslesensVocable that will be exposed outside               |
-| `VIRTUOSO_LISTEN_PORT`         | Port of virtuoso that will be exposed outside                        |
-| `DATA_ROOT_DIR`                | Where the data will be written                                       |
-| `USER_PASSWORD`                | Password of the `admin` user automatically created at first start    |
-| `SA_PASSWORD`                  | Password of the sql server                                           |
-| `DBA_PASSWORD`                 | Password of the virtuoso server                                      |
-| `FORMAL_ONTOLOGY_SOURCE_LABEL` |                                                                      |
+| variable                       | description                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `TAG`                          | souslesensVocable release. Same as you checkout at the previous step            |
+| `VOCABLES_LISTEN_PORT`         | Port of souslesensVocable that will be exposed outside                          |
+| `VIRTUOSO_LISTEN_PORT`         | Port of virtuoso that will be exposed outside                                   |
+| `JOWL_LISTEN_PORT`             | Port of [jowl](https://github.com/souslesens/jowl) that will be exposed outside |
+| `JOWL_PATH`                    | Path of the [jowl](https://github.com/souslesens/jowl) repository               |
+| `DATA_ROOT_DIR`                | Where the data will be written                                                  |
+| `USER_PASSWORD`                | Password of the `admin` user automatically created at first start               |
+| `SA_PASSWORD`                  | Password of the sql server                                                      |
+| `DBA_PASSWORD`                 | Password of the virtuoso server                                                 |
+| `FORMAL_ONTOLOGY_SOURCE_LABEL` |                                                                                 |
 
 ### Advanced configuration
 
@@ -196,7 +198,13 @@ Run the config script to create a default configuration:
 node scripts/init_configs.js
 ```
 
-Then, edit the `config/*.json` to your needs.
+Then, edit the `config/*.json` to your needs or run the following
+script to copy the values from the docker-compose configuration
+into the `config/*.json` files.
+
+```bash
+node scripts/config_from_docker_compose.js
+```
 
 ### Start docker dependencies
 
@@ -209,7 +217,7 @@ docker-compose -f docker-compose.dev.yaml up -d
 Load some data into virtuoso
 
 ```bash
-bash tests/load_data.sh
+bash tests/load_data.sh dev
 ```
 
 Create a user account in MariaDB (for database authentication)
@@ -265,6 +273,12 @@ node scripts/controller-migration.js -c config -w
 node scripts/remove_admin_profile_migration.js -c config -w
 ```
 
+#### Release 1.37
+
+```bash
+node scripts/migration_1.37_sources.js -c config -w
+```
+
 SouslesensVocables will be available at [localhost:3010](http://localhost:3010).
 
 ## Contribute to souslesensVocable
@@ -299,3 +313,32 @@ git push --tags
 ```
 
 GitHub releases and docker images are created on tags with GitHub Actions.
+
+### Plugins system
+
+In root create a plugins folder
+
+`mkdir plugins`
+
+Each directory is named after the plugin we want to add.
+
+```
+plugins/
+└── MyPlugin
+    └── public
+        └── MyPlugin.js
+```
+
+The plugin's directory must contain a public directory with the source code within it.
+
+MyPlugin.js must export a single IIFE function.
+
+```
+const Toto = (function () {
+    return { name: "toto" };
+})();
+export default Toto;
+```
+
+Once it done, don't forget to add the plugin's name to `mainConfig.tools_available`.
+If you still don't see the plugin in the jsTree, check that your user's profile allows to see this plugin.

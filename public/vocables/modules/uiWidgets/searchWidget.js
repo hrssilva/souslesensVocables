@@ -69,7 +69,7 @@ var SearchWidget = (function () {
      *  -contextMenufn
      *
      */
-    self.searchAllSourcesTerm = function (options) {
+    self.searchTermInSources = function (options) {
         if (!options) {
             options = {};
         }
@@ -518,7 +518,7 @@ return*/
                     if (_options.contextMenu) {
                         return _options.contextMenu;
                     } else if (_options.contextMenuFn) {
-                        return _options.contextMenuFn;
+                        return _options.contextMenuFn();
                     } else if (Config.tools[MainController.currentTool].controller.contextMenuFn) {
                         return Config.tools[MainController.currentTool].controller.contextMenuFn;
                     } else {
@@ -666,6 +666,14 @@ return*/
                     Lineage_common.copyNodeToClipboard(self.currentTreeNode);
                 },
             };
+            /*  items.axioms = {
+                label: "graph axioms",
+                action: function (e) {
+
+                    NodeInfosWidget.showNodeInfos(self.currentTreeNode.data.source, self.currentTreeNode, "mainDialogDiv",{showAxioms:1});
+
+                },
+            };*/
 
             if (self.currentSource && Config.sources[self.currentSource].editable) {
                 items.pasteNode = {

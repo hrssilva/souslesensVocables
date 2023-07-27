@@ -66,10 +66,15 @@ services:
         networks:
             - backend
 
-    spacyserver:
-        image: neelkamath/spacy-server:2-en_core_web_sm
-        networks:
-            - backend
+    jowl:
+        image: jowl:latest
+        build:
+            context: ${JOWL_PATH}
+            dockerfile: Dockerfile
+        container_name: jowl
+        restart: always
+        ports:
+            - ${JOWL_LISTEN_PORT:-9170}:9170
 
 networks:
     backend:

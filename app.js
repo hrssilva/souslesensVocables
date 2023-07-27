@@ -1,6 +1,7 @@
 const createError = require("http-errors");
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
 const morganLogger = require("morgan");
@@ -15,6 +16,8 @@ const { config } = require("./model/config");
 
 const app = express();
 const Sentry = require("@sentry/node");
+const { userModel } = require("./model/users");
+const { profileModel } = require("./model/profiles");
 
 // sentry/glitchtip
 if (config.sentryDsnNode) {
@@ -34,12 +37,19 @@ app.use(morganLogger("dev"));
  * App middleware for authentication and session handling
  */
 app.use(cookieParser());
+if (config.cookieSecureTrustProxy) {
+    app.set("trust proxy", 1);
+}
 app.use(
     require("express-session")({
         secret: config.cookieSecret ? config.cookieSecret : "S3cRet!",
         resave: false,
         saveUninitialized: false,
-        cookie: { maxAge: config.cookieMaxAge ? config.cookieMaxAge : 2629800000 },
+        cookie: {
+            maxAge: config.cookieMaxAge ? config.cookieMaxAge : 2629800000,
+            sameSite: config.cookieSameSite ? config.cookieSameSite : false,
+            secure: config.cookieSecure ? config.cookieSecure : false,
+        },
     })
 );
 
@@ -63,6 +73,48 @@ if (config.auth !== "disabled") {
 // Static content
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "mainapp/static")));
+
+async function loggedIn(req, _res, next) {
+    if (req.isAuthenticated || config.auth === "disabled") {
+        // TODO: check allowedTools and forbiddenTools
+        next();
+    } else {
+        throw {
+            status: 401,
+            message: "You must authenticate to access this resource.",
+        };
+    }
+}
+
+function isPluginAllowed(tool) {
+    return async (req, res, next) => {
+        try {
+            const userInfo = await userManager.getUser(req.user);
+            const userTools = await profileModel.getUserTools(userInfo.user);
+
+            if (userTools.map((i) => i.name).includes(tool)) {
+                next();
+            } else {
+                throw {
+                    status: 401,
+                    message: "You must authenticate to access this resource.",
+                };
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    };
+}
+
+const pluginDir = path.join(__dirname, "plugins");
+try {
+    const dirs = fs.readdirSync(pluginDir);
+    dirs.forEach((plugin) => {
+        app.use(`/plugins/${plugin}`, loggedIn, isPluginAllowed(plugin), express.static(path.join(__dirname, `plugins/${plugin}/public`)));
+    });
+} catch {
+    console.warn("No plugins directory available");
+}
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));

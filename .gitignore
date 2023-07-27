@@ -1,3 +1,5 @@
+plugins
+
 # Cypress
 core
 cypress/screenshots/
@@ -138,3 +140,7 @@ mainapp/lib
 /data/CSV/CFIHOS_V1.5_RDL/
 
 /public/yasguy/
+/mainapp/static/index.html
+/public/vocables/snippets/treemap/
+/mainapp/static/kg_upload_app.js.LICENSE.txt
+/mainapp/static/mainapp.js.LICENSE.txt
