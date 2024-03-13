@@ -102,7 +102,13 @@ class ProfileModel {
             } catch {
                 console.warn("No plugins directory");
             }
+
+
             const toolsFromNames = (tools) => [...tools].map((tool) => ({ name: tool, type: plugins.includes(tool) ? "plugin" : "tool" }));
+
+
+
+
 
             if (user.login === "admin" || user?.groups.includes("admin")) {
                 return toolsFromNames(allTools);
@@ -201,6 +207,23 @@ class ProfileModel {
         } finally {
             lock.release("ProfilesThread");
         }
+    };
+
+    /**
+     * @param {string} profileName - the profile name
+     * @returns {string} the theme currently defined for this profile
+     */
+    getThemeFromProfile = async (profileName) => {
+        const profiles = await this._read();
+
+        const firstProfile = Object.values(profiles).find((profile) => {
+            if (profile.name === profileName) {
+                return profile.theme;
+            }
+        });
+        const findTheme = firstProfile.theme;
+
+        return findTheme !== undefined ? findTheme : config.theme.defaultTheme;
     };
 }
 
