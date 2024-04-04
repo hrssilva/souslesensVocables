@@ -1,6 +1,6 @@
 {
     "name": "souslesensvocables",
-    "version": "1.55.1",
+    "version": "1.62.1",
     "private": true,
     "workspaces": [
         "mainapp"
@@ -20,9 +20,9 @@
         "tools:ncu": "ncu",
         "tools:tsc": "tsc",
         "tools:eslint": "eslint",
-        "release:patch": "standard-version --skip.tag --skip.commit --skip.changelog -t '' -r patch",
-        "release:minor": "standard-version --skip.tag --skip.commit --skip.changelog -t '' -r minor",
-        "release:major": "standard-version --skip.tag --skip.commit --skip.changelog -t '' -r major",
+        "release:patch": "standard-version --skip.tag --skip.commit -t '' -r patch",
+        "release:minor": "standard-version --skip.tag --skip.commit -t '' -r minor",
+        "release:major": "standard-version --skip.tag --skip.commit -t '' -r major",
         "release:tag": "sh release-new.sh"
     },
     "devDependencies": {
@@ -56,6 +56,9 @@
         "@mui/icons-material": "^5.15.10",
         "@mui/material": "^5.15.10",
         "@sentry/node": "^7.101.1",
+        "antlr4": "^4.13.1",
+        "antlr4-autosuggest": "^0.0.28",
+        "antlr4ts": "^0.5.0-alpha.4",
         "async": "^3.2.5",
         "async-await-mutex-lock": "^1.0.11",
         "bash": "^0.0.1",
@@ -76,6 +79,7 @@
         "express-session": "^1.18.0",
         "http-errors": "~2.0.0",
         "inflected": "^2.1.0",
+        "knex": "^3.1.0",
         "latest": "^0.2.0",
         "mariadb": "^3.2.3",
         "mime": "^3.0.0",
@@ -91,6 +95,7 @@
         "passport-keycloak-oauth2-oidc": "^1.0.5",
         "passport-local": "^1.0.0",
         "path-to-regexp": "^6.2.1",
+        "pg": "^8.11.3",
         "pug": "^3.0.2",
         "rdf-parse": "^2.3.3",
         "rdfxml-streaming-parser": "^2.4.0",
@@ -101,6 +106,7 @@
         "superagent": "^8.1.2",
         "superagent-proxy": "^3.0.0",
         "swagger-ui-express": "^4.6.3",
+        "tedious": "^17.0.0",
         "three": "^0.161.0",
         "tmp": "^0.2.1",
         "ulid": "^2.3.0",

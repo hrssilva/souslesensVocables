@@ -1,10 +1,12 @@
 import {
     Button,
     Checkbox,
+    Chip,
     FormControl,
     FormControlLabel,
     Grid,
     InputLabel,
+    Link,
     MenuItem,
     Modal,
     Select,
@@ -96,77 +98,92 @@ const SourcesTable = () => {
                     return { ...dataWithoutCarriageReturns };
                 });
                 const sortedSources: ServerSource[] = gotSources.slice().sort((a: ServerSource, b: ServerSource) => {
-                    const left: string = a[orderBy] as string;
-                    const right: string = b[orderBy] as string;
+                    const left: string = a[orderBy] || ("" as string);
+                    const right: string = b[orderBy] || ("" as string);
                     return order === "asc" ? left.localeCompare(right) : right.localeCompare(left);
                 });
 
                 return (
-                    <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                        <Stack>
-                            <CsvDownloader separator="&#9;" filename="sources" extension=".tsv" datas={datas as Datas} />
-                            <Autocomplete
-                                disablePortal
-                                id="search-sources"
-                                options={gotSources.map((source) => source.name)}
-                                sx={{ width: 300 }}
-                                onInputChange={(event, newInputValue) => {
-                                    setFilteringChars(newInputValue);
-                                }}
-                                renderInput={(params) => <TextField {...params} label="Search Sources by name" />}
-                            />{" "}
-                            <Box id="table-container" sx={{ justifyContent: "center", height: "400px", display: "flex" }}>
-                                <TableContainer sx={{ height: "400px" }} component={Paper}>
-                                    <Table>
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell style={{ fontWeight: "bold" }}>
-                                                    <TableSortLabel active={orderBy === "name"} direction={order} onClick={() => handleRequestSort("name")}>
-                                                        Name
-                                                    </TableSortLabel>
-                                                </TableCell>
-                                                <TableCell style={{ fontWeight: "bold" }}>graphUri</TableCell>
-                                                <TableCell style={{ fontWeight: "bold" }}>Actions</TableCell>
-                                                <TableCell style={{ fontWeight: "bold" }}>Data</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody sx={{ width: "100%", overflow: "visible" }}>
-                                            {sortedSources
-                                                .filter((source) => source.name.includes(filteringChars))
-                                                .map((source) => {
-                                                    const haveIndices = indices ? indices.includes(source.name.toLowerCase()) : false;
-                                                    const haveGraphs = graphs ? graphs.includes(source.graphUri || "") : false;
-                                                    console.log();
-                                                    return (
-                                                        <TableRow key={source.name}>
-                                                            <TableCell>{source.name}</TableCell>
-                                                            <TableCell>{source.graphUri}</TableCell>
-                                                            <TableCell>
-                                                                <Box sx={{ display: "flex" }}>
-                                                                    <SourceForm source={source} />
-                                                                    <ButtonWithConfirmation label="Delete" msg={() => deleteSource(source, updateModel)} />
-                                                                </Box>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Tooltip title="RDF Graph">
-                                                                    <CircleIcon sx={{ color: graphs !== null ? (haveGraphs ? green[500] : pink[500]) : grey[500] }} />
-                                                                </Tooltip>
-                                                                <Tooltip title="ElasticSearch indices">
-                                                                    <CircleIcon sx={{ color: indices !== null ? (haveIndices ? green[500] : pink[500]) : grey[500] }} />
-                                                                </Tooltip>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            </Box>
-                            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                                <SourceForm create={true} />
-                            </Box>
+                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ mx: 12, my: 4 }} useFlexGap>
+                        <Autocomplete
+                            disablePortal
+                            id="search-sources"
+                            options={gotSources.map((source) => source.name)}
+                            onInputChange={(event, newInputValue) => {
+                                setFilteringChars(newInputValue);
+                            }}
+                            renderInput={(params) => <TextField {...params} label="Search Sources by name" />}
+                        />
+                        <TableContainer sx={{ maxHeight: "400px" }} component={Paper}>
+                            <Table stickyHeader>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell style={{ fontWeight: "bold" }}>
+                                            <TableSortLabel active={orderBy === "name"} direction={order} onClick={() => handleRequestSort("name")}>
+                                                Name
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell style={{ fontWeight: "bold", width: "100%" }}>
+                                            <TableSortLabel active={orderBy === "graphUri"} direction={order} onClick={() => handleRequestSort("graphUri")}>
+                                                Graph URI
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold" }}>
+                                            <TableSortLabel active={orderBy === "group"} direction={order} onClick={() => handleRequestSort("group")}>
+                                                Group
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold" }}>
+                                            Data
+                                        </TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold" }}>
+                                            Actions
+                                        </TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody sx={{ width: "100%", overflow: "visible" }}>
+                                    {sortedSources
+                                        .filter((source) => source.name.includes(filteringChars))
+                                        .map((source) => {
+                                            const haveIndices = indices ? indices.includes(source.name.toLowerCase()) : false;
+                                            const haveGraphs = graphs ? graphs.includes(source.graphUri || "") : false;
+                                            console.log();
+                                            return (
+                                                <TableRow key={source.name}>
+                                                    <TableCell>{source.name}</TableCell>
+                                                    <TableCell>
+                                                        <Link href={source.graphUri}>{source.graphUri}</Link>
+                                                    </TableCell>
+                                                    <TableCell align="center">{source.group ? <Chip label={source.group} size="small" /> : ""}</TableCell>
+                                                    <TableCell align="center">
+                                                        <Stack direction="row" justifyContent="center" useFlexGap>
+                                                            <Tooltip title="RDF Graph">
+                                                                <CircleIcon sx={{ color: graphs !== null ? (haveGraphs ? green[500] : pink[500]) : grey[500] }} />
+                                                            </Tooltip>
+                                                            <Tooltip title="ElasticSearch indices">
+                                                                <CircleIcon sx={{ color: indices !== null ? (haveIndices ? green[500] : pink[500]) : grey[500] }} />
+                                                            </Tooltip>
+                                                        </Stack>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
+                                                            <SourceForm source={source} />
+                                                            <ButtonWithConfirmation label="Delete" msg={() => deleteSource(source, updateModel)} />
+                                                        </Stack>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                        <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
+                            <CsvDownloader separator="&#9;" filename="sources" extension=".tsv" datas={datas as Datas}>
+                                <Button variant="outlined">Download CSV</Button>
+                            </CsvDownloader>
+                            <SourceForm create={true} />
                         </Stack>
-                    </Box>
+                    </Stack>
                 );
             },
         },
@@ -303,6 +320,9 @@ const SourceForm = ({ source = defaultSource(ulid()), create = false }: SourceFo
     const handleFieldUpdate = (fieldname: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
         update({ type: Type.UserUpdatedField, payload: { fieldname: fieldname, newValue: event.target.value } });
     };
+    const handleGroupUpdate = (value: string) => {
+        update({ type: Type.UserUpdatedField, payload: { fieldname: "group", newValue: value } });
+    };
 
     const handleTaxonomyPredicatesUpdate = (value: string[]) => {
         update({ type: Type.UserUpdatedField, payload: { fieldname: "taxonomyPredicates", newValue: value } });
@@ -353,13 +373,9 @@ const SourceForm = ({ source = defaultSource(ulid()), create = false }: SourceFo
     const handleCheckbox = (checkboxName: string) => (event: React.ChangeEvent<HTMLInputElement>) =>
         update({ type: Type.UserClickedCheckBox, payload: { checkboxName: checkboxName, value: event.target.checked } });
 
-    const knownTaxonomyPredicates = [
-        ...new Set(
-            sources.flatMap((source) => {
-                return source.taxonomyPredicates;
-            })
-        ),
-    ];
+    const knownGroup = [...new Set(sources.flatMap((source) => source.group))].filter((group) => group.length > 0);
+    const knownTaxonomyPredicates = [...new Set(sources.flatMap((source) => source.taxonomyPredicates))];
+
     function validateSourceName(sourceName: string) {
         const issues = createCustomIssues(InputSourceSchema);
 
@@ -615,23 +631,27 @@ const SourceForm = ({ source = defaultSource(ulid()), create = false }: SourceFo
                             </FormControl>
                         </Grid>
                         <Grid item xs={6}>
-                            <TextField
-                                fullWidth
-                                helperText={errorMessage(zo.errors.group)}
-                                onBlur={validateAfterSubmission}
-                                onChange={handleFieldUpdate("group")}
-                                value={sourceModel.sourceForm.group}
-                                id={`group`}
-                                name={zo.fields.group()}
+                            <Autocomplete
+                                freeSolo
+                                disableClearable
+                                options={knownGroup}
                                 label={"Group"}
-                                variant="standard"
-                                InputProps={{
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <HelpButton title="Group" message={sourceHelp.group} />
-                                        </InputAdornment>
-                                    ),
-                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        helperText={errorMessage(zo.errors.group)}
+                                        id="group"
+                                        label="Group"
+                                        name={zo.fields.group()}
+                                        onBlur={validateAfterSubmission}
+                                        onChange={handleFieldUpdate("group")}
+                                        value={sourceModel.sourceForm.group}
+                                        InputProps={{
+                                            ...params.InputProps,
+                                            type: "search",
+                                        }}
+                                    />
+                                )}
                             />
                         </Grid>
 

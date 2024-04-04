@@ -10,6 +10,9 @@ import KGcreator_run from "./KGcreator_run.js";
 import KGcreator_joinTables from "./KGcreator_joinTables.js";
 import KGcreator_bot from "../../bots/KGcreator_bot.js";
 
+// imports React app
+import("/assets/kg_upload_app.js");
+
 var KGcreator = (function () {
     var self = {};
     self.currentConfig = {};
@@ -45,6 +48,7 @@ var KGcreator = (function () {
             },
             beforeClose: function () {
                 self.umountKGUploadApp();
+                self.initSource();
             },
         });
         $("#smallDialogDiv").dialog("open");
@@ -230,6 +234,7 @@ var KGcreator = (function () {
                         self.showTableVirtualColumnsTree(table);
                         KGcreator_mappings.showTableMappings(obj.node.id);
                     } else if (obj.node.data.type == "tableColumn") {
+                        KGcreator_bot.start(obj.node);
                     } else if (obj.node.data.type == "csvFileColumn") {
                     }
                 },
@@ -437,17 +442,14 @@ var KGcreator = (function () {
                 },
             });
 
-            for (var datasource in self.currentConfig.databaseSources) {
-                var sqlType = self.currentConfig.databaseSources[datasource].type;
-
+            Object.entries(self.currentConfig.databaseSources).forEach(([key, datasource]) => {
                 jstreeData.push({
-                    id: datasource,
-                    text: datasource,
+                    id: key,
+                    text: datasource.name || key,
                     parent: "databaseSources",
-                    type: "DataSource",
-                    data: { id: datasource, type: "databaseSource", sqlType: sqlType },
+                    data: { id: datasource.name, type: "databaseSource" },
                 });
-            }
+            });
             for (var datasource in self.currentConfig.csvSources) {
                 jstreeData.push({
                     id: datasource,
@@ -580,7 +582,7 @@ var KGcreator = (function () {
                     var payload = {
                         fileName: fileName,
                         dir: "CSV/" + slsvSource,
-                        lines: 200,
+                        lines: 100,
                     };
                     $.ajax({
                         type: "GET",
@@ -591,6 +593,7 @@ var KGcreator = (function () {
                             columns = result.headers;
                             var tableObj = { [fileName]: columns };
                             self.currentConfig.currentDataSource.tables = tableObj;
+                            self.currentConfig.currentDataSource.sampleData = result.data[0];
                             callbackSeries();
                         },
                         error: function (err) {
@@ -881,23 +884,17 @@ var KGcreator = (function () {
         self.displayUploadApp("");
         $("#smallDialogDiv").dialog("close");
 
-        var datasourceName = self.uploadFormData.selectedDatabase;
-        if (!datasourceName) {
+        var datasource = self.uploadFormData.selectedDatabase;
+        if (!datasource) {
             return;
         }
-        var sqlType = "sql.sqlserver";
-        var json = {
-            type: sqlType,
-            connection: "_default",
-            tableJoins: [],
-        };
-        self.currentConfig.databaseSources[datasourceName] = json;
-        self.rawConfig.databaseSources[datasourceName] = json;
+        self.currentConfig.databaseSources[datasource.id] = { name: datasource.name };
+        self.rawConfig.databaseSources[datasource.id] = { name: datasource.name };
         self.saveSlsvSourceConfig(function (err, result) {
             if (err) {
                 return alert(err);
             }
-            self.addDataSourceToJstree("databaseSource", datasourceName, sqlType);
+            self.addDataSourceToJstree("databaseSource", datasource, "sql.sqlserver");
         });
     };
 
@@ -926,14 +923,13 @@ var KGcreator = (function () {
         });
     };
 
-    self.addDataSourceToJstree = function (type, datasourceName, sqlType) {
+    self.addDataSourceToJstree = function (type, datasource, sqlType) {
         var jstreeData = [
             {
-                id: datasourceName,
-                text: datasourceName,
-                type: "DataSource",
+                id: datasource.id,
+                text: datasource.name,
                 parent: type + "s",
-                data: { id: datasourceName, type: type, sqlType: sqlType },
+                data: { id: datasource.name, type: type },
             },
         ];
 
@@ -943,7 +939,7 @@ var KGcreator = (function () {
     self.listDatabaseTables = function (databaseSource, type, callback) {
         const params = new URLSearchParams({
             name: databaseSource,
-            type: type,
+            type: type || "sql.sqlserver",
         });
 
         $.ajax({
@@ -960,7 +956,7 @@ var KGcreator = (function () {
                 }
                 return callback(null, data);
             },
-            error: function (_err) {
+            error: function (err) {
                 return callback(err);
             },
         });
@@ -1019,8 +1015,8 @@ var KGcreator = (function () {
             $("#smallDialogDiv").html(html);
         }
 
-        if (node.data.sample) {
-            showTable(node.data.sample);
+        if (self.currentConfig.currentDataSource.sampleData) {
+            showTable(self.currentConfig.currentDataSource.sampleData);
         } else if (self.currentConfig.currentDataSource.type == "databaseSource") {
             var size = 200;
             var sqlQuery = "select top  " + size + "* from " + node.data.id;
@@ -1099,5 +1095,3 @@ var KGcreator = (function () {
 
 export default KGcreator;
 window.KGcreator = KGcreator;
-// imports React app
-import("/assets/kg_upload_app.js");
