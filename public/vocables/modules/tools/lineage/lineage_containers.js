@@ -6,11 +6,13 @@ import Sparql_proxy from "../../sparqlProxies/sparql_proxy.js";
 import Sparql_generic from "../../sparqlProxies/sparql_generic.js";
 import JstreeWidget from "../../uiWidgets/jstreeWidget.js";
 
+import Containers_tree from "../containers/containers_tree.js";
+
 self.lineageVisjsGraph;
 
 var Lineage_containers = (function () {
     var self = {};
-
+    self.containerEdgeColor = "#ecba4c";
     self.containerStyle = { shape: "square", color: "#ecba4c" };
     self.nbOfancestors_tree_search = 0;
     self.ancestors_tree_search_areRunning = [false, false, false];
@@ -97,6 +99,8 @@ var Lineage_containers = (function () {
     };
 
     self.search = function (memberType, callback) {
+        return Containers_tree.search("lineage_containers_containersJstree");
+
         if (!callback) {
             callback = function () {};
         }
@@ -133,8 +137,12 @@ var Lineage_containers = (function () {
         if ($("#lineage_containers_containersJstree").jstree) {
             $("#lineage_containers_containersJstree").empty();
         }
+        var options = {};
         if (self.flag_search == false) {
-            self.drawContainerJstree(source, filter, "lineage_containers_containersJstree", search_on_container, memberType, {}, function (err, result) {
+            if (term != "") {
+                options.depth = 5;
+            }
+            self.drawContainerJstree(source, filter, "lineage_containers_containersJstree", search_on_container, memberType, options, function (err, result) {
                 if (err) {
                     return alert(err.responseText);
                 }
@@ -149,7 +157,9 @@ var Lineage_containers = (function () {
         if (!options) {
             options = {};
         }
-        options.depth = 5;
+        if (!options.depth) {
+            options.depth = 1;
+        }
         if (!options.filter) {
             options.filter = "";
         }
@@ -522,13 +532,13 @@ var Lineage_containers = (function () {
                             id: edgeId,
                             from: container.id,
                             to: nodeData.id,
-                            arrows: " middle",
+                            // arrows: " middle",
 
                             data: { propertyId: "http://www.w3.org/2000/01/rdf-schema#member", source: source },
                             font: { multi: true, size: 10 },
 
                             //  dashes: true,
-                            color: "#8528c9",
+                            color: self.containerEdgeColor,
                         });
                     }
                 });
@@ -719,7 +729,7 @@ var Lineage_containers = (function () {
 
                     var shape = "dot";
                     var color2 = common.colorToRgba(color, opacity * 0.7);
-                    var memberEdgeColor = common.colorToRgba("#8528c9", opacity * 0.7);
+                    var memberEdgeColor = common.colorToRgba(self.containerEdgeColor, opacity * 0.7);
                     var size = Lineage_whiteboard.defaultShapeSize;
 
                     if (!existingNodes[containerData.id]) {
@@ -765,9 +775,19 @@ var Lineage_containers = (function () {
                         }
 
                         if (!existingNodes[item.member.value]) {
+                            var color = Lineage_containers.containerStyle.color;
+                            var shape = Lineage_containers.containerStyle.shape;
                             var type = "container";
                             if (item.memberTypes.value.indexOf("Bag") < 0) {
-                                type = "class";
+                                color = Lineage_whiteboard.getSourceColor(Lineage_sources.activeSource);
+                                if (item.memberTypes.value.indexOf("Individual") > -1) {
+                                    type = "individual";
+                                    shape = "triangle";
+                                } else {
+                                    type = "class";
+                                    shape = Lineage_whiteboard.defaultShape;
+                                    shape = "dot";
+                                }
                             }
 
                             existingNodes[item.member.value] = 1;
@@ -775,10 +795,10 @@ var Lineage_containers = (function () {
                                 id: item.member.value,
                                 label: item.memberLabel.value,
                                 shadow: self.nodeShadow,
-                                shape: type == "container" ? Lineage_containers.containerStyle.shape : Lineage_whiteboard.defaultShape,
+                                shape: shape,
                                 size: size,
                                 font: type == "container" ? { color: color2, size: 10 } : null,
-                                color: Lineage_containers.containerStyle.color,
+                                color: color,
 
                                 data: {
                                     type: type,
@@ -798,13 +818,13 @@ var Lineage_containers = (function () {
                                     id: edgeId,
                                     from: containerData.id,
                                     to: item.parent.value,
-                                    arrows: {
+                                    /*  arrows: {
                                         middle: {
                                             enabled: true,
                                             type: Lineage_whiteboard.defaultEdgeArrowType,
-                                            scaleFactor: 0.5,
-                                        },
-                                    },
+                                            scaleFactor: 0.5
+                                        }
+                                    },*/
                                     data: {
                                         from: containerData.id,
                                         to: item.parent.value,
@@ -1115,12 +1135,12 @@ var Lineage_containers = (function () {
                         id: edgeId,
                         from: item.container.value,
                         to: item.node.value,
-                        arrows: "middle",
+                        //    arrows: "middle",
                         data: { from: item.container.value, to: item.node.value, source: source },
                         font: { multi: true, size: 10 },
 
                         //  dashes: true,
-                        color: "#8528c9",
+                        color: self.containerEdgeColor,
                     });
                 }
             });

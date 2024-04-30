@@ -1,5 +1,5 @@
-import common from "../shared/common.js";
-import Sparql_common from "../sparqlProxies/sparql_common.js";
+import common from "../../shared/common.js";
+import Sparql_common from "../../sparqlProxies/sparql_common.js";
 
 var IndividualAggregateWidget = (function () {
     var self = {};
@@ -15,24 +15,27 @@ var IndividualAggregateWidget = (function () {
             self.divId = divId;
             $("#smallDialogDiv").dialog("open");
         }
-        $("#" + divId).load("snippets/individualAggregateWidget.html", function () {
+        $("#" + divId).load("modules/tools/KGquery/html/individualAggregateWidget.html", function () {
             loadClassesFn(function (data) {
                 self.groupByClassesMap = {};
                 self.functionVarClassesMap = {};
+                self.allProperties = {};
                 for (var key in data) {
                     var item = data[key];
 
-                    var otherproperties = item.data.nonObjectProperties;
-                    if (otherproperties) {
+                    if (item.data.nonObjectProperties) {
                         var groupByTypes = [
                             "http://www.w3.org/2001/XMLSchema#string",
                             "http://www.w3.org/2001/XMLSchema#date",
                             "http://www.w3.org/2001/XMLSchema#datetime",
                             "http://www.w3.org/2000/01/rdf-schema#Literal",
                         ];
-                        otherproperties.forEach(function (prop) {
-                            var label = item.label + "_" + prop.label;
-                            var obj = { label: label, item: item, prop: prop };
+
+                        item.data.nonObjectProperties.forEach(function (prop) {
+                            var label = (item.alias || item.label) + "_" + prop.label;
+
+                            var obj = { label: label, item: item, prop: prop, classLabel: item.data.label };
+                            self.allProperties[label] = obj;
                             if (groupByTypes.indexOf(prop.datatype) > -1) {
                                 self.groupByClassesMap[label] = obj;
                             } else {
@@ -40,12 +43,6 @@ var IndividualAggregateWidget = (function () {
                             }
                         });
                     }
-
-                    /*  if (item.data.datatype) {
-                          self.functionVarClasses.push(item);
-                      } else {
-                          self.groupByClasses.push(item);
-                      }*/
                 }
                 common.fillSelectOptions("individualAggregate_groupBySelect", Object.keys(self.groupByClassesMap), null);
 
@@ -79,13 +76,14 @@ var IndividualAggregateWidget = (function () {
         var whereStr = "";
 
         function getWhereClause(obj) {
-            return "?" + obj.item.label + " <" + obj.prop.id + "> " + "?" + Sparql_common.formatStringForTriple(obj.label);
+            return "?" + obj.item.label + " <" + obj.prop.id + "> " + "?" + Sparql_common.formatStringForTriple(obj.label) + ". ";
         }
 
         whereStr += getWhereClause(groupByObj);
         selectStr += " ?" + groupByObj.label + "   ";
         groupByStr += " ?" + groupByObj.label + "   ";
-
+        var groupByPredicates = {};
+        groupByPredicates[groupByObj.label] = self.allProperties[groupByObj.label];
         groupFunctions.forEach(function (fn) {
             var fnVar = Sparql_common.formatStringForTriple(fnVarObj.label, true);
 
@@ -94,11 +92,12 @@ var IndividualAggregateWidget = (function () {
             } else if (fn == "COUNT") {
                 selectStr += " (" + fn + "(distinct ?" + fnVar + ") as ?" + fn + "_" + fnVar + ")";
             } else {
-                selectStr += " (" + fn + "(distinct ?" + fnVar + ") as ?" + fn + "_" + fnVar + ")";
+                selectStr += " (" + fn + " (?" + fnVar + ") as ?" + fn + "_" + fnVar + ")";
             }
+            groupByPredicates[fnVar] = self.allProperties[fnVar];
         });
 
-        var aggregateClauses = { select: selectStr, groupBy: groupByStr, where: whereStr };
+        var aggregateClauses = { select: selectStr, groupBy: groupByStr, where: whereStr, groupByPredicates: groupByPredicates };
 
         $("#" + self.divId).dialog("close");
         if (self.validateFn) {

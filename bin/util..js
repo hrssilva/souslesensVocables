@@ -238,11 +238,8 @@ var util = {
         }
         str = str.trim();
         str = str.replace(/\\/gm, "_");
-        str = str.replace(/"/gm, '\\"');
-        // str = str.replace(/;/gm, "\\\;")
-        //  str = str.replace(/\n/gm, "\\\\n")
         str = str.replace(/\n/gm, "\\\\n");
-        //  str = str.replace(/\r/gm, "\\\\r")
+
         str = str.replace(/\r/gm, "");
         str = str.replace(/\t/gm, "\\\\t");
         str = str.replace(/\\xa0/gm, " ");
@@ -251,17 +248,17 @@ var util = {
         str = str.replace(/—/gm, " ");
         str = str.replace(/:/gm, "");
         str = str.replace(/\:/gm, "");
-
+        str = str.replace(/"/gm, '\\"');
         if (forUri) {
             str = str.replace(/ /gm, "_");
-            //  str = str.replace(/\-/gm, "_");
+
             str = str.replace(/:/gm, "_");
             str = str.replace(/\(/gm, "_");
             str = str.replace(/\)/gm, "_");
 
             str = str.replace(/[^a-zA-Z0-9-_]/g, "");
-            /*  str = encodeURIComponent(str);
-       str = str.replace(/%2F/gm, "/");*/
+
+
         }
 
         return str;
@@ -446,6 +443,7 @@ var util = {
         }
         return str;
     },
+
     getDateFromSLSformat: function(formatCode, dateStr) {
         var formats = {
             "FR": "27/05/2024",
@@ -506,7 +504,7 @@ var util = {
 
        else if (formatCode == "ISO") {
             var array = dateStr.split("-")
-            if (array.length != 3) {
+            if (array.length < 3) {
                 return null;
             }
             day = getDay(array[2])
@@ -516,7 +514,7 @@ var util = {
         }
         else if (formatCode == "USA") {
             var array = dateStr.split("/")
-            if (array.length != 3) {
+            if (array.length < 3) {
                 return null;
             }
             day = getDay(array[1])
@@ -526,7 +524,7 @@ var util = {
         }
         else  if (formatCode == "EUR") {
             var array = dateStr.split(".")
-            if (array.length != 3) {
+            if (array.length < 3) {
                 return null;
             }
             day = getDay(array[0].trim())
@@ -536,7 +534,7 @@ var util = {
         }
         else if (formatCode == "JIS") {
             var array = dateStr.split("-")
-            if (array.length != 3) {
+            if (array.length < 3) {
                 return null;
             }
             day = getDay(array[2])
@@ -562,7 +560,8 @@ var util = {
         }
 
         var date = new Date(Date.UTC(year, month,day))
-        return date.toISOString()
+        return util.dateToRDFString(date)
+       // return date.toISOString()
 
 
     },

@@ -41,10 +41,11 @@ var KGquery_graph = (function () {
                 deleteNode: false,
                 deleteEdge: false,
 
-                /*     addEdge: function (edgeData, callback) {
-                         KGquery_graph.addInterGraphLink(edgeData, callback);
-                         return false;
-                     },*/
+                addEdge: function (edgeData, callback) {
+                    // KGquery_graph.addInterGraphLink(edgeData, callback);
+                    KGquery_graph.addInterGraphProperty(edgeData, callback);
+                    return false;
+                },
             },
         },
     };
@@ -53,12 +54,6 @@ var KGquery_graph = (function () {
         shape: "box", //Lineage_whiteboard.defaultShape,
         //   size: Lineage_whiteboard.defaultShapeSize,
         color: "#ddd", //Lineage_whiteboard.getSourceColor(source)
-    };
-
-    self.saveVisjsModelGraph = function () {
-        var fileName = KGquery.currentSource + "_KGmodelGraph.json";
-        self.KGqueryGraph.saveGraph(fileName, true);
-        return;
     };
 
     self.drawVisjsModel = function (mode) {
@@ -81,7 +76,10 @@ var KGquery_graph = (function () {
                     MainController.UI.message("loading graph display");
                     self.KGqueryGraph.loadGraph(visjsGraphFileName, null, function (err, result) {
                         if (err) {
-                            return callbackSeries("notFound");
+                            // return callbackSeries("notFound");
+
+                            self.DrawImportsCommonGraph(source);
+                            return callbackSeries("generate commonGraph");
                         }
                         visjsData = result;
 
@@ -133,32 +131,92 @@ var KGquery_graph = (function () {
                         return callbackSeries();
                     }
                     MainController.UI.message("loading datatypeProperties");
-                    OntologyModels.getInferredAnnotationProperties(source, {}, function (err, result) {
+                    OntologyModels.getKGnonObjectProperties(source, {}, function (err, nonObjectPropertiesmap) {
                         if (err) {
                             return callbackSeries(err);
                         }
-                        var annotationPropertiesmap = {};
-                        result.forEach(function (item) {
-                            if (!annotationPropertiesmap[item.class.value]) {
-                                annotationPropertiesmap[item.class.value] = { label: item.classLabel.value, id: item.class.value, properties: [] };
-                            }
-                            annotationPropertiesmap[item.class.value].properties.push({
-                                label: item.propLabel.value,
-                                id: item.prop.value,
-                                datatype: item.datatype ? item.datatype.value : "string",
-                            });
-                        });
+
                         visjsData.nodes.forEach(function (node) {
-                            if (annotationPropertiesmap[node.data.id]) {
-                                node.data.nonObjectProperties = annotationPropertiesmap[node.data.id].properties;
+                            if (nonObjectPropertiesmap[node.data.id]) {
+                                node.data.nonObjectProperties = nonObjectPropertiesmap[node.data.id].properties;
                             }
                         });
                         callbackSeries();
                     });
+                }, //Add decoration data from decorate file
+                function (callbackSeries) {
+                    if (mode.indexOf("saved") < 0) {
+                        return callbackSeries();
+                    }
+                    var fileName = MainController.currentSource + "_decoration.json";
+                    //Get current decoration file
+                    var payload = {
+                        dir: "graphs/",
+                        fileName: fileName,
+                    };
+                    //get decoration file
+                    $.ajax({
+                        type: "GET",
+                        url: `${Config.apiUrl}/data/file`,
+                        data: payload,
+                        dataType: "json",
+                        success: function (result, _textStatus, _jqXHR) {
+                            var data = JSON.parse(result);
+
+                            for (var node in data) {
+                                var visjsCorrespondingNode = visjsData.nodes.filter((attr) => attr.id === node)[0];
+                                for (var decoration in data[node]) {
+                                    //decoration = clé de décoration
+
+                                    visjsCorrespondingNode[decoration] = data[node][decoration];
+                                }
+                            }
+                            // J'ajoute mes différentes décorations aux classes visés dans le visjsdata
+                            // Si j'ai des icones je  met dans un répertoire côté client les icones nécessaires à ce graph
+                            callbackSeries();
+                        },
+                        error(err) {
+                            return callbackSeries("no decoration");
+                        },
+                    });
+                },
+
+                function (callbackSeries) {
+                    return callbackSeries();
+
+                    /*   var nodesSelection={}
+                           visjsData.nodes.forEach(function(node) {
+
+                               console.log( node.x+"---"+ node.y)
+
+                               if (!node.data.nonObjectProperties || node.data.nonObjectProperties.length == 0) {
+                                   node.shape = "dot";
+                                   node.color="#ddd";
+                                   node.size="5"
+                                   nodesSelection[node.id]=1
+                               }
+
+                           });
+                           if (visjsData.edges.length > self.maxEdgesWithlabel) {
+                               visjsData.edges.forEach(function(edge) {
+                                  if(  nodesSelection[node.to]){
+                                       edge.color="#ddd";
+                                      edge.arrows=null;
+                                   }
+                                   edge.label = null;
+                               });
+
+                           }
+                           callbackSeries();*/
+                },
+
+                //change shape of nodes without nonObjectProperties
+                function (callbackSeries) {
+                    callbackSeries();
                 },
             ],
             function (err) {
-                if (err) {
+                if (err && err != "no decoration") {
                     if (err == "notFound") {
                         return self.drawVisjsModel("inferred");
                     }
@@ -167,58 +225,96 @@ var KGquery_graph = (function () {
                 }
                 MainController.UI.message("drawing graph");
 
-                //   https://fonts.google.com/icons
-
-                var colors = ["#fdac00", "#aa1151", "#ED008C", "#00B5EC", "#af7ede", "#AFD46B"];
-
-                var icons = {
-                    "http://data.total/resource/tsf/dalia-lifex1/manning": { icon: "persons.png", color: colors[4] },
-                    "http://data.total/resource/tsf/dalia-lifex1/tag": { icon: "bookmark.png", color: colors[2] },
-                    "http://data.total/resource/tsf/dalia-lifex1/Task": { icon: "task.png", color: colors[0] },
-                    "http://data.total/resource/tsf/dalia-lifex1/JobCardExecution": { icon: "jobCard.png", color: colors[1] },
-                    "http://data.total/resource/tsf/dalia-lifex1/EquipmentItem": { icon: "machine.png", color: colors[3] },
-                };
-
-                var dir = "/vocables/KGqueryIcons/";
-                visjsData.nodes.forEach(function (item) {
-                    // item.color="#ddd"
-                    if (item.label.indexOf("Date") > -1) {
-                        item.color = "#96f696";
-                    } else {
-                        item.color = "#f3ebbe";
-                    }
-                    item.initialColor = item.color;
-                    item.initialShape = item.shape;
-                    if (icons[item.id]) {
-                        item.shape = "circularImage";
-                        item.size = 15;
-                        delete item.icon;
-                        item.image = dir + icons[item.id].icon;
-                        item.color = icons[item.id].color;
-                        item.borderWidth = 3;
-                        item.font = "18px arial " + icons[item.id].color;
-                        /* item.icon = {
-                             face: "'Ionicons'",
-                             code: "\uf276",
-                             size: 50,
-                             color: "#f0a30a"
-                         };*/
-                    }
+                var newNodes = [];
+                visjsData.nodes.forEach(function (node) {
+                    node.x = node.x || 0;
+                    node.y = node.y || 0;
+                    node.fixed = false;
+                    newNodes.push(node);
                 });
+                visjsData.nodes = newNodes;
 
                 self.KGqueryGraph = new VisjsGraphClass("KGquery_graphDiv", visjsData, self.visjsOptions);
 
                 // cannot get colors from loadGraph ???!!
                 self.KGqueryGraph.draw(function () {
+                    self.simulationOn = true;
                     var newNodes = [];
                     visjsData.nodes.forEach(function (node) {
                         newNodes.push({ id: node.id, color: node.color, shape: node.shape });
                     });
-                    self.KGqueryGraph.data.nodes.update(visjsData.nodes);
+                    //    self.KGqueryGraph.data.nodes.update(visjsData.nodes);
+                    MainController.UI.message("", true);
                 });
-                MainController.UI.message("", true);
 
                 //  KGquery.clearAll();
+            }
+        );
+    };
+
+    self.startStopSimulation = function () {
+        if (!self.simulationOn) {
+            self.KGqueryGraph.network.startSimulation();
+        } else {
+            self.KGqueryGraph.network.stopSimulation();
+        }
+        self.simulationOn = !self.simulationOn;
+    };
+
+    self.DrawImportsCommonGraph = function () {
+        var source = KGquery.currentSource;
+        var sources = [];
+        var imports = Config.sources[source].imports;
+        if (imports) {
+            sources = sources.concat(imports);
+        }
+        var visjsData = { nodes: [], edges: [] };
+        var uniqueNodes = {};
+        self.KGqueryGraph = new VisjsGraphClass("KGquery_graphDiv", { nodes: [], edges: [] }, self.visjsOptions);
+        async.eachSeries(
+            sources,
+            function (source, callbackEach) {
+                var visjsGraphFileName = source + "_KGmodelGraph.json";
+
+                MainController.UI.message("loading graph display");
+                self.KGqueryGraph.loadGraph(visjsGraphFileName, null, function (err, result) {
+                    if (!err && result.nodes) {
+                        result.nodes.forEach(function (node) {
+                            if (!uniqueNodes[node.id]) {
+                                uniqueNodes[node.id] = 1;
+                                node.x = null;
+                                node.y = null;
+                                node.fixed = false;
+                                visjsData.nodes.push(node);
+                            }
+                        });
+                        result.edges.forEach(function (edge) {
+                            if (!uniqueNodes[edge.id]) {
+                                uniqueNodes[edge.id] = 1;
+                                visjsData.edges.push(edge);
+                            }
+                        });
+                    }
+
+                    callbackEach();
+                });
+            },
+            function (err) {
+                if (err) {
+                    return alert(err);
+                }
+                self.KGqueryGraph = new VisjsGraphClass("KGquery_graphDiv", visjsData, self.visjsOptions);
+
+                // cannot get colors from loadGraph ???!!
+                self.KGqueryGraph.draw(function () {
+                    self.simulationOn = true;
+                    var newNodes = [];
+                    visjsData.nodes.forEach(function (node) {
+                        newNodes.push({ id: node.id, color: node.color, shape: node.shape });
+                    });
+                    //  self.KGqueryGraph.data.nodes.update(visjsData.nodes);
+                });
+                MainController.UI.message("", true);
             }
         );
     };
@@ -267,6 +363,28 @@ var KGquery_graph = (function () {
                                 callbackSeries();
                             });
                         },
+                        function (callbackSeries) {
+                            OntologyModels.getContainerBreakdownClasses(source, function (err, result) {
+                                if (err) {
+                                    return callbackSeries(err);
+                                }
+                                result.forEach(function (item) {
+                                    var edegId = common.getRandomHexaId(5);
+                                    visjsData.edges.push({
+                                        id: edegId,
+                                        from: item.sClass.value,
+                                        to: item.oClass.value,
+                                        arrows: "to",
+                                        label: "->",
+                                        font: { ital: true },
+                                        dashes: [5, 5],
+                                        selfReference: { renderBehindTheNode: true, size: 50 },
+                                        data: { propertyId: "rdfs:member" },
+                                    });
+                                });
+                                return callbackSeries();
+                            });
+                        },
                     ],
                     function (err) {
                         if (err) {
@@ -313,7 +431,7 @@ var KGquery_graph = (function () {
                     if (!existingNodes[edgeId]) {
                         existingNodes[edgeId] = 1;
 
-                        visjsData.edges.push({
+                        var edge = {
                             id: edgeId,
                             from: item.sClass.value,
                             to: item.oClass.value,
@@ -334,117 +452,17 @@ var KGquery_graph = (function () {
                             },
                             // dashes: true,
                             color: Lineage_whiteboard.defaultPredicateEdgeColor,
-                        });
+                        };
+                        if (item.sClass.value == item.oClass.value) {
+                            (edge.dashes = [5, 5]), (edge.selfReference = { renderBehindTheNode: true, size: 50 });
+                        }
+                        visjsData.edges.push(edge);
                     }
                 });
                 MainController.UI.message("", true);
                 return callback(null, visjsData);
-
-                /*   self.getInterGraphModel(source, visjsData, function(err, result) {
-
- return callback(null, result);
-});*/
             }
         );
-    };
-
-    self.getInterGraphModel = function (source, visjsData, callback) {
-        var query =
-            "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n" +
-            "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
-            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n" +
-            "      SELECT   distinct ?sparent ?prop ?oparent where {\n" +
-            "{graph  <http://data.total/resource/tsf/new_prodom/> {?s ?x ?y.  ?s rdf:type ?sparent.  ?s rdf:type owl:NamedIndividual.?sparent rdf:type ?sparentType filter (?sparentType!=owl:NamedIndividual)\n" +
-            "  }}\n" +
-            "{graph <http://data.total/resource/tsf/dalia-lifex/> {?o ?x2 ?y2 .  ?o rdf:type ?oparent.?o rdf:type owl:NamedIndividual.?oparent rdf:type ?oparentType filter (?oparentType!=owl:NamedIndividual) } }\n" +
-            "  ?s ?prop ?o. ?p rdf:type  owl:ObjectProperty filter( ?prop !=rdfs:subClassOf)\n" +
-            "}limit 100";
-
-        var url = Config.sources[source].sparql_server.url;
-
-        Sparql_proxy.querySPARQL_GET_proxy(url, query, null, { source: source }, function (err, result) {
-            if (err) {
-                return callbackSeries(err);
-            }
-            result.results.bindings.forEach(function (item) {
-                var label = Sparql_common.getLabelFromURI(item.prop.value);
-                var x = visjsData.edges.push({
-                    id: item.prop.value,
-                    from: item.sparent.value,
-                    to: item.oparent.value,
-
-                    label: label,
-                    font: { color: Lineage_whiteboard.defaultPredicateEdgeColor },
-                    data: {
-                        propertyId: item.prop.value,
-                        source: source,
-                        propertyLabel: label,
-                    },
-
-                    arrows: {
-                        to: {
-                            enabled: true,
-                            type: "solid",
-                            scaleFactor: 0.5,
-                        },
-                    },
-
-                    color: Lineage_whiteboard.defaultPredicateEdgeColor,
-                });
-            });
-            return callback(null, visjsData);
-        });
-    };
-
-    self.addInterGraphLink = function (edgeData, callback) {
-        var source = KGquery.currentSource;
-        var query =
-            "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
-            "select distinct ?prop where { ?s ?prop ?o." +
-            "?s rdf:type <" +
-            edgeData.from +
-            ">.?o rdf:type <" +
-            edgeData.to +
-            ">.} limit 100";
-
-        var url = Config.sources[source].sparql_server.url;
-        Sparql_proxy.querySPARQL_GET_proxy(url, query, null, { source: source }, function (err, result) {
-            if (err) {
-                return callbackSeries(err);
-            }
-
-            if (result.results.bindings.length == 0) {
-                return alert(" no matching triples between " + edgeData.from + " and " + edgeData.to);
-            }
-
-            var visjsData = { edges: [] };
-            result.results.bindings.forEach(function (item) {
-                var label = Sparql_common.getLabelFromURI(item.prop.value);
-                var x = visjsData.edges.push({
-                    id: edgeData.from + "_" + item.prop.value + "_" + edgeData.to,
-                    from: edgeData.from,
-                    to: edgeData.to,
-
-                    label: label,
-                    font: { color: Lineage_whiteboard.defaultPredicateEdgeColor },
-                    data: {
-                        propertyId: item.prop.value,
-                        source: source,
-                        propertyLabel: label,
-                    },
-
-                    arrows: {
-                        to: {
-                            enabled: true,
-                            type: "solid",
-                            scaleFactor: 0.5,
-                        },
-                    },
-                });
-            });
-
-            self.KGqueryGraph.data.edges.update(visjsData.edges);
-        });
     };
 
     self.setEdgeMode = function () {
@@ -533,6 +551,36 @@ var KGquery_graph = (function () {
         /* setTimeout(function(){
         KGquery_graph.KGqueryGraph.data.nodes.update([{ id: nodeId, shape: "ellipse", color: "#b0f5f5" }]);
         },500)*/
+    };
+    self.saveVisjsModelGraph = function () {
+        var fileName = KGquery.currentSource + "_KGmodelGraph.json";
+        self.KGqueryGraph.saveGraph(fileName, true);
+        return;
+    };
+    self.addInterGraphProperty = function (edgeData) {
+        var propertyId = prompt("enter property URI");
+        if (!propertyId) {
+            return;
+        }
+
+        var propertyLabel = prompt("enter property label");
+        if (!propertyLabel) {
+            return;
+        }
+
+        var edge = {
+            from: edgeData.from,
+            to: edgeData.to,
+            id: common.getRandomHexaId(10),
+            label: propertyLabel,
+            data: {
+                propertyId: propertyId,
+                source: KGquery.currentSource,
+                propertyLabel: propertyLabel,
+            },
+        };
+
+        self.KGqueryGraph.data.edges.add(edge);
     };
 
     return self;

@@ -1,15 +1,13 @@
-import VisjsGraphClass from "../../graph/VisjsGraphClass.js";
 import Lineage_sources from "../lineage/lineage_sources.js";
 import Sparql_common from "../../sparqlProxies/sparql_common.js";
-import Lineage_relationIndividualsFilter from "../lineage/lineage_relationIndividualsFilter.js";
+
 import Sparql_proxy from "../../sparqlProxies/sparql_proxy.js";
-import PopupMenuWidget from "../../uiWidgets/popupMenuWidget.js";
+
 import Export from "../../shared/export.js";
 import common from "../../shared/common.js";
 import Lineage_whiteboard from "../lineage/lineage_whiteboard.js";
-import IndividualAggregateWidget from "../../uiWidgets/individualAggregateWidget.js";
-import IndividualValueFilterWidget from "../../uiWidgets/individualValuefilterWidget.js";
-import SimpleListSelectorWidget from "../../uiWidgets/simpleListSelectorWidget.js";
+import IndividualAggregateWidget from "./individualAggregateWidget.js";
+
 import SourceSelectorWidget from "../../uiWidgets/sourceSelectorWidget.js";
 import MainController from "../../shared/mainController.js";
 import KGquery_graph from "./KGquery_graph.js";
@@ -18,9 +16,12 @@ import KGquery_myQueries from "./KGquery_myQueries.js";
 import SQLquery_filters from "./SQLquery_filters.js";
 import KGquery_controlPanel from "./KGquery_controlPanel.js";
 import KGquery_paths from "./KGquery_paths.js";
-import KGquery_filter_bot from "../../bots/KGquery_filter_bot.js";
-//import KGquery_annotations_bot from "../../bots/KGquery_annotations_bot.js";
-import sparql_common from "../../sparqlProxies/sparql_common.js";
+
+import ResponsiveUI from "../../../responsive/responsiveUI.js";
+
+import KGquery_filter from "./KGquery_filter.js";
+
+import Containers_widget from "../containers/containers_widget.js";
 
 var KGquery = (function () {
     var self = {};
@@ -29,6 +30,8 @@ var KGquery = (function () {
     self.classeMap = {};
     self.allPathEdges = {};
     self.isLoaded = false;
+    self.maxResultSizeforLineageViz = 1000;
+    self.maxOptionalPredicatesInQuery = 8;
     self.pathEdgesColors = ["green", "blue", "orange", "grey", "yellow"];
 
     self.onLoaded = function () {
@@ -44,8 +47,6 @@ var KGquery = (function () {
     self.init = function () {
         KGquery_graph.drawVisjsModel("saved");
         SavedQueriesWidget.showDialog("STORED_KGQUERY_QUERIES", "KGquery_myQueriesDiv", self.currentSource, null, KGquery_myQueries.save, KGquery_myQueries.load);
-
-        //  self.addQuerySet();
     };
 
     self.showSourcesDialog = function (forceDialog) {
@@ -65,6 +66,7 @@ var KGquery = (function () {
             self.init();
         };
         MainController.UI.showHideRightPanel("hide");
+        $("#KGquery_SetsControlsDiv").hide();
         SourceSelectorWidget.initWidget(["OWL"], "mainDialogDiv", true, selectTreeNodeFn, null, options);
     };
 
@@ -89,6 +91,7 @@ var KGquery = (function () {
     };
 
     self.addQueryElementToQuerySet = function (querySet) {
+        //  $("#KGquery_SetsControlsDiv").show();
         var queryElementDivId = KGquery_controlPanel.addQueryElementToCurrentSet(querySet.divId);
         var queryElement = {
             divId: queryElementDivId,
@@ -113,10 +116,11 @@ var KGquery = (function () {
         if (role == "toNode") {
             // to be finished
         }
-        var nodeDivId = KGquery_controlPanel.addNodeToQueryElementDiv(queryElement.divId, role, node.data.label);
+        var nodeDivId = KGquery_controlPanel.addNodeToQueryElementDiv(queryElement.divId, role, node.alias || node.label);
 
         KGquery_graph.outlineNode(node.id);
         node.data.setIndex = self.currentQuerySet.index;
+        node.data.nodeDivId = nodeDivId;
         //  node.data.queryElement = queryElement;
         self.divsMap[nodeDivId] = node;
     };
@@ -133,15 +137,7 @@ var KGquery = (function () {
 
         if (self.currentQuerySet.elements.length > 1) {
             var excludeSelf = false;
-            /*   self.currentQuerySet.elements.forEach(function (queryElement) {
-                if (queryElement.fromNode.id == node.id || queryElement.toNode.id == node.id) {
-                    excludeSelf = true;
-                    node.label += "_" + (self.currentQueryElement.paths.length + 1);
-                    node.data.label = node.label;
-                }
-            });*/
-
-            $("#KGquery_SetsControlsDiv").show();
+            //   $("#KGquery_SetsControlsDiv").show();
             KGquery_paths.getNearestNodeId(node.id, self.currentQuerySet, excludeSelf, function (err, nearestNodeId) {
                 if (err) {
                     return acllback(err.responseText);
@@ -164,6 +160,7 @@ var KGquery = (function () {
             });
         } else if (!self.currentQueryElement.fromNode) {
             self.addNodeToQueryElement(self.currentQueryElement, node, "fromNode");
+            self.currentFromNode = node;
         } else if (!self.currentQueryElement.toNode) {
             //give new varName to the classId
             if (self.currentQueryElement.fromNode.id == node.id) {
@@ -185,47 +182,44 @@ var KGquery = (function () {
         }
     };
 
-    self.addEdge = function (edge, evt) {
-        var fromNode = KGquery_graph.KGqueryGraph.data.nodes.get(edge.from);
-        var toNode = KGquery_graph.KGqueryGraph.data.nodes.get(edge.to);
-        if (edge.from == edge.to) {
-            toNode = JSON.parse(JSON.stringify(fromNode));
-            toNode.label += "_" + (self.currentQueryElement.paths.length + 1);
-            toNode.data.label = toNode.label;
-        }
+    self.addEdgeNodes = function (fromNode, toNode, edge) {
         var queryElement = self.addQueryElementToQuerySet(self.currentQuerySet);
         self.addNodeToQueryElement(queryElement, fromNode, "fromNode");
         self.addNodeToQueryElement(queryElement, toNode, "toNode");
-        var path = [[edge.from, edge.to, edge.data.propertyId]];
+        var subPath = [edge.from, edge.to, edge.data.propertyId];
+
+        var path = [subPath];
         var pathWithVarNames = KGquery_paths.substituteClassIdToVarNameInPath(queryElement, path);
         queryElement.paths = pathWithVarNames;
         self.addQueryElementToQuerySet(self.currentQuerySet);
     };
 
-    self.addNodeFilter = function (classDivId) {
-        var aClass = self.divsMap[classDivId];
-        var classSetIndex = aClass.data.setIndex;
-        if (self.querySets.sets[classSetIndex].classFiltersMap[classDivId]) {
-            delete self.querySets.sets[classSetIndex].classFiltersMap[classDivId];
-            $("#" + classDivId + "_filter").html("");
-            return;
-        }
-        var varName = [self.getVarName(aClass, true)];
-        var datatype = aClass.data.datatype;
+    self.addEdge = function (edge, evt) {
+        var fromNode = KGquery_graph.KGqueryGraph.data.nodes.get(edge.from);
+        fromNode = JSON.parse(JSON.stringify(fromNode));
 
-        var currentFilterQuery = {
-            source: self.currentSource,
-            currentClass: aClass.id,
-            varName: self.getVarName(aClass, true),
-        };
+        var toNode = KGquery_graph.KGqueryGraph.data.nodes.get(edge.to);
+        toNode = JSON.parse(JSON.stringify(toNode));
+        if (edge.from == edge.to) {
+            toNode = JSON.parse(JSON.stringify(fromNode));
 
-        KGquery_filter_bot.start(aClass.data, currentFilterQuery, function (err, result) {
-            if (err) {
-                return alert(err.responseText);
+            if (edge.data.propertyId == "rdfs:member") {
+                fromNode.alias = fromNode.label + "_parent";
+                var options = { memberClass: fromNode.data.id };
+
+                Containers_widget.showDialog(self.currentSource, options, function (err, result) {
+                    //  KGquery_filter.selectContainerFilters(fromNode,function(err, result){
+                    fromNode.data.containerFilter = {
+                        classId: result.topMember.id,
+                        depth: result.depth,
+                    };
+                    KGquery.addEdgeNodes(fromNode, toNode, edge);
+                });
+            } else {
+                toNode.alias = toNode.label + (self.currentQueryElement.paths.length + 1);
+                return KGquery.addEdgeNodes(fromNode, toNode, edge);
             }
-            self.querySets.sets[classSetIndex].classFiltersMap[classDivId] = { class: aClass, filter: result.filter };
-            $("#" + classDivId + "_filter").text(result.filterLabel || result.filter);
-        });
+        }
     };
 
     self.aggregateQuery = function () {
@@ -234,10 +228,25 @@ var KGquery = (function () {
             message = "<font color='blue'>aggregate works only with variables belonging to the same set !</font>";
         }
 
+        var varsMap = {};
+
+        self.querySets.sets.forEach(function (querySet) {
+            querySet.elements.forEach(function (queryElement, queryElementIndex) {
+                if (queryElement.fromNode) {
+                    var key = queryElement.fromNode.alias || queryElement.fromNode.label;
+                    varsMap[key] = queryElement.fromNode;
+                }
+                if (queryElement.toNode) {
+                    var key = queryElement.toNode.alias || queryElement.toNode.label;
+                    varsMap[key] = queryElement.toNode;
+                }
+            });
+        });
+
         IndividualAggregateWidget.showDialog(
             null,
             function (callback) {
-                callback(self.classeMap);
+                callback(varsMap);
             },
 
             function (err, aggregateClauses) {
@@ -266,7 +275,9 @@ var KGquery = (function () {
         self.execPathQuery(options, function (err, result) {
             self.message("", true);
             if (err) {
-                return alert(err.responseText);
+                if (err.responseText) {
+                    return alert(err.responseText);
+                }
             }
 
             if (result.results.bindings.length == 0) {
@@ -276,197 +287,209 @@ var KGquery = (function () {
             self.message("found items :" + result.results.bindings.length);
             if (output == "table") {
                 self.queryResultToTable(result);
-            } else if (output == "vijsGraph") {
+            } else if (output == "Graph") {
                 self.queryResultToVisjsGraph(result);
+            } else if (output == "TagsGeometry") {
+                self.queryToTagsGeometry(result.results.bindings);
             }
         });
     };
 
     self.execPathQuery = function (options, callback) {
-        if (!options) {
-            options = {};
-        }
-
-        var distinctTypesMap = {};
-        var uniqueBasicPredicatesMap = {};
-
-        var selectStr = "distinct *";
-        var groupByStr = "";
-        if (options.aggregate) {
-            selectStr = options.aggregate.select;
-            groupByStr = " GROUP BY " + options.aggregate.groupBy;
-        }
-
-        var whereStr = "";
-        var uniqueQueries = {};
-
-        self.querySets.sets.forEach(function (querySet) {
-            if (querySet.booleanOperator) {
-                whereStr += "\n " + querySet.booleanOperator + "\n ";
-            }
-
-            var predicateStr = "";
-            var filterStr = "";
-            var annotationPredicatesStrs = "";
-
-            querySet.elements.forEach(function (queryElement, queryElementIndex) {
-                if (!queryElement.fromNode || !queryElement.toNode) {
-                    return;
-                }
-
-                var subjectVarName = self.getVarName(queryElement.fromNode);
-                var subjectUri = queryElement.fromNode.id;
-                if (!distinctTypesMap[subjectVarName]) {
-                    distinctTypesMap[subjectVarName] = 1;
-                    filterStr += " " + subjectVarName + "  rdf:type <" + subjectUri + ">. ";
-                }
-
-                var objectVarName = self.getVarName(queryElement.toNode);
-
-                var objectUri = queryElement.toNode.id;
-                var subjectUri = queryElement.fromNode.id;
-                if (!distinctTypesMap[objectVarName]) {
-                    distinctTypesMap[objectVarName] = 1;
-
-                    filterStr += " " + objectVarName + "  rdf:type <" + objectUri + ">.";
-                }
-
-                var filterClassLabels = {};
-
-                queryElement.paths.forEach(function (pathItem, pathIndex) {
-                    var startVarName;
-                    var endVarName;
-                    var inverseStr = "";
-                    if (pathItem.length == 4) {
-                        startVarName = pathItem[1]; //self.getVarName({ id: pathItem[1] });
-                        endVarName = pathItem[0]; //self.getVarName({ id: pathItem[0] });
-                        inverseStr = "^";
-                    } else {
-                        startVarName = pathItem[0]; //; self.getVarName({ id: pathItem[0] });
-                        endVarName = pathItem[1]; // self.getVarName({ id: pathItem[1] });
+        var optionalPredicatesSparql = "";
+        var containerFiltersSparql = "";
+        var query = "";
+        var data;
+        async.series(
+            [
+                //selectOptionalPredicates
+                function (callbackSeries) {
+                    if (options.aggregate) {
+                        return callbackSeries();
                     }
 
-                    var basicPredicate = startVarName + " " + inverseStr + "<" + pathItem[2] + "> " + endVarName + ".\n";
-                    if (!uniqueBasicPredicatesMap[basicPredicate]) {
-                        uniqueBasicPredicatesMap[basicPredicate] = 1;
-                        predicateStr += basicPredicate;
-                    }
-                });
-
-                for (var key in querySet.classFiltersMap) {
-                    filterStr += querySet.classFiltersMap[key].filter + " \n";
-                    var filterType = filterStr.match(/<.*>/) ? "uri" : literal;
-                    filterClassLabels["?" + querySet.classFiltersMap[key].class.label] = filterType;
-                }
-
-                function addToStringIfNotExists(str, text) {
-                    if (text.indexOf(str) > -1) {
-                        return text;
-                    } else {
-                        return text + str;
-                    }
-                }
-
-                function getOptionalClause(varName) {
-                    var optionalStr = " OPTIONAL ";
-                    var filterType = filterClassLabels[varName];
-                    if (filterType && filterType != "uri") {
-                        optionalStr = "";
-                    }
-
-                    return optionalStr;
-                }
-
-                var annotationPredicatesStr = "";
-                if (queryElement.fromNode.data.nonObjectProperties) {
-                    queryElement.fromNode.data.nonObjectProperties.forEach(function (property) {
-                        var optionalStr = getOptionalClause(subjectVarName);
-
-                        annotationPredicatesStr = addToStringIfNotExists(
-                            optionalStr + " {" + subjectVarName + " <" + property.id + "> " + subjectVarName + "_" + property.label + "}\n",
-                            annotationPredicatesStr
-                        );
-                        annotationPredicatesStr = addToStringIfNotExists(optionalStr + " {" + subjectVarName + " rdf:value " + subjectVarName + "_value}\n", annotationPredicatesStr);
+                    KGquery_filter.selectOptionalPredicates(self.querySets, function (err, result) {
+                        if (err) {
+                            MainController.UI.message(err, true);
+                            callbackSeries(err);
+                        }
+                        optionalPredicatesSparql = result;
+                        callbackSeries();
                     });
-                } else {
-                    var optionalStr = getOptionalClause(subjectVarName);
-                    annotationPredicatesStr = addToStringIfNotExists(optionalStr + " {" + subjectVarName + " rdf:value " + subjectVarName + "Value}\n", annotationPredicatesStr);
-                    annotationPredicatesStr = addToStringIfNotExists(optionalStr + " {" + subjectVarName + " rdfs:label " + subjectVarName + "Label}\n", annotationPredicatesStr);
-                }
+                },
 
-                if (queryElement.toNode.data.nonObjectProperties) {
-                    queryElement.toNode.data.nonObjectProperties.forEach(function (property) {
-                        var optionalStr = getOptionalClause(objectVarName);
-                        annotationPredicatesStr = addToStringIfNotExists(
-                            optionalStr + "  {" + objectVarName + " <" + property.id + "> " + objectVarName + "_" + property.label + "}\n",
-                            annotationPredicatesStr
-                        );
-                        annotationPredicatesStr = addToStringIfNotExists(optionalStr + "  {" + objectVarName + " rdf:value " + objectVarName + "_value}\n", annotationPredicatesStr);
+                //build query
+                function (callbackSeries) {
+                    if (!options) {
+                        options = {};
+                    }
+
+                    var distinctTypesMap = {};
+                    var uniqueBasicPredicatesMap = {};
+
+                    var selectStr = "distinct *";
+                    var groupByStr = "";
+                    if (options.aggregate) {
+                        selectStr = options.aggregate.select;
+                        groupByStr = " GROUP BY " + options.aggregate.groupBy;
+                    }
+
+                    var whereStr = "";
+                    var uniqueQueries = {};
+
+                    self.querySets.sets.forEach(function (querySet) {
+                        if (querySet.booleanOperator) {
+                            whereStr += "\n " + querySet.booleanOperator + "\n ";
+                        }
+
+                        var predicateStr = "";
+                        var filterStr = "";
+                        var otherPredicatesStrs = "";
+
+                        querySet.elements.forEach(function (queryElement, queryElementIndex) {
+                            if (!queryElement.toNode) {
+                                return;
+                                if (queryElement.fromNode) {
+                                } else {
+                                }
+                            }
+
+                            var subjectVarName = self.getVarName(queryElement.fromNode);
+
+                            var subjectUri = queryElement.fromNode.id;
+                            if (!distinctTypesMap[subjectVarName]) {
+                                distinctTypesMap[subjectVarName] = 1;
+                                filterStr += " " + subjectVarName + "  rdf:type <" + subjectUri + ">. ";
+                            }
+                            var subjectUri = queryElement.fromNode.id;
+
+                            if (queryElement.toNode) {
+                                var objectVarName = self.getVarName(queryElement.toNode);
+                                var objectUri = queryElement.toNode.id;
+                                if (!distinctTypesMap[objectVarName]) {
+                                    distinctTypesMap[objectVarName] = 1;
+                                    filterStr += " " + objectVarName + "  rdf:type <" + objectUri + ">.";
+                                }
+                            }
+                            var filterClassLabels = {};
+                            queryElement.paths.forEach(function (pathItem, pathIndex) {
+                                var propertyStr = pathItem[2];
+
+                                if (propertyStr == "rdfs:member") {
+                                    if (!queryElement.fromNode.data.containerFilter) {
+                                        return;
+                                    }
+                                    filterStr += "\n FILTER(" + subjectVarName + "=<" + queryElement.fromNode.data.containerFilter.classId + ">)\n ";
+                                    var depth = queryElement.fromNode.data.containerFilter.depth || 1;
+                                    {
+                                        if (depth) {
+                                            var str = "";
+                                            var number = parseInt(depth);
+                                            propertyStr = " rdfs:member{0," + number + "} ";
+                                            otherPredicatesStrs += " FILTER (" + pathItem[0] + " !=" + pathItem[1] + ") ";
+                                        } else {
+                                        }
+                                    }
+                                } else {
+                                    propertyStr = "<" + propertyStr + "> ";
+                                }
+
+                                var startVarName;
+                                var endVarName;
+                                var inverseStr = "";
+                                if (pathItem.length == 4) {
+                                    startVarName = pathItem[1]; //self.getVarName({ id: pathItem[1] });
+                                    endVarName = pathItem[0]; //self.getVarName({ id: pathItem[0] });
+                                    inverseStr = "^";
+                                } else {
+                                    startVarName = pathItem[0]; //; self.getVarName({ id: pathItem[0] });
+                                    endVarName = pathItem[1]; // self.getVarName({ id: pathItem[1] });
+                                }
+
+                                var basicPredicate = startVarName + " " + inverseStr + propertyStr + endVarName + ".\n";
+                                if (!uniqueBasicPredicatesMap[basicPredicate]) {
+                                    uniqueBasicPredicatesMap[basicPredicate] = 1;
+                                    predicateStr += basicPredicate;
+                                }
+                            });
+                        });
+
+                        for (var key in querySet.classFiltersMap) {
+                            filterStr += querySet.classFiltersMap[key].filter + " \n";
+                        }
+
+                        if (options.aggregate) {
+                            whereStr += options.aggregate.where;
+                            var groupByPredicates = options.aggregate.groupByPredicates;
+                            otherPredicatesStrs += " \n" + KGquery_filter.getAggregatePredicates(groupByPredicates);
+
+                            filterStr += KGquery_filter.getAggregateFilterOptionalPredicates(querySet, filterStr);
+                        } else {
+                        }
+
+                        whereStr += predicateStr + "\n" + "" + "\n" + filterStr + "\n" + otherPredicatesStrs;
+                        if (predicateStr) {
+                            whereStr += optionalPredicatesSparql;
+                        }
+                        //  whereStr = "{" + whereStr + "}";
                     });
-                } else {
-                    var optionalStr = getOptionalClause(objectVarName);
-                    annotationPredicatesStr = addToStringIfNotExists(optionalStr + "  {" + objectVarName + " rdf:value " + objectVarName + "Value}\n", annotationPredicatesStr);
-                    annotationPredicatesStr = addToStringIfNotExists(optionalStr + "  {" + objectVarName + " rdfs:label " + objectVarName + "Label}\n", annotationPredicatesStr);
-                }
-                annotationPredicatesStrs += " \n" + annotationPredicatesStr;
-            });
-            if (options.aggregate) {
-                whereStr += options.aggregate.where;
+
+                    var fromStr = Sparql_common.getFromStr(self.currentSource);
+                    query =
+                        "PREFIX owl: <http://www.w3.org/2002/07/owl#>" +
+                        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>" +
+                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>" +
+                        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>";
+
+                    query += " Select " + selectStr + "  " + fromStr + " where {" + whereStr + "}";
+
+                    query += " " + groupByStr + " limit 10000";
+
+                    callbackSeries();
+                },
+
+                //execute query
+                function (callbackSeries) {
+                    var url = Config.sources[self.currentSource].sparql_server.url + "?format=json&query=";
+
+                    var currentSparqlQuery = {
+                        url: url,
+                        query: query,
+                        source: self.currentSource,
+                    };
+
+                    if (options.dontExecute) {
+                        return callback(null, currentSparqlQuery);
+                    }
+
+                    Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: self.currentSource, caller: "getObjectRestrictions" }, function (err, result) {
+                        if (err) {
+                            return callbackSeries(err);
+                        }
+                        data = result;
+                        callbackSeries(null, result);
+                    });
+                },
+                function (callbackSeries) {
+                    callbackSeries();
+                },
+            ],
+            function (err) {
+                callback(err, data);
             }
-
-            whereStr += "{" + predicateStr + "\n" + "" + "\n" + filterStr + "\n" + annotationPredicatesStrs + "}";
-        });
-
-        var fromStr = Sparql_common.getFromStr(self.currentSource);
-        var query =
-            "PREFIX owl: <http://www.w3.org/2002/07/owl#>" +
-            "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>" +
-            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>" +
-            "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>";
-
-        query += " Select " + selectStr + "  " + fromStr + " where {" + whereStr + "}";
-
-        query += " " + groupByStr + " limit 10000";
-
-        var url = Config.sources[self.currentSource].sparql_server.url + "?format=json&query=";
-
-        var currentSparqlQuery = {
-            url: url,
-            query: query,
-            source: self.currentSource,
-        };
-
-        if (options.dontExecute) {
-            return callback(null, currentSparqlQuery);
-        }
-        Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: self.currentSource, caller: "getObjectRestrictions" }, function (err, result) {
-            if (err) {
-                return callback(err);
-            }
-
-            callback(null, result);
-        });
-    };
-
-    self.visjsNodeOptions = {
-        shape: "box", //Lineage_whiteboard.defaultShape,
-        //  size: Lineage_whiteboard.defaultShapeSize,
-        color: "#ddd", //Lineage_whiteboard.getSourceColor(source)
+        );
     };
 
     self.queryResultToVisjsGraph = function (result) {
         var classNodes = self.getAllQueryPathClasses();
 
-        /*    var edgesModel={}
-self.querySets.sets.forEach(function (querySet) {
-    querySet.elements.forEach(function (queryElement, queryElementIndex) {
-        edgesModel[queryElement.fromNode+"_"+queryElement.toNode.id]= {  }
-    })
-})*/
-
         var data = result.results.bindings;
-        var visjsData = { nodes: [], edges: [] };
+        if (data.length > self.maxResultSizeforLineageViz) {
+            return alert("result size to large " + data.length + " to display graph .Add filters to reduce result size less than " + self.maxResultSizeforLineageViz);
+        }
+
         var existingNodes = {};
+        var visjsData = { nodes: [], edges: [] };
         data.forEach(function (item, index) {
             var lineNodeId = common.getRandomHexaId(5);
             visjsData.nodes.push(VisjsUtil.getVisjsNode(self.currentSource, lineNodeId, "", null, { shape: "text", size: 2, color: "#ddd" }));
@@ -474,7 +497,9 @@ self.querySets.sets.forEach(function (querySet) {
             classNodes.forEach(function (classNode) {
                 var varNameKey = self.getVarName(classNode, true);
                 var labelKey = varNameKey + "Label";
-
+                if (!item[varNameKey]) {
+                    return;
+                }
                 if (!existingNodes[item[varNameKey].value]) {
                     existingNodes[item[varNameKey].value] = 1;
 
@@ -492,9 +517,31 @@ self.querySets.sets.forEach(function (querySet) {
                     });
                 }
             });
+        });
 
-            $("#mainDialogDiv2").dialog("close");
-            Lineage_whiteboard.drawNewGraph(visjsData, "graphDiv");
+        ResponsiveUI.onToolSelect("lineage", null, function () {
+            KGquery_myQueries.save(function (err, query) {
+                // Config.clientCache.KGquery = query;
+            });
+            setTimeout(function () {
+                Lineage_whiteboard.drawNewGraph(visjsData, "graphDiv");
+            }, 2000);
+        });
+    };
+    self.queryToTagsGeometry = function (data) {
+        var tagsMap = {};
+        data.forEach(function (item) {
+            for (var key in item) {
+                if (key.indexOf("tag") > -1) {
+                    tagsMap[item[key].value] = 1;
+                }
+            }
+        });
+        ResponsiveUI.onToolSelect("TagsGeometry", null, function () {
+            setTimeout(function () {
+                //   import TagsGeometry from "../../../../plugins/TagsGeometry/public/js/main.js";
+                TagsGeometry.draw(tagsMap);
+            }, 2000);
         });
     };
 
@@ -533,13 +580,27 @@ self.querySets.sets.forEach(function (querySet) {
         data.forEach(function (item, index) {
             var line = [index];
             colNames.forEach(function (col) {
-                line.push(item[col] ? item[col].value : null);
+                var value = null;
+                if (item[col]) {
+                    value = item[col].value;
+
+                    //format date
+                    if (item[col].datatype == "http://www.w3.org/2001/XMLSchema#datetime") {
+                        var p = value.indexOf("T00:00:00.000Z");
+                        if (p > -1) {
+                            value = value.substring(0, p);
+                        }
+                    }
+                }
+
+                line.push(value);
             });
 
             tableData.push(line);
         });
 
         $("#KGquery_dataTableDialogDiv").dialog("open");
+        $("#KGquery_dataTableDialogDiv").dialog("option", "title", "Query result size: " + tableData.length);
 
         $("#KGquery_dataTableDialogDiv").css("left", "10px");
         $("#KGquery_dataTableDiv").width("90vW");
@@ -569,19 +630,25 @@ self.querySets.sets.forEach(function (querySet) {
     };
 
     self.clearAll = function (exceptSetQueries) {
+        self.querySets.sets.forEach(function (querySet) {
+            querySet.classFiltersMap = {};
+        });
         self.querySets = { sets: [], groups: [], currentIndex: -1 };
         self.divsMap = {};
         self.currentQuerySet = self.addQuerySet();
         self.allPathEdges = {};
+        KGquery_filter.containersFilterMap = {};
         /* $("#KGquery_graphDiv").css("display", "flex");
         $("#KGquery_dataTableDiv").css("display", "none");*/
         if (!exceptSetQueries) {
             self.classeMap = {};
             self.SetQueries = [];
             self.queryPathesMap = {};
+
             self.divsMap = {};
-            KGquery_graph.resetVisjNodes();
-            KGquery_graph.resetVisjEdges();
+            KGquery_graph.drawVisjsModel("saved");
+            //  KGquery_graph.resetVisjNodes();
+            //  KGquery_graph.resetVisjEdges();
             //   KGquery_graph.drawVisjsModel("saved")
             $("#KGquery_pathsDiv").html("");
             self.addQuerySet();
@@ -591,7 +658,7 @@ self.querySets.sets.forEach(function (querySet) {
     };
 
     self.getVarName = function (node, withoutQuestionMark) {
-        var varName = (withoutQuestionMark ? "" : "?") + Sparql_common.formatStringForTriple(node.label || Sparql_common.getLabelFromURI(node.id), true);
+        var varName = (withoutQuestionMark ? "" : "?") + Sparql_common.formatStringForTriple(node.alias || node.label || Sparql_common.getLabelFromURI(node.id), true);
 
         return varName;
     };
@@ -642,6 +709,18 @@ self.querySets.sets.forEach(function (querySet) {
         $("#" + querySetDivId).remove();
         var set = self.divsMap[querySetDivId];
         self.querySets.sets.splice(set.index, 1);
+    };
+
+    self.onOutputTypeSelect = function (output) {
+        if (output == "") {
+            return;
+        }
+        self.queryKG(output);
+        $("#KGquery_outputTypeSelect").val("");
+    };
+
+    self.addOutputType = function () {
+        $("KGquery_outputTypeSelect");
     };
 
     return self;

@@ -8,12 +8,17 @@
             <button class="slsv-button-1" onclick="KGquery.queryKG('table')">Table</button>
             <!-- <button onclick="KGquery.queryKG('vijsGraph')">Graph</button>-->
             <button class="slsv-button-1" onclick="KGquery.aggregateQuery()">Aggregate</button>
+            <select id="KGquery_outputTypeSelect" onchange="KGquery.onOutputTypeSelect($(this).val());">
+                <option></option>
+                <option>Graph</option>
+                <option>TagsGeometry</option>
+            </select>
             <!-- <button onclick="KGquery.queryKG('table',null,true)">Query database</button>-->
 
             <!--<button onclick="TimeLineWidget.init()">TimeLine</button>-->
         </div>
     </div>
-    <div class="w3-panel w3-border w3-round-small lateralPannelSection-width" style="align-items: baseline" id="KGquery_SetsControlsDiv">
+    <div class="w3-panel w3-border w3-round-small lateralPannelSection-width" style="align-items: baseline; display: none" id="KGquery_SetsControlsDiv">
         <div id="Title2" class="titleboxButtons font-button2-color">Joins</div>
         <button class="slsv-button-2" onclick="KGquery.addQuerySet('Minus');KGquery.switchRightPanel(true)"><img src="icons/CommonIcons/MinusIcon.png" height="15px" />Minus</button>
         <button class="slsv-button-2" onclick="KGquery.addQuerySet('Union');KGquery.switchRightPanel(true)"><img src="icons/CommonIcons/UnionIcon.png" height="15px" />Union</button>

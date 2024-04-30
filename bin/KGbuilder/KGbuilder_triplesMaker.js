@@ -6,8 +6,10 @@ const KGbuilder_triplesWriter = require("./KGbuilder_triplesWriter");
 var csvCrawler = require("../_csvCrawler.");
 const dataController = require("../dataController.");
 const path = require("path");
+const { databaseModel } = require("../../model/databases");
 var KGbuilder_triplesMaker = {
     mappingFilePredicate: "http://souslesens.org/KGcreator#mappingFile",
+    existingTriples: {},
     /**
      * Generate triples
      *
@@ -21,34 +23,15 @@ var KGbuilder_triplesMaker = {
         if (!tableMappings || tableMappings.length == 0) {
             KGbuilder_socket.message(options.clientSocketId, "No mappings  in table " + tableMappings.table);
             return callback();
-
         }
         if (!data || data.length == 0) {
             KGbuilder_socket.message(options.clientSocketId, "No data  in table " + tableMappings.table);
             return callback();
-
         }
 
 
-        //  var graphUri = "https://www.jip36-cfihos.org/ontology/cfihos_1_5/test/"
-        var totalTriples = 0;
-        var errors = "";
-
-        existingTriples = {};
-        var totalTriplesCount = 0;
-        var totalTriples = 0;
-        var missingLookups_s = 0;
-        var missingLookups_o = 0;
-        var okLookups_o = 0;
-        var okLookups_s = 0;
-        var lookUpsMap = {};
         var triples = [];
-        var tableData = [];
-        var dataSource = tableMappings.table;
 
-        var graphUri = tableMappings.graphUri;
-
-        KGbuilder_triplesMaker.allColumns = {};
 
         async.eachSeries(
             data,
@@ -74,7 +57,6 @@ var KGbuilder_triplesMaker = {
                     }
                 }
 
-
                 async.eachSeries(
                     tableMappings.tripleModels,
                     function(mapping, callbackEachMapping) {
@@ -86,7 +68,6 @@ var KGbuilder_triplesMaker = {
                         if (line[mapping.o] == "null") {
                             line[mapping.o] = null;
                         }
-
 
                         if (mapping["if_column_value_not_null"]) {
                             var value = line[mapping["if_column_value_not_null"]];
@@ -140,9 +121,8 @@ var KGbuilder_triplesMaker = {
                                         });
                                     } else {
                                         if (subjectStr && propertyStr && objectStr) {
-
-                                            if (!existingTriples[subjectStr + "_" + propertyStr + "_" + objectStr]) {
-                                                existingTriples[subjectStr + "_" + propertyStr + "_" + objectStr] = 1;
+                                            if (!KGbuilder_triplesMaker.existingTriples[subjectStr + "_" + propertyStr + "_" + objectStr]) {
+                                                KGbuilder_triplesMaker.existingTriples[subjectStr + "_" + propertyStr + "_" + objectStr] = 1;
                                                 triples.push({
                                                     s: subjectStr,
                                                     p: propertyStr,
@@ -253,50 +233,71 @@ var KGbuilder_triplesMaker = {
 
 
         //get value for Object
-        {
-            if (mapping.o === "_rowIndex") {
-                objectStr = KGbuilder_triplesMaker.getBlankNodeId("_rowIndex");
-                return objectStr;
-            } else if (mapping.objectIsSpecificUri) {
-                objectStr = mapping.o;
 
-            } else if (typeof mapping.o === "function") {
-                try {
-                    objectStr = mapping.o(line, mapping);
-                    objectStr = util.formatStringForTriple(objectStr, false);
-                } catch (e) {
-                    return callback(e);
+        if (mapping.o === "_rowIndex") {
+            objectStr = KGbuilder_triplesMaker.getBlankNodeId("_rowIndex");
+            return objectStr;
+        } else if (mapping.objectIsSpecificUri) {
+            objectStr = mapping.o;
+
+        } else if (typeof mapping.o === "function") {
+            try {
+                objectStr = mapping.o(line, mapping);
+                objectStr = util.formatStringForTriple(objectStr, false);
+            } catch (e) {
+                return callback(e);
+            }
+        } else if (typeof mapping.o === "string" && mapping.o.indexOf("http") == 0) {
+            objectStr = "<" + mapping.o + ">";
+        } else if (typeof mapping.o === "string" && mapping.o.match(/.+:.+/)) {
+            objectStr = mapping.o;
+        } else if (typeof mapping.o === "string" && mapping.o.endsWith("_$") || mapping.isObjectBlankNode) {
+            objectStr = KGbuilder_triplesMaker.getBlankNodeId(mapping.o);
+            return callback(null, objectStr);
+        } else if (tableMappings.transform && tableMappings.transform[mapping.o]) {
+            try {
+                if (line[mapping.o]) {
+                    objectStr = tableMappings.transform[mapping.o](line[mapping.o], "o", mapping.p, line, mapping);
+                } else {
+                    objectStr = "";//tableMappings.transform[mapping.o](mapping.o, "o", mapping.p, line, mapping);
                 }
-            } else if (typeof mapping.o === "string" && mapping.o.indexOf("http") == 0) {
-                objectStr = "<" + mapping.o + ">";
-            } else if (typeof mapping.o === "string" && mapping.o.match(/.+:.+/)) {
-                objectStr = mapping.o;
-            } else if (typeof mapping.o === "string" && mapping.o.endsWith("_$") || mapping.isObjectBlankNode) {
-                objectStr = KGbuilder_triplesMaker.getBlankNodeId(mapping.o);
-                return callback(null, objectStr);
-            } else if (tableMappings.transform && tableMappings.transform[mapping.o]) {
-                try {
-                    if (line[mapping.o]) {
-                        objectStr = tableMappings.transform[mapping.o](line[mapping.o], "o", mapping.p, line, mapping);
-                    } else {
-                        objectStr = tableMappings.transform[mapping.o](mapping.o, "o", mapping.p, line, mapping);
-                    }
-                    // return callback(null,objectStr);
-                } catch (e) {
-                    return (lineError = e + " " + mapping.o);
-                }
-            } else {
-                if (!line[mapping.o] || line[mapping.o] == "null") {
+                // return callback(null,objectStr);
+            } catch (e) {
+                return (lineError = e + " " + mapping.o);
+            }
+        } else {
+            if (!line[mapping.o] || line[mapping.o] == "null") {
+                return callback(null, null);
+            } else if (mapping.dataType) {
+                var str = line[mapping.o];
+                if (!str || str == "null") {
                     return callback(null, null);
-                } else if (mapping.dataType) {
-                    var str = line[mapping.o];
-                    if (!str || str == "null") {
-                        return;
-                    }
-                    if (mapping.dataType == "dateTime" || mapping.dataType == "xsd:datetime") {
+                }
+                if (mapping.dataType.startsWith("xsd:date")) {
+                    var isDateOk;
+                    try {
+                        var date= new Date(str);
+                        if(date=="Invalid Date" )
+                            isDateOk = false;
+                        else{
+                            str=date.toISOString()
+                            mapping.dateFormat="ISO"
+                        }
 
+
+                        isDateOk = true;
+                    } catch (e) {
+                        isDateOk = false;
+                    }
+
+                    if (true || isDateOk) {
                         if (mapping.dateFormat) {
+
+
                             str = util.getDateFromSLSformat(mapping.dateFormat, str);
+                            if (!str) {
+                                return callback(null, null);
+                            }
 
                         } else {
 
@@ -306,7 +307,7 @@ var KGbuilder_triplesMaker = {
                             };
 
                             var formatDate = function(date) {
-                                return new Date(date).toISOString(); //.slice(0, 10);
+                                str = new Date(date).toISOString(); //.slice(0, 10);
                             };
 
                             if (!isDate(str)) {
@@ -321,32 +322,40 @@ var KGbuilder_triplesMaker = {
                             }
                         }
                     }
-                    if (!str) {
-                        objectStr = "";
-                    }
-                    //  mapping.p = "rdf:value";
-                    if (!mapping.dataType.startsWith("xsd:")) {
-                        mapping.dataType = "xsd:string";
-                    }
-                    objectStr = "'" + str + "'^^" + mapping.dataType;
-                } else {
-                    objectStr = line[mapping.o];
+                }
+                if (!str) {
+                    objectStr = "";
                 }
 
-                if (mapping.lookup_o) {
-                    if (!lookUpsMap[mapping.lookup_o]) {
-                        return (lineError = "no lookup named " + mapping.lookup_o);
-                    }
-                    var lookupValue = KGbuilder_triplesMaker.getLookupValue(mapping.lookup_o, objectStr);
-                    if (!lookupValue) {
-                        missingLookups_o += 1;
-                    } else {
-                        okLookups_o += 1;
-                        objectStr = lookupValue;
-                    }
+                if (!mapping.dataType.startsWith("xsd:")) {
+                    mapping.dataType = "xsd:string";
+                }
+                if (!str || str == "null") {
+                    return callback(null, null);
+                }
+                if (mapping.dataType == "xsd:string") {
+                    str = util.formatStringForTriple(str, false);
+                }
+
+                objectStr = "\"" + str + "\"^^" + mapping.dataType;
+            } else {
+                objectStr = line[mapping.o];
+            }
+
+            if (mapping.lookup_o) {
+                if (!lookUpsMap[mapping.lookup_o]) {
+                    return (lineError = "no lookup named " + mapping.lookup_o);
+                }
+                var lookupValue = KGbuilder_triplesMaker.getLookupValue(mapping.lookup_o, objectStr);
+                if (!lookupValue) {
+                    missingLookups_o += 1;
+                } else {
+                    okLookups_o += 1;
+                    objectStr = lookupValue;
                 }
             }
         }
+
         if (!objectStr || objectStr == "null") {
             return callback(null, null);
         }
@@ -395,7 +404,7 @@ var KGbuilder_triplesMaker = {
         var blankNode = "<_:b" + util.getRandomHexaId(10) + ">";
 
         if (!KGbuilder_triplesMaker.existingTriples[subjectStr + "_" + prop + "_" + objectStr]) {
-            KGbuilder_triplesWriter.existingTriples[subjectStr + "_" + prop + "_" + objectStr] = 1;
+            KGbuilder_triplesMaker.existingTriples[subjectStr + "_" + prop + "_" + objectStr] = 1;
             restrictionTriples.push({
                 s: blankNode,
                 p: "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>",
@@ -447,22 +456,25 @@ var KGbuilder_triplesMaker = {
                 } else if (tableMappings.databaseSource) {
                     var sqlQuery = "select distinct " + lookup.sourceColumn + "," + lookup.targetColumn + " from " + lookup.table;
 
-                    sqlServerProxy.getData(tableMappings.databaseSource.dbName, sqlQuery, function(err, result) {
-                        if (err) {
+                    databaseModel
+                        .query(tableMappings.dataSourceConfig.dbName, sqlQuery)
+                        .then((result) => {
+                            var lookupLines = result.rows;
+                            console.log("lookupLines", lookupLines);
+                            lookUpsMap[lookup.name] = { dictionary: {}, transformFn: lookup.transformFn };
+                            lookupLines.forEach(function(line, index) {
+                                if (![line[lookup.sourceColumn]] && line[lookup.targetColumn]) {
+                                    return KGbuilder_socket.message(options.clientSocketId, "missing lookup line" + index + " " + lookupFilePath, true);
+                                }
+
+                                lookUpsMap[lookup.name].dictionary[line[lookup.sourceColumn]] = line[lookup.targetColumn];
+                            });
+
+                            callbackEachLookup();
+                        })
+                        .catch((err) => {
                             return callbackEachLookup(err);
-                        }
-                        var lookupLines = result;
-                        lookUpsMap[lookup.name] = { dictionary: {}, transformFn: lookup.transformFn };
-                        lookupLines.forEach(function(line, index) {
-                            if (![line[lookup.sourceColumn]] && line[lookup.targetColumn]) {
-                                return KGbuilder_socket.message(options.clientSocketId, "missing lookup line" + index + " " + lookupFilePath, true);
-                            }
-
-                            lookUpsMap[lookup.name].dictionary[line[lookup.sourceColumn]] = line[lookup.targetColumn];
                         });
-
-                        callbackEachLookup();
-                    });
                 }
             },
             function(err) {
@@ -576,23 +588,23 @@ var KGbuilder_triplesMaker = {
                 callback(null, tableData);
             });
         } else if (tableMappings.datasourceConfig) {
-            var limitStr = "";
-            if (options.sampleSize) {
-                limitStr = " TOP (" + options.sampleSize + ") ";
-            }
-            var sqlQuery = "select" + limitStr + " * from " + tableMappings.table;
-            KGbuilder_socket.message(options.clientSocketId, "loading data from sql server, table " + tableMappings.table, false);
-            sqlServerProxy.getData(tableMappings.datasourceConfig.dbName, sqlQuery, function(err, result) {
-                if (err) {
-                    return callback(err);
+            databaseModel.getConnection(tableMappings.datasourceConfig.dbName).then((connection) => {
+                const request = connection.select("*").from(tableMappings.table);
+                if (options.sampleSize) {
+                    request.limit(options.sampleSize);
                 }
-                tableData = result;
-                KGbuilder_socket.message(options.clientSocketId, " data loaded ,table " + tableMappings.table, false);
-                return callback(null, tableData);
+
+                request
+                    .then((result) => {
+                        tableData = result;
+                        KGbuilder_socket.message(options.clientSocketId, " data loaded ,table " + tableMappings.table, false);
+                        return callback(null, tableData);
+                    })
+                    .catch((err) => {
+                        return callback(err);
+                    });
             });
         }
     }
-
-
 };
 module.exports = KGbuilder_triplesMaker;

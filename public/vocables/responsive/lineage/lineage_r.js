@@ -7,6 +7,7 @@ import SearchWidget from "../../modules/uiWidgets/searchWidget.js";
 import PredicatesSelectorWidget from "../../modules/uiWidgets/predicatesSelectorWidget.js";
 import Lineage_createResource from "../../modules/tools/lineage/lineage_createResource.js";
 import PopupMenuWidget from "../../modules/uiWidgets/popupMenuWidget.js";
+import Lineage_containers from "../../modules/tools/lineage/lineage_containers.js";
 
 var Lineage_r = (function () {
     var self = {};
@@ -25,12 +26,6 @@ var Lineage_r = (function () {
             self.controller = Lineage_whiteboard;
             PredicatesSelectorWidget.load = self.loadPredicateSelectorWidgetResponsive;
             SearchWidget.currentTargetDiv = "LineageNodesJsTreeDiv";
-            //To Table
-            self.oldExportTable = Export.exportTreeToDataTable;
-            Export.exportTreeToDataTable = self.ExportTableDialog;
-            //Nodes Infos overcharge
-            //ResponsiveUI.replaceFile(NodesInfosWidget, NodeInfosWidgetResponsive);
-            //SHowHideButtons overcharge
             Lineage_sources.showHideEditButtons = self.showHideEditButtons;
             //AddEdge overcharge
             self.oldAddEdgeDialog = Lineage_createRelation.showAddEdgeFromGraphDialog;
@@ -210,13 +205,7 @@ var Lineage_r = (function () {
                 });
             });
     };
-    self.ExportTableDialog = function (jstreeDiv, nodeId) {
-        $("#mainDialogDiv")
-            .parent()
-            .show("fast", function () {
-                self.oldExportTable(jstreeDiv, nodeId);
-            });
-    };
+
     self.hideShowMoreActions = function (hideShowParameter) {
         if (hideShowParameter == "hide") {
             self.MoreActionsShow = true;

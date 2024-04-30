@@ -5,6 +5,7 @@ import Lineage_r from "../lineage/lineage_r.js";
 import ResponsiveUI from "../responsiveUI.js";
 import KGquery_controlPanel from "../../modules/tools/KGquery/KGquery_controlPanel.js";
 import VisjsGraphClass from "../../modules/graph/VisjsGraphClass.js";
+import KGquery_myQueries from "../../modules/tools/KGquery/KGquery_myQueries.js";
 
 var KGquery_r = (function () {
     var self = {};
@@ -44,6 +45,11 @@ var KGquery_r = (function () {
                     KGquery_graph.drawVisjsModel("saved");
                     ResponsiveUI.openTab("lineage-tab", "tabs_Query", KGquery_r.initQuery, "#QueryTabButton");
                     ResponsiveUI.resetWindowHeight();
+                    if (Config.clientCache.KGquery) {
+                        setTimeout(function () {
+                            KGquery_myQueries.load(null, Config.clientCache.KGquery);
+                        }, 1000);
+                    }
                     $("#KGquery_dataTableDialogDiv").dialog({
                         autoOpen: false,
                         close: function (event, ui) {
@@ -85,7 +91,7 @@ var KGquery_r = (function () {
         if ($("#tabs_Graph").children().length == 0) {
             $("#tabs_Graph").load("./responsive/KGquery/html/KGqueryGraphTab.html", function () {
                 KGquery_graph.init();
-                KGquery_graph.drawVisjsModel("saved");
+                //  KGquery_graph.drawVisjsModel("saved");
             });
         }
     };

@@ -86,6 +86,7 @@ if (config.auth !== "disabled") {
     app.use(passport.authenticate("session"));
 }
 
+
 /**
  * Routes
  */
@@ -94,6 +95,7 @@ if (config.auth !== "disabled") {
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "mainapp/static")));
 app.use("/upload/rdf", express.static(path.join(__dirname, "data/uploaded_rdf_data")));
+app.use("/vocables/classIcons",express.static(path.join(__dirname, "data/classIcons")));
 
 async function loggedIn(req, _res, next) {
     if (req.isAuthenticated || config.auth === "disabled") {

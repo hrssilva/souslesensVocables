@@ -142,6 +142,56 @@ var CommonBotFunctions = (function () {
         );
     };
 
+    self.listSourceAllClasses = function (source, varToFill, includeOwlThing, classes, callback) {
+        var sources = self.getSourceAndImports(source);
+        var allClasses = [];
+        async.eachSeries(
+            sources,
+            function (source, callbackEach) {
+                self.listVocabClasses(source, varToFill, includeOwlThing, classes, function (err, classes) {
+                    if (err) {
+                        return callbackEach(err);
+                    }
+                    allClasses = allClasses.concat(classes);
+                    callbackEach();
+                });
+            },
+            function (err) {
+                return callback(err, allClasses);
+            }
+        );
+    };
+    self.listSourceAllObjectProperties = function (source, varToFill, props, callback) {
+        var sources = self.getSourceAndImports(source);
+        var allProps = [];
+        async.eachSeries(
+            sources,
+            function (source, callbackEach) {
+                self.listVocabPropertiesFn(source, varToFill, props, function (err, props) {
+                    if (err) {
+                        return callbackEach(err);
+                    }
+                    allProps = allProps.concat(props);
+                    callbackEach();
+                });
+            },
+            function (err) {
+                return callback(err, allProps);
+            }
+        );
+    };
+
+    self.getSourceAndImports = function (source) {
+        var sources = [source];
+        var imports = Config.sources[source].imports;
+        if (imports) {
+            imports.forEach(function (importSource) {
+                sources.push(importSource);
+            });
+        }
+        return sources;
+    };
+
     return self;
 })();
 export default CommonBotFunctions;

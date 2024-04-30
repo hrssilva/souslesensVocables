@@ -69,6 +69,42 @@ var DateWidget = (function () {
             });
     };
 
+    self.showDateRangePicker = function (divId, minDate, maxDate, onValidateRangPickerFn) {
+        self.onValidateRangPickerFn = onValidateRangPickerFn;
+        $("#" + divId).dialog("open");
+        if (!minDate) minDate = new Date(2020, 0, 1);
+        if (!maxDate) maxDate = new Date(2035, 11, 31);
+
+        $("#" + divId).load("/vocables/modules/uiWidgets/rangeWidget.html", function () {
+            $("#slider").dateRangeSlider({
+                wheelMode: "scroll",
+                wheelSpeed: 1,
+                bounds: {
+                    min: minDate,
+                    max: maxDate,
+                },
+                defaultValues: {
+                    min: new Date(),
+                    max: new Date(new Date().setDate(new Date().getDate() + 1)),
+                },
+                step: false,
+                /*   range:{
+                min: {years: 1},
+                max: {years: 2}
+            }*/
+            });
+
+            $("#rangePickerOkbutton").on("click", function () {
+                $("#" + divId).dialog("close");
+                var dateValues = $("#slider").dateRangeSlider("values");
+                if (self.onValidateRangPickerFn) {
+                    return self.onValidateRangPickerFn(dateValues.min, dateValues.max);
+                    // console.log(dateValues.min.toString() + " " + dateValues.max.toString());
+                }
+            });
+        });
+    };
+
     return self;
 })();
 

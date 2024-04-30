@@ -1,6 +1,8 @@
 // Generated from parser/OWL2Manchester.g4 by ANTLR 4.13.1
 // jshint ignore: start
-const antlr4 = require('antlr4')
+// import antlr4 from 'antlr4';
+
+const antlr4 = require('antlr4');
 
 // This class defines a complete listener for a parse tree produced by OWL2ManchesterParser.
 class OWL2ManchesterListener extends antlr4.ParseTreeListener {
@@ -11,24 +13,6 @@ class OWL2ManchesterListener extends antlr4.ParseTreeListener {
 
 	// Exit a parse tree produced by OWL2ManchesterParser#classExpression.
 	exitClassExpression(ctx) {
-	}
-
-
-	// Enter a parse tree produced by OWL2ManchesterParser#lexerError.
-	enterLexerError(ctx) {
-	}
-
-	// Exit a parse tree produced by OWL2ManchesterParser#lexerError.
-	exitLexerError(ctx) {
-	}
-
-
-	// Enter a parse tree produced by OWL2ManchesterParser#parserError.
-	enterParserError(ctx) {
-	}
-
-	// Exit a parse tree produced by OWL2ManchesterParser#parserError.
-	exitParserError(ctx) {
 	}
 
 
@@ -44,4 +28,4 @@ class OWL2ManchesterListener extends antlr4.ParseTreeListener {
 
 }
 
-module.exports = OWL2ManchesterListener
+module.exports = OWL2ManchesterListener;
