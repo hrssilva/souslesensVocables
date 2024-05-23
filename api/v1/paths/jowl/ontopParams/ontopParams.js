@@ -1,13 +1,13 @@
 
 
 // TODO: adapt as needed
-const QUERY_URL = "/sparql2sql/a";
+const QUERY_URL = "/sparql2sql/convert";
 const QUERY_BODY = {
     sparqlReqEncoded64:
         "UFJFRklYIDogPGh0dHA6Ly9tZXJha2EvbW9zcy9leGFtcGxlQm9va3Mub3dsIz4KU0VMRUNUIERJU1RJTkNUID94ID90aXRsZSA/YXV0aG9yID9nZW5yZSA/ZWRpdGlvbgpXSEVSRSB7ID94IGEgOkJvb2s7IDp0aXRsZSA/dGl0bGU7IDpnZW5yZSA/Z2VucmU7IDp3cml0dGVuQnkgP3k7IDpoYXNFZGl0aW9uID96LgoJCSA/eSBhIDpBdXRob3I7IDpuYW1lID9hdXRob3IuCgkJID96IGEgOkVkaXRpb247IDplZGl0aW9uTnVtYmVyID9lZGl0aW9uCn0=",
     ontologyURIEncoded64: "aHR0cDovL21lcmFrYS9tb3NzL2V4YW1wbGVCb29rcy5vd2wj",
 };
-const INIT_REPO_URL = "/sparql2sql/b";
+const INIT_REPO_URL = "/sparql2sql/createrepo";
 const INIT_REPO_BODY = {
     ontologyURIEncoded64: "aHR0cDovL21lcmFrYS9tb3NzL2V4YW1wbGVCb29rcy5vd2wj",
     ontologyContentEncoded64:
