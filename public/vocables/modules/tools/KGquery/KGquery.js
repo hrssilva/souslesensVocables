@@ -31,12 +31,16 @@ var KGquery = (function () {
     self.allPathEdges = {};
     self.isLoaded = false;
     self.maxResultSizeforLineageViz = 1000;
-    self.maxOptionalPredicatesInQuery = 8;
+    self.maxOptionalPredicatesInQuery = 10;
     self.pathEdgesColors = ["green", "blue", "orange", "grey", "yellow"];
 
     self.onLoaded = function () {
         $("#actionDivContolPanelDiv").load("modules/tools/KGquery/html/KGquery_leftPanel.html", function () {
             KGquery_graph.init();
+            if (Config.clientCache.KGquery) {
+                self.clearAll();
+                KGquery_myQueries.load(null, Config.clientCache.KGquery);
+            }
         });
         $("#graphDiv").load("modules/tools/KGquery/html/KGquery_centralPanel.html", function () {
             self.currentSource = Lineage_sources.activeSource;
@@ -50,6 +54,7 @@ var KGquery = (function () {
     };
 
     self.showSourcesDialog = function (forceDialog) {
+        self.clearAll();
         if (!forceDialog && Config.userTools["KGquery"].urlParam_source) {
             self.currentSource = Config.userTools["KGquery"].urlParam_source;
             self.init();
@@ -84,10 +89,11 @@ var KGquery = (function () {
             index: self.querySets.sets.length,
         }; // array of queryElements with a color and a currentIndex
 
-        self.addQueryElementToQuerySet(querySet);
+        // self.addQueryElementToQuerySet(querySet);
         self.querySets.sets.push(querySet);
-        self.currentQuerySet = querySet;
+        // self.currentQuerySet = querySet;
         self.divsMap[querySetDivId] = querySet;
+        return querySet;
     };
 
     self.addQueryElementToQuerySet = function (querySet) {
@@ -105,7 +111,7 @@ var KGquery = (function () {
             setIndex: querySet.index,
         };
         querySet.elements.push(queryElement);
-        self.currentQueryElement = queryElement;
+        // self.currentQueryElement = queryElement;
         self.divsMap[queryElementDivId] = queryElement;
         return queryElement;
     };
@@ -125,7 +131,7 @@ var KGquery = (function () {
         self.divsMap[nodeDivId] = node;
     };
 
-    self.addNode = function (selectedNode, nodeEvent) {
+    self.addNode = function (selectedNode, nodeEvent, callback) {
         if (!selectedNode) {
             return;
         }
@@ -135,12 +141,23 @@ var KGquery = (function () {
         /* if existing path in queryFlement a new one is created
   with a from Node that is the nearest node from the existing Node of all previous element in the set*/
 
+        if (!self.currentQuerySet) {
+            self.currentQuerySet = self.addQuerySet();
+        }
+        if (self.currentQuerySet.elements.length == 0) {
+            self.currentQueryElement = self.addQueryElementToQuerySet(self.currentQuerySet);
+        }
+        if (self.currentQueryElement.toNode) {
+            self.currentQueryElement = self.addQueryElementToQuerySet(self.currentQuerySet);
+        }
+
         if (self.currentQuerySet.elements.length > 1) {
             var excludeSelf = false;
+
             //   $("#KGquery_SetsControlsDiv").show();
             KGquery_paths.getNearestNodeId(node.id, self.currentQuerySet, excludeSelf, function (err, nearestNodeId) {
                 if (err) {
-                    return acllback(err.responseText);
+                    return alert(err.responseText);
                 }
 
                 self.addNodeToQueryElement(self.currentQueryElement, node, "fromNode");
@@ -154,13 +171,17 @@ var KGquery = (function () {
 
                     var predicateLabel = KGquery_controlPanel.getQueryElementPredicateLabel(self.currentQueryElement);
                     KGquery_controlPanel.addPredicateToQueryElementDiv(self.currentQueryElement.divId, predicateLabel);
-
-                    self.currentQueryElement = self.addQueryElementToQuerySet(self.currentQuerySet);
+                    if (callback) {
+                        return callback();
+                    }
                 });
             });
         } else if (!self.currentQueryElement.fromNode) {
             self.addNodeToQueryElement(self.currentQueryElement, node, "fromNode");
             self.currentFromNode = node;
+            if (callback) {
+                return callback();
+            }
         } else if (!self.currentQueryElement.toNode) {
             //give new varName to the classId
             if (self.currentQueryElement.fromNode.id == node.id) {
@@ -174,15 +195,21 @@ var KGquery = (function () {
                     return alert(err.responseText);
                 }
                 self.addNodeToQueryElement(self.currentQueryElement, node, "toNode");
+
                 var predicateLabel = KGquery_controlPanel.getQueryElementPredicateLabel(self.currentQueryElement);
                 KGquery_controlPanel.addPredicateToQueryElementDiv(self.currentQueryElement.divId, predicateLabel);
-
-                self.addQueryElementToQuerySet(self.currentQuerySet);
+                if (callback) {
+                    return callback();
+                }
             });
         }
     };
 
     self.addEdgeNodes = function (fromNode, toNode, edge) {
+        if (!self.currentQuerySet) {
+            self.currentQuerySet = self.addQuerySet();
+        }
+
         var queryElement = self.addQueryElementToQuerySet(self.currentQuerySet);
         self.addNodeToQueryElement(queryElement, fromNode, "fromNode");
         self.addNodeToQueryElement(queryElement, toNode, "toNode");
@@ -210,8 +237,8 @@ var KGquery = (function () {
                 Containers_widget.showDialog(self.currentSource, options, function (err, result) {
                     //  KGquery_filter.selectContainerFilters(fromNode,function(err, result){
                     fromNode.data.containerFilter = {
-                        classId: result.topMember.id,
-                        depth: result.depth,
+                        classId: result ? result.topMember.id : null,
+                        depth: result ? result.depth : 1,
                     };
                     KGquery.addEdgeNodes(fromNode, toNode, edge);
                 });
@@ -219,6 +246,8 @@ var KGquery = (function () {
                 toNode.alias = toNode.label + (self.currentQueryElement.paths.length + 1);
                 return KGquery.addEdgeNodes(fromNode, toNode, edge);
             }
+        } else {
+            return KGquery.addEdgeNodes(fromNode, toNode, edge);
         }
     };
 
@@ -260,6 +289,7 @@ var KGquery = (function () {
         if (!options) {
             options = {};
         }
+        options.output = output;
 
         $("#KGquery_dataTableDiv").html("");
         self.message("searching...");
@@ -285,12 +315,19 @@ var KGquery = (function () {
             }
 
             self.message("found items :" + result.results.bindings.length);
+
+            KGquery_myQueries.save(function (err, query) {
+                Config.clientCache.KGquery = query;
+            });
+
             if (output == "table") {
                 self.queryResultToTable(result);
             } else if (output == "Graph") {
                 self.queryResultToVisjsGraph(result);
             } else if (output == "TagsGeometry") {
                 self.queryToTagsGeometry(result.results.bindings);
+            } else if (output == "TagsCalendar") {
+                self.queryToTagsCalendar(result.results.bindings);
             }
         });
     };
@@ -308,7 +345,7 @@ var KGquery = (function () {
                         return callbackSeries();
                     }
 
-                    KGquery_filter.selectOptionalPredicates(self.querySets, function (err, result) {
+                    KGquery_filter.selectOptionalPredicates(self.querySets, options, function (err, result) {
                         if (err) {
                             MainController.UI.message(err, true);
                             callbackSeries(err);
@@ -338,6 +375,9 @@ var KGquery = (function () {
                     var uniqueQueries = {};
 
                     self.querySets.sets.forEach(function (querySet) {
+                        if (querySet.elements.length == 0 || !querySet.elements[0].fromNode) {
+                            return;
+                        }
                         if (querySet.booleanOperator) {
                             whereStr += "\n " + querySet.booleanOperator + "\n ";
                         }
@@ -379,7 +419,9 @@ var KGquery = (function () {
                                     if (!queryElement.fromNode.data.containerFilter) {
                                         return;
                                     }
-                                    filterStr += "\n FILTER(" + subjectVarName + "=<" + queryElement.fromNode.data.containerFilter.classId + ">)\n ";
+                                    if (queryElement.fromNode.data.containerFilter.classId) {
+                                        filterStr += "\n FILTER(" + subjectVarName + "=<" + queryElement.fromNode.data.containerFilter.classId + ">)\n ";
+                                    }
                                     var depth = queryElement.fromNode.data.containerFilter.depth || 1;
                                     {
                                         if (depth) {
@@ -428,7 +470,7 @@ var KGquery = (function () {
                         }
 
                         whereStr += predicateStr + "\n" + "" + "\n" + filterStr + "\n" + otherPredicatesStrs;
-                        if (predicateStr) {
+                        if (optionalPredicatesSparql) {
                             whereStr += optionalPredicatesSparql;
                         }
                         //  whereStr = "{" + whereStr + "}";
@@ -452,15 +494,11 @@ var KGquery = (function () {
                 function (callbackSeries) {
                     var url = Config.sources[self.currentSource].sparql_server.url + "?format=json&query=";
 
-                    var currentSparqlQuery = {
+                    self.currentSparqlQuery = {
                         url: url,
                         query: query,
                         source: self.currentSource,
                     };
-
-                    if (options.dontExecute) {
-                        return callback(null, currentSparqlQuery);
-                    }
 
                     Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: self.currentSource, caller: "getObjectRestrictions" }, function (err, result) {
                         if (err) {
@@ -520,9 +558,6 @@ var KGquery = (function () {
         });
 
         ResponsiveUI.onToolSelect("lineage", null, function () {
-            KGquery_myQueries.save(function (err, query) {
-                // Config.clientCache.KGquery = query;
-            });
             setTimeout(function () {
                 Lineage_whiteboard.drawNewGraph(visjsData, "graphDiv");
             }, 2000);
@@ -541,6 +576,18 @@ var KGquery = (function () {
             setTimeout(function () {
                 //   import TagsGeometry from "../../../../plugins/TagsGeometry/public/js/main.js";
                 TagsGeometry.draw(tagsMap);
+            }, 2000);
+        });
+    };
+
+    self.queryToTagsCalendar = function (data) {
+        if (data.length == 0) {
+            return alert("no result");
+        }
+        ResponsiveUI.onToolSelect("TagsCalendar", null, function () {
+            setTimeout(function () {
+                //   import TagsGeometry from "../../../../plugins/TagsGeometry/public/js/main.js";
+                TagsCalendar.drawSparqlResultTimeLine({ data: data });
             }, 2000);
         });
     };
@@ -635,24 +682,19 @@ var KGquery = (function () {
         });
         self.querySets = { sets: [], groups: [], currentIndex: -1 };
         self.divsMap = {};
-        self.currentQuerySet = self.addQuerySet();
+        self.currentQuerySet = null;
         self.allPathEdges = {};
         KGquery_filter.containersFilterMap = {};
-        /* $("#KGquery_graphDiv").css("display", "flex");
-        $("#KGquery_dataTableDiv").css("display", "none");*/
         if (!exceptSetQueries) {
             self.classeMap = {};
             self.SetQueries = [];
             self.queryPathesMap = {};
 
             self.divsMap = {};
-            KGquery_graph.drawVisjsModel("saved");
-            //  KGquery_graph.resetVisjNodes();
-            //  KGquery_graph.resetVisjEdges();
-            //   KGquery_graph.drawVisjsModel("saved")
+            if (self.currentSource) {
+                KGquery_graph.drawVisjsModel("saved");
+            }
             $("#KGquery_pathsDiv").html("");
-            self.addQuerySet();
-            //Hide Union and minus showToClaude
             $("#KGquery_SetsControlsDiv").hide();
         }
     };

@@ -1,28 +1,29 @@
 import KGquery from "../../modules/tools/KGquery/KGquery.js";
 import KGquery_graph from "../../modules/tools/KGquery/KGquery_graph.js";
 import SavedQueriesWidget from "../../modules/uiWidgets/savedQueriesWidget.js";
-import Lineage_r from "../lineage/lineage_r.js";
 import ResponsiveUI from "../responsiveUI.js";
-import KGquery_controlPanel from "../../modules/tools/KGquery/KGquery_controlPanel.js";
-import VisjsGraphClass from "../../modules/graph/VisjsGraphClass.js";
 import KGquery_myQueries from "../../modules/tools/KGquery/KGquery_myQueries.js";
 
 var KGquery_r = (function () {
     var self = {};
     //changed files and functions
-    self.oldshowHideEditButtons = Lineage_sources.showHideEditButtons;
-    self.oldshowDialog = SavedQueriesWidget.showDialog;
-    self.oldKGquery_controlPanel = window.KGquery_controlPanel;
+
     self.onLoaded = function () {
         Lineage_sources.showHideEditButtons = self.showHideEditButtons;
         SavedQueriesWidget.showDialog = self.SavedQueriesComponentShowDialogResponsive;
         //ResponsiveUI.replaceFile(KGquery_controlPanel, KGquery_controlPanelResponsive);
         ResponsiveUI.initMenuBar(self.loadSource);
+        KGquery.clearAll();
+        if (Config.clientCache.KGquery) {
+            KGquery_myQueries.load(null, Config.clientCache.KGquery);
+        }
         $("#messageDiv").attr("id", "KGquery_messageDiv");
         $("#waitImg").attr("id", "KGquery_waitImg");
     };
     self.unload = function () {
-        //retribute old file and functions
+        self.oldshowHideEditButtons = Lineage_sources.showHideEditButtons;
+        self.oldshowDialog = SavedQueriesWidget.showDialog;
+        self.oldKGquery_controlPanel = window.KGquery_controlPanel;
         Lineage_sources.showHideEditButtons = self.oldshowHideEditButtons;
         SavedQueriesWidget.showDialog = self.oldshowDialog;
         window.KGquery_controlPanel = self.oldKGquery_controlPanel;
@@ -45,6 +46,7 @@ var KGquery_r = (function () {
                     KGquery_graph.drawVisjsModel("saved");
                     ResponsiveUI.openTab("lineage-tab", "tabs_Query", KGquery_r.initQuery, "#QueryTabButton");
                     ResponsiveUI.resetWindowHeight();
+                    KGquery.clearAll();
                     if (Config.clientCache.KGquery) {
                         setTimeout(function () {
                             KGquery_myQueries.load(null, Config.clientCache.KGquery);
@@ -83,7 +85,7 @@ var KGquery_r = (function () {
     self.initQuery = function () {
         if ($("#tabs_Query").children().length == 0) {
             $("#tabs_Query").load("./responsive/KGquery/html/KGqueryQueryTab.html", function () {
-                KGquery.addQuerySet();
+                //  KGquery.addQuerySet();
             });
         }
     };
