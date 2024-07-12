@@ -18,22 +18,30 @@ module.exports = function () {
 
         if (operationId === "init_repo") {
             const url = jowlConfig.url + INIT_REPO_URL;
-            httpProxy.post(url, null, INIT_REPO_BODY, function (err, result) {
-                if (err) {
-                    next(err);
-                } else {
-                    return processResponse(res, err, JSON.parse(result));
-                }
+            var options = {
+                method: "POST",
+                json: INIT_REPO_BODY,
+                headers: {
+                    "content-type": "application/json"
+                },
+                url: url
+            };
+            request(options, function(error, response, body) {
+                return processResponse(res, error, body);
             });
         }
         if (operationId === "query") {
             const url = jowlConfig.url + QUERY_URL;
-            httpProxy.post(url, null, QUERY_BODY, function (err, result) {
-                if (err) {
-                    next(err);
-                } else {
-                    return processResponse(res, err, JSON.parse(result));
-                }
+            var options = {
+                method: "POST",
+                json: QUERY_BODY,
+                headers: {
+                    "content-type": "application/json"
+                },
+                url: url
+            };
+            request(options, function(error, response, body) {
+                return processResponse(res, error, body);
             });
         }
     }
