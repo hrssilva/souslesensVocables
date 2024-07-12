@@ -1,6 +1,7 @@
 const { processResponse } = require("../utils");
 const ConfigManager = require("../../../../bin/configManager.");
 const httpProxy = require("../../../../bin/httpProxy.");
+const request = require("request");
 const {INIT_REPO_BODY, INIT_REPO_URL, QUERY_BODY, QUERY_URL} = require("./ontopParams/ontopParams");
 
 module.exports = function () {
