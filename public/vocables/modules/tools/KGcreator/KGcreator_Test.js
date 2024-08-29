@@ -1,6 +1,8 @@
+import KGcreator_mappings from "./KGcreator_mappings.js";
+
 var KGcreator_Test= (function () {
     self.teste=function(){
-        let body={operationId:'init_repo'};
+        let body={operationId:'query'};
         $.ajax({
             type: "POST",
             url: Config.apiUrl + '/jowl/ontop',
@@ -12,6 +14,7 @@ var KGcreator_Test= (function () {
                     console.log("Resultado null");
                 }
                 else
+                    KGcreator_mappings.showMappingsInEditor(result);
                     console.log(result);
             },
             error: function () {
@@ -19,8 +22,9 @@ var KGcreator_Test= (function () {
             },
         });
     }
+
     return self;
 }
 )();
 export default KGcreator_Test;
-Window.KGcreator_Test=KGcreator_Test;
+window.KGcreator_Test=KGcreator_Test;
