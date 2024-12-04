@@ -48,6 +48,27 @@ const apiDoc = {
             type: "object",
             additionalProperties: { $ref: "#/definitions/Database" },
         },
+        Tool: {
+            type: "object",
+            properties: {
+                type: {
+                    enum: ["tool", "plugin"],
+                },
+                name: {
+                    type: "string",
+                },
+                config: {},
+            },
+        },
+        Tools: {
+            type: "array",
+            items: {
+                $ref: "#/definitions/Tool",
+            },
+        },
+        PluginConfig: {
+            type: "object",
+        },
         BlenderSources: {
             type: "object",
             additionalProperties: { $ref: "#/definitions/BlenderSource" },
@@ -217,10 +238,6 @@ const apiDoc = {
                 },
                 allowedTools: {
                     type: "string",
-                },
-                forbiddenTools: {
-                    type: "array",
-                    items: {},
                 },
                 blender: {
                     $ref: "#/definitions/Blender",

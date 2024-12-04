@@ -48,6 +48,9 @@ var Sparql_common = (function () {
     };
 
     self.setFilter = function (varName, ids, words, options) {
+        if (!options) {
+            options = {};
+        }
         if (!ids && !words) {
             return "";
         }
@@ -65,6 +68,8 @@ var Sparql_common = (function () {
             }
             return self.formatStringForTriple(str);
         }
+
+        var labelSuffix = options.labelSuffix || "Label";
 
         if (!options) {
             options = {};
@@ -114,9 +119,9 @@ var Sparql_common = (function () {
                         }
                     });
                     if (options.exactMatch) {
-                        filters.push(" FILTER(?" + varName + "Label  in(" + conceptWordStr + "))");
+                        filters.push(" FILTER(?" + varName + labelSuffix + "  in(" + conceptWordStr + "))");
                     } else {
-                        filters.push(" FILTER(regex(?" + varName + 'Label , "' + conceptWordStr + '","i")) ');
+                        filters.push(" FILTER(regex(?" + varName + labelSuffix + ' , "' + conceptWordStr + '","i")) ');
                     }
                 } else {
                     if (words == null) {
@@ -124,10 +129,10 @@ var Sparql_common = (function () {
                     }
 
                     if (options.exactMatch) {
-                        filters.push(" FILTER(?" + varName + "Label = '" + words + "')");
+                        filters.push(" FILTER(?" + varName + labelSuffix + " = '" + words + "')");
                         //filters.push(" regex(?" + varName + 'Label, "^' + words + '$", "i")');
                     } else {
-                        filters.push(" FILTER(regex(?" + varName + 'Label, "' + words + '", "i"))');
+                        filters.push(" FILTER(regex(?" + varName + labelSuffix + ', "' + words + '", "i"))');
                     }
                 }
             } else if (ids) {
@@ -155,12 +160,23 @@ var Sparql_common = (function () {
                     if (!id) {
                         return;
                     }
+
+                    if (id.startsWith("_:") && !options.useFilterKeyWord) {
+                        // The use of blank nodes in VALUES is not allowed by SPARQL 1.1 specification at '_:b1d86e2d604'
+                        return;
+                    }
+
                     if (conceptIdsStr != "") {
                         conceptIdsStr += options.useFilterKeyWord ? "," : " ";
                     }
 
                     id = "" + id;
-                    if (id.match(/<.*>/)) {
+                    if (id.startsWith("_:")) {
+                        conceptIdsStr += "<" + id + ">";
+                    } else if (!id.startsWith("http") && id.match(/^.{1,5}:.{3,}$/)) {
+                        // prefix
+                        conceptIdsStr += id;
+                    } else if (id.match(/<.*>/)) {
                         conceptIdsStr += id;
                     } else {
                         conceptIdsStr += "<" + id + ">";
@@ -531,8 +547,14 @@ var Sparql_common = (function () {
         if (!date) {
             date = new Date();
         }
-        var str = JSON.stringify(date);
-        return str + "^^xsd:dateTime";
+
+        var str = '"' + common.dateToRDFString(date) + '"^^xsd:dateTime';
+        return str;
+        //   return  "\"" + date.getFullYear() + "/" + (date.getMonth() + 1) + "/" + date.getDate() + "\"^^xsd:date"
+
+        //error in JSON.stringify(date) wrong day !!!!!!!!!!!!!!!
+        /*   var str = JSON.stringify(date);
+        return str + "^^xsd:dateTime";*/
     };
 
     self.getSourceFromUriInDefaultServer = function (uri, callback) {
@@ -670,6 +692,52 @@ var Sparql_common = (function () {
         }
 
         return false;
+    };
+
+    self.setPrefixesInSelectQuery = function (query) {
+        var whereIndex = query.toLowerCase().indexOf("where");
+
+        var strWhere = query.substring(whereIndex);
+        var str0 = query.substring(0, query.toLowerCase().indexOf("select"));
+        // var regex = /^[^@].*<([^>]*)/gm;
+        var regex = /[^@].*<([^>]*)/gm;
+        var array = [];
+        var urisMap = {};
+        while ((array = regex.exec(strWhere)) != null) {
+            var uri = array[1];
+            if (str0.indexOf(uri) < 0) {
+                var lastSep = uri.lastIndexOf("#");
+                if (lastSep < 0) {
+                    lastSep = uri.lastIndexOf("/");
+                }
+
+                if (lastSep == uri.length - 1) {
+                    return;
+                }
+
+                var prefixStr = uri.substring(0, lastSep + 1);
+                if (!urisMap[prefixStr]) {
+                    urisMap[prefixStr] = 1;
+                }
+            }
+        }
+
+        var prefixStr = "";
+        var index = 1;
+        for (var uri in urisMap) {
+            var prefix = "ns" + index++;
+            prefixStr += "PREFIX " + prefix + ": <" + uri + "> \n";
+            strWhere = strWhere.replaceAll(uri, prefix + ":");
+        }
+        strWhere = strWhere.replace(/[<>]/gm, "");
+        query = prefixStr + query.substring(0, whereIndex) + strWhere;
+
+        return query;
+    };
+
+    self.getIntFromTypeLiteral = function (value) {
+        var valueStr = value.split("^")[0];
+        return parseInt(valueStr);
     };
 
     return self;

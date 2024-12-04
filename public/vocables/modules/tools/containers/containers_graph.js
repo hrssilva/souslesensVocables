@@ -76,7 +76,7 @@ var Containers_graph = (function () {
                         shadow: self.nodeShadow,
                         shape: Containers_graph.containerStyle.shape,
                         size: Containers_graph.containerStyle.size,
-                        font: { color: color2 },
+                        font: { color: self.containerStyle.color },
                         color: Containers_graph.containerStyle.parentContainerColor,
                         data: {
                             type: "container",
@@ -132,8 +132,8 @@ var Containers_graph = (function () {
                 function (callbackSeries) {
                     //  options.descendants = true;
                     // options.leaves = true;
-                    MainController.UI.message("searching...");
-                    Containers_query.getContainerDescendantsOld(source, containerData.id, options, function (err, result) {
+                    UI.message("searching...");
+                    Containers_query.getContainerDescendants(source, containerData.id, options, function (err, result) {
                         if (err) {
                             return callbackSeries(err);
                         }
@@ -143,7 +143,7 @@ var Containers_graph = (function () {
                         }
                         return callbackSeries();
                     });
-                    MainController.UI.message("drawing graph...");
+                    UI.message("drawing graph...");
                 },
 
                 //get containersStyles
@@ -172,10 +172,10 @@ var Containers_graph = (function () {
                             id: containerData.id,
                             label: containerData.label,
                             shadow: self.nodeShadow,
-                            shape: Lineage_containers.containerStyle.shape,
+                            shape: Containers_graph.containerStyle.shape,
                             size: size,
                             font: type == "container" ? { color: "#70309f" } : null,
-                            color: Lineage_containers.containerStyle.color,
+                            color: Containers_graph.containerStyle.color,
                             data: {
                                 type: type,
                                 source: source,
@@ -188,27 +188,29 @@ var Containers_graph = (function () {
                     data.forEach(function (item) {
                         if (!existingNodes[item.parent.value]) {
                             var type = "container";
+
+                            var label = item.parentLabel ? item.parentLabel.value : Sparql_common.getLabelFromURI(item.parent);
                             existingNodes[item.parent.value] = 1;
                             visjsData.nodes.push({
                                 id: item.parent.value,
-                                label: item.parentLabel.value,
+                                label: label,
                                 shadow: self.nodeShadow,
-                                shape: type == "container" ? Lineage_containers.containerStyle.shape : shape,
+                                shape: type == "container" ? Containers_graph.containerStyle.shape : shape,
                                 size: size,
                                 font: type == "container" ? { color: color2, size: 10 } : null,
-                                color: Lineage_containers.containerStyle.color,
+                                color: Containers_graph.containerStyle.color,
                                 data: {
                                     type: type,
                                     source: source,
                                     id: item.parent.value,
-                                    label: item.parentLabel.value,
+                                    label: label,
                                 },
                             });
                         }
 
                         if (!existingNodes[item.member.value]) {
-                            var color = Lineage_containers.containerStyle.color;
-                            var shape = Lineage_containers.containerStyle.shape;
+                            var color = Containers_graph.containerStyle.color;
+                            var shape = Containers_graph.containerStyle.shape;
                             var type = "container";
                             if (item.memberTypes.value.indexOf("Bag") < 0) {
                                 color = Lineage_whiteboard.getSourceColor(Lineage_sources.activeSource);
@@ -222,10 +224,11 @@ var Containers_graph = (function () {
                                 }
                             }
 
+                            var label = item.memberLabel ? item.memberLabel.value : Sparql_common.getLabelFromURI(item.member);
                             existingNodes[item.member.value] = 1;
                             visjsData.nodes.push({
                                 id: item.member.value,
-                                label: item.memberLabel.value,
+                                label: label,
                                 shadow: self.nodeShadow,
                                 shape: shape,
                                 size: size,
@@ -236,7 +239,8 @@ var Containers_graph = (function () {
                                     type: type,
                                     source: source,
                                     id: item.member.value,
-                                    label: item.memberLabel.value,
+                                    // label: item.memberLabel.value,
+                                    label: label,
                                 },
                             });
                         }
@@ -332,7 +336,7 @@ var Containers_graph = (function () {
                 },
             ],
             function (err) {
-                MainController.UI.message("", true);
+                UI.message("", true);
                 if (err) {
                     return alert(err.responseText);
                     if (callback) {

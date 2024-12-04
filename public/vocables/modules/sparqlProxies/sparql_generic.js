@@ -102,34 +102,34 @@ var Sparql_generic = (function () {
     };
 
     /**
-   *
-   * request example with collection filtering
-   PREFIX  terms:<http://purl.org/dc/terms/> PREFIX  rdfs:<http://www.w3.org/2000/01/rdf-schema#> PREFIX  rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> PREFIX  skos:<http://www.w3.org/2004/02/skos/core#> PREFIX  elements:<http://purl.org/dc/elements/1.1/>  select distinct ?child1,?child1Label, ?subjectLabel,?collLabel  FROM <http://souslesens/thesaurus/TEST/>   WHERE {?child1 skos:broader ?subject.
+     *
+     * request example with collection filtering
+     PREFIX  terms:<http://purl.org/dc/terms/> PREFIX  rdfs:<http://www.w3.org/2000/01/rdf-schema#> PREFIX  rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> PREFIX  skos:<http://www.w3.org/2004/02/skos/core#> PREFIX  elements:<http://purl.org/dc/elements/1.1/>  select distinct ?child1,?child1Label, ?subjectLabel,?collLabel  FROM <http://souslesens/thesaurus/TEST/>   WHERE {?child1 skos:broader ?subject.
 
-  ?subject skos:prefLabel ?subjectLabel.
+     ?subject skos:prefLabel ?subjectLabel.
 
-  OPTIONAL{ ?child1 skos:prefLabel ?child1Label. } .filter( ?subject =<http://souslesens/thesaurus/TEST/9d53e3925c>)OPTIONAL{?child1 rdf:type ?child1Type.}
+     OPTIONAL{ ?child1 skos:prefLabel ?child1Label. } .filter( ?subject =<http://souslesens/thesaurus/TEST/9d53e3925c>)OPTIONAL{?child1 rdf:type ?child1Type.}
 
-  ?collection skos:member* ?acollection. ?acollection rdf:type skos:Collection.   ?collection skos:prefLabel ?collLabel.  ?acollection skos:prefLabel ?acollLabel.filter (?collection= <http://souslesens/thesaurus/TEST/5d97abb964> )
-   ?acollection skos:member ?aconcept. ?aconcept rdf:type skos:Concept.?aconcept skos:prefLabel ?aconceptLabel.
-  ?childX skos:broader ?aconcept.?childX skos:prefLabel ?childLabel.  ?childX skos:broader* ?child1
+     ?collection skos:member* ?acollection. ?acollection rdf:type skos:Collection.   ?collection skos:prefLabel ?collLabel.  ?acollection skos:prefLabel ?acollLabel.filter (?collection= <http://souslesens/thesaurus/TEST/5d97abb964> )
+     ?acollection skos:member ?aconcept. ?aconcept rdf:type skos:Concept.?aconcept skos:prefLabel ?aconceptLabel.
+     ?childX skos:broader ?aconcept.?childX skos:prefLabel ?childLabel.  ?childX skos:broader* ?child1
 
-}ORDER BY ?child1Label limit 1000
+     }ORDER BY ?child1Label limit 1000
 
-   *
-   * @param
-    sourceLabel
-   * @param
-    words
-   * @param
-    ids
-   * @param
-    descendantsDepth
-   * @param
-    options
-   * @param
-    callback
-   */
+     *
+     * @param
+     sourceLabel
+     * @param
+     words
+     * @param
+     ids
+     * @param
+     descendantsDepth
+     * @param
+     options
+     * @param
+     callback
+     */
 
     self.getNodeChildren = function (sourceLabel, words, ids, descendantsDepth, options, callback) {
         $("#waitImg").css("display", "block");
@@ -415,6 +415,16 @@ var Sparql_generic = (function () {
     };
 
     self.triplesObjectToString = function (item) {
+        if (!item.subject) {
+            item.subject = item.s;
+        }
+        if (!item.predicate) {
+            item.predicate = item.p;
+        }
+        if (!item.object) {
+            item.object = item.o;
+        }
+
         var allowedPrefixes = Object.keys(Config.defaultSparqlPrefixes);
 
         function setElementSyntax(elt) {
@@ -422,16 +432,15 @@ var Sparql_generic = (function () {
             if ((p = elt.indexOf("@")) > 0) {
                 return '"' + elt.substring(0, p) + '"' + elt.substring(p);
             }
-            if (elt.indexOf("_:b") == 0) {
+            if (elt.match(/^_:b\d+$/)) {
+                return elt;
+            } else if (elt.indexOf("_:b") == 0) {
                 return "<" + elt + ">";
-            }
-            if (elt.indexOf("_:") == 0) {
+            } else if (elt.indexOf("_:") == 0) {
                 return "<" + elt + ">";
-            }
-            if (elt.indexOf("http") == 0 || item.valueType == "uri") {
+            } else if (elt.indexOf("http") == 0 || item.valueType == "uri") {
                 return "<" + elt + ">";
-            }
-            if (elt.indexOf("<") == 0) {
+            } else if (elt.indexOf("<") == 0) {
                 return elt;
             }
 
@@ -494,7 +503,9 @@ var Sparql_generic = (function () {
         }
         var graphUri;
         if (!sourceLabel) {
-            if (!options.graphUri) return callback("no sourceLabel or graphUri");
+            if (!options.graphUri) {
+                return callback("no sourceLabel or graphUri");
+            }
             graphUri = options.graphUri;
         } else {
             graphUri = Config.sources[sourceLabel].graphUri;
@@ -522,7 +533,8 @@ var Sparql_generic = (function () {
                 });
 
                 var query = self.getDefaultSparqlPrefixesStr();
-                query += " WITH GRAPH  <" + graphUri + ">  " + "INSERT DATA" + "  {" + insertTriplesStr + "  }";
+                //  query += " WITH GRAPH  <" + graphUri + ">  " + "INSERT DATA" + "  {" + insertTriplesStr + "  }";
+                query += " WITH GRAPH  <" + graphUri + ">  " + "INSERT " + "  {" + insertTriplesStr + "  }";
 
                 if (options.getSparqlOnly) {
                     return callback(null, query);
@@ -610,7 +622,9 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
                     try {
                         var regex = / (\d)+ /;
                         resultSize = result.match(regex)[1];
-                        if (resultSize) resultSize = parseInt(resultSize);
+                        if (resultSize) {
+                            resultSize = parseInt(resultSize);
+                        }
                     } catch (e) {
                         console.log(e);
                         resultSize = -1;
@@ -878,149 +892,6 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
         return bindings;
     };
 
-    /**
-     * Obsolete
-     * replaced by getSourceTaxonomy
-     * taxonomy is not used
-     *
-     *
-     *
-     *
-     */
-    self.getSourceTaxonomyFromTop = function (sourceLabel, options, callback) {
-        var rawData = [];
-        var topClasses = [];
-        var taxonomy = {};
-
-        var allClassesMap = {};
-        async.series(
-            [
-                function (callbackSeries) {
-                    //get topClasse
-                    Sparql_OWL.getTopConcepts(sourceLabel, {}, function (err, result) {
-                        if (err) {
-                            return callbackSeries(err);
-                        }
-                        if (result.length == 0) {
-                            return callbackSeries("no top classes found  in source" + sourceLabel + ". cannot organize classes lineage");
-                        }
-                        topClasses = result;
-                        callbackSeries();
-                    });
-                },
-
-                function (callbackSeries) {
-                    //get raw data subclasses
-                    if (!options) {
-                        options = {};
-                    }
-                    var totalCount = 0;
-                    var resultSize = 1;
-                    var limitSize = 2000;
-                    var offset = 0;
-                    var fromStr = Sparql_common.getFromStr(sourceLabel);
-                    var query =
-                        "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n" +
-                        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
-                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n" +
-                        "SELECT distinct * " +
-                        fromStr +
-                        " WHERE {\n" +
-                        " ?sub rdfs:subClassOf+ ?obj .\n" +
-                        "   ?sub rdfs:label ?subLabel .\n" +
-                        "   ?obj rdfs:label ?objLabel .\n" +
-                        "   ?sub rdf:type owl:Class.\n" +
-                        " ?obj rdf:type owl:Class.\n" +
-                        "} ";
-                    async.whilst(
-                        function (_test) {
-                            return resultSize > 0;
-                        },
-                        function (callbackWhilst) {
-                            var query2 = "" + query;
-                            query2 += " limit " + limitSize + " offset " + offset;
-
-                            self.sparql_url = Config.sources[sourceLabel].sparql_server.url;
-                            var url = self.sparql_url + "?format=json&query=";
-                            Sparql_proxy.querySPARQL_GET_proxy(url, query2, "", { source: sourceLabel }, function (err, result) {
-                                if (err) {
-                                    return callbackWhilst(err);
-                                }
-                                result = Sparql_generic.setBindingsOptionalProperties(result.results.bindings, ["prop", "domain", "range"]);
-                                rawData = rawData.concat(result);
-                                resultSize = result.length;
-                                totalCount += result.length;
-                                MainController.UI.message(sourceLabel + "retreived triples :" + totalCount);
-                                offset += resultSize;
-                                callbackWhilst();
-                            });
-                        },
-                        function (_err) {
-                            // eslint-disable-next-line no-console
-                            console.log(totalCount);
-                            callbackSeries();
-                        }
-                    );
-                },
-
-                function (callbackSeries) {
-                    //set each class parent
-
-                    var parentChildrenMap = {};
-                    rawData.forEach(function (item) {
-                        if (!allClassesMap[item.sub.value]) {
-                            allClassesMap[item.sub.value] = {
-                                id: item.sub.value,
-                                label: item.subLabel.value,
-                                children: [],
-                                parents: "",
-                            };
-                        }
-                        if (!parentChildrenMap[item.obj.value]) {
-                            parentChildrenMap[item.obj.value] = [];
-                        }
-                        parentChildrenMap[item.obj.value].push(item.sub.value);
-                    });
-
-                    var x = Object.keys(allClassesMap).length;
-
-                    taxonomy = {
-                        id: sourceLabel,
-                        label: sourceLabel,
-                        children: [],
-                    };
-
-                    parentChildrenMap[sourceLabel] = [];
-
-                    topClasses.forEach(function (item) {
-                        parentChildrenMap[sourceLabel].push(item.topConcept.value);
-                    });
-
-                    function recurseChildren(str, classId) {
-                        if (parentChildrenMap[classId]) {
-                            str += classId + "|";
-                            parentChildrenMap[classId].forEach(function (childId) {
-                                if (allClassesMap[childId]) {
-                                    allClassesMap[childId].parents = str;
-                                }
-                                recurseChildren(str, childId);
-                            });
-                        }
-                    }
-
-                    recurseChildren("", sourceLabel);
-
-                    //  recurseChildren("", "http://w3id.org/readi/rdl/CFIHOS-30000311")
-
-                    callbackSeries();
-                },
-            ],
-            function (err) {
-                return callback(err, { tree: taxonomy, classesMap: allClassesMap });
-            }
-        );
-    };
-
     self.getLangFilterStr = function (options, variable) {
         var langFilter = "";
         if (!options || !options.lang) {
@@ -1039,7 +910,7 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
         if (schemaType == "OWL") {
             parentType = Sparql_OWL.getSourceTaxonomyPredicates(sourceLabel);
 
-            conceptType = "owl:Class|owl:NamedIndividual";
+            conceptType = "owl:Class";
         } else if (schemaType == "KNOWLEDGE_GRAPH") {
             parentType = "rdf:type";
             conceptType = "owl:NamedIndividual";
@@ -1079,6 +950,8 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
 
                     var fromStr = Sparql_common.getFromStr(sourceLabel, false, options.withoutImports, true);
 
+                    var filter = options.filter || "";
+
                     if (schemaType == "OWL") {
                         var query =
                             "PREFIX owl: <http://www.w3.org/2002/07/owl#>" +
@@ -1088,13 +961,17 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
                             "SELECT distinct *  " +
                             fromStr +
                             "  WHERE {{  ?subject   rdfs:subClassOf   ?firstParent.?subject rdfs:label ?subjectLabel.  ?firstParent rdf:type owl:Class. " +
+                            filter +
                             // "filter( lang(?subjectLabel)= 'en' || !lang(?subjectLabel))" +
                             "OPTIONAL{?subject skos:altLabel \n" +
                             "          ?skosAltLabel. } }" +
                             " UNION " +
-                            "{  ?subject   rdfs:subClassOf  ?firstParent.    ?firstParent rdf:type owl:Class. ?subject <http://www.w3.org/2004/02/skos/core#prefLabel> ?subjectLabel. filter( lang(?subjectLabel)= 'en' || !lang(?subjectLabel))OPTIONAL{?subject skos:altLabel ?skosAltLabel }  }" +
+                            "{  ?subject   rdfs:subClassOf  ?firstParent.    ?firstParent rdf:type owl:Class. ?subject <http://www.w3.org/2004/02/skos/core#prefLabel> ?subjectLabel. filter( lang(?subjectLabel)= 'en' || !lang(?subjectLabel))OPTIONAL{?subject skos:altLabel ?skosAltLabel }  " +
+                            filter +
+                            "}" +
                             "UNION  {" +
                             "    ?subject rdf:type owl:Class.?subject rdfs:label ?subjectLabel." +
+                            filter +
                             //  "   filter( lang(?subjectLabel)= 'en' || !lang(?subjectLabel))" +
                             "  OPTIONAL{?subject skos:altLabel  ?skosAltLabel}" +
                             "  filter( not exists{  ?subject   rdfs:subClassOf   ?aParent.  ?aParent rdf:type owl:Class.  })}" +
@@ -1162,7 +1039,7 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
                                     allData = allData.concat(result);
                                     resultSize = result.length;
                                     totalCount += result.length;
-                                    //   MainController.UI.message(sourceLabel + "retreived triples :" + totalCount);
+                                    //   UI.message(sourceLabel + "retreived triples :" + totalCount);
                                     offset += limitSize;
                                     callbackWhilst();
                                 }
@@ -1270,8 +1147,10 @@ bind (replace(?oldLabel,"Class","Class-") as ?newLabel)
                     for (var key in allClassesMap) {
                         var obj = allClassesMap[key];
                         var parentArray = obj.parents;
-                        parentArray.push(sourceLabel);
-                        parentArray = parentArray.reverse();
+                        if (options.parentsTopDown) {
+                            parentArray.push(sourceLabel);
+                            parentArray = parentArray.reverse();
+                        }
 
                         //   delete allClassesMap[key].parent;
                         allClassesMap[key].parents = parentArray;

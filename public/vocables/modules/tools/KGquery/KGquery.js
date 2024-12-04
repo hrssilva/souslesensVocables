@@ -17,11 +17,12 @@ import SQLquery_filters from "./SQLquery_filters.js";
 import KGquery_controlPanel from "./KGquery_controlPanel.js";
 import KGquery_paths from "./KGquery_paths.js";
 
-import ResponsiveUI from "../../../responsive/responsiveUI.js";
+import UI from "../../../modules/shared/UI.js";
 
 import KGquery_filter from "./KGquery_filter.js";
 
 import Containers_widget from "../containers/containers_widget.js";
+import KGconstraints_validator from "../KGconstraints/KGconstraints_validator.js";
 
 var KGquery = (function () {
     var self = {};
@@ -35,17 +36,27 @@ var KGquery = (function () {
     self.pathEdgesColors = ["green", "blue", "orange", "grey", "yellow"];
 
     self.onLoaded = function () {
-        $("#actionDivContolPanelDiv").load("modules/tools/KGquery/html/KGquery_leftPanel.html", function () {
-            KGquery_graph.init();
-            if (Config.clientCache.KGquery) {
-                self.clearAll();
-                KGquery_myQueries.load(null, Config.clientCache.KGquery);
-            }
-        });
-        $("#graphDiv").load("modules/tools/KGquery/html/KGquery_centralPanel.html", function () {
-            self.currentSource = Lineage_sources.activeSource;
-            self.showSourcesDialog();
-        });
+        //Lineage_sources.showHideEditButtons = UI.disableEditButtons;
+        //self.oldshowHideEditButtons=Lineage_sources.showHideEditButtons;
+        //Lineage_sources.showHideEditButtons = UI.disableEditButtons;
+        UI.initMenuBar(KGquery.loadSource);
+        //KGquery.clearAll();
+        UI.disableEditButtons();
+        if (Config.clientCache.KGquery) {
+            KGquery_myQueries.load(null, Config.clientCache.KGquery);
+        }
+        $("#messageDiv").attr("id", "KGquery_messageDiv");
+        $("#waitImg").attr("id", "KGquery_waitImg");
+    };
+    self.unload = function () {
+        Lineage_sources.registerSource = UI.oldRegisterSource;
+        //Lineage_sources.showHideEditButtons = self.oldshowHideEditButtons;
+        //reapply changed DOM
+
+        $("#KGquery_messageDiv").attr("id", "messageDiv");
+        $("#KGquery_waitImg").attr("id", "waitImg");
+        $("#graphDiv").empty();
+        $("#lateralPanelDiv").empty();
     };
 
     self.init = function () {
@@ -53,26 +64,40 @@ var KGquery = (function () {
         SavedQueriesWidget.showDialog("STORED_KGQUERY_QUERIES", "KGquery_myQueriesDiv", self.currentSource, null, KGquery_myQueries.save, KGquery_myQueries.load);
     };
 
-    self.showSourcesDialog = function (forceDialog) {
-        self.clearAll();
-        if (!forceDialog && Config.userTools["KGquery"].urlParam_source) {
-            self.currentSource = Config.userTools["KGquery"].urlParam_source;
-            self.init();
-            return;
+    self.initOutputType = function () {
+        const KGquery_outputTypeSelectNode = $("#KGquery_outputTypeSelect");
+        for (const toolName in Config.userTools.KGquery.toTools) {
+            KGquery_outputTypeSelectNode.append(`<option>${toolName}</option>`);
         }
+    };
 
-        var options = {
-            includeSourcesWithoutSearchIndex: true,
-            withCheckboxes: false,
-        };
-        var selectTreeNodeFn = function (event, obj) {
-            $("#mainDialogDiv").dialog("close");
-            self.currentSource = obj.node.id;
-            self.init();
-        };
-        MainController.UI.showHideRightPanel("hide");
-        $("#KGquery_SetsControlsDiv").hide();
-        SourceSelectorWidget.initWidget(["OWL"], "mainDialogDiv", true, selectTreeNodeFn, null, options);
+    self.loadSource = function () {
+        KGquery.currentSource = MainController.currentSource;
+        Lineage_sources.loadSources(MainController.currentSource, function (err) {
+            if (err) {
+                return alert(err.responseText);
+            }
+            $("#graphDiv").load("./modules/tools/KGquery/html/KGquery_centralPanel.html", function () {
+                $("#lateralPanelDiv").load("./modules/tools/KGquery/html/KGquery_leftPanel.html", function () {
+                    UI.disableEditButtons();
+                    KGquery_graph.drawVisjsModel("saved");
+                    UI.openTab("lineage-tab", "tabs_Query", KGquery.initQuery, "#QueryTabButton");
+                    UI.resetWindowHeight();
+                    self.clearAll();
+                    if (Config.clientCache.KGquery) {
+                        setTimeout(function () {
+                            KGquery_myQueries.load(null, Config.clientCache.KGquery);
+                        }, 1000);
+                    }
+                });
+                $("#KGquery_dataTableDialogDiv").dialog({
+                    autoOpen: false,
+                    height: $(document).height() * 0.9,
+                    width: "100vW",
+                    modal: false,
+                });
+            });
+        });
     };
 
     self.addQuerySet = function (booleanOperator) {
@@ -243,7 +268,13 @@ var KGquery = (function () {
                     KGquery.addEdgeNodes(fromNode, toNode, edge);
                 });
             } else {
-                toNode.alias = toNode.label + (self.currentQueryElement.paths.length + 1);
+                var alias = toNode.label;
+                if (self.currentQueryElement) {
+                    alias += self.currentQueryElement.paths.length + 1;
+                } else {
+                    return;
+                }
+                toNode.alias = alias;
                 return KGquery.addEdgeNodes(fromNode, toNode, edge);
             }
         } else {
@@ -291,12 +322,8 @@ var KGquery = (function () {
         }
         options.output = output;
 
-        $("#KGquery_dataTableDiv").html("");
         self.message("searching...");
         $("#KGquery_waitImg").css("display", "block");
-
-        /*   $("#KGquery_graphDiv").css("display", "none");
-        $("#KGquery_dataTableDiv").css("display", "block");*/
 
         if (isVirtualSQLquery) {
             return SQLquery_filters.showFiltersDialog(self.querySets, self.currentSource);
@@ -310,11 +337,10 @@ var KGquery = (function () {
                 }
             }
 
-            if (result.results.bindings.length == 0) {
-                return alert("no result");
+            if (result.results) {
+                if (result.results.bindings.length == 0) return alert("no result");
+                self.message("found items :" + result.results.bindings.length);
             }
-
-            self.message("found items :" + result.results.bindings.length);
 
             KGquery_myQueries.save(function (err, query) {
                 Config.clientCache.KGquery = query;
@@ -324,10 +350,10 @@ var KGquery = (function () {
                 self.queryResultToTable(result);
             } else if (output == "Graph") {
                 self.queryResultToVisjsGraph(result);
-            } else if (output == "TagsGeometry") {
-                self.queryToTagsGeometry(result.results.bindings);
-            } else if (output == "TagsCalendar") {
-                self.queryToTagsCalendar(result.results.bindings);
+            } else if (output == "shacl") {
+                KGconstraints_validator.process(result);
+            } else {
+                Config.userTools.KGquery.toTools[output](result);
             }
         });
     };
@@ -347,7 +373,7 @@ var KGquery = (function () {
 
                     KGquery_filter.selectOptionalPredicates(self.querySets, options, function (err, result) {
                         if (err) {
-                            MainController.UI.message(err, true);
+                            UI.message(err, true);
                             callbackSeries(err);
                         }
                         optionalPredicatesSparql = result;
@@ -471,6 +497,12 @@ var KGquery = (function () {
 
                         whereStr += predicateStr + "\n" + "" + "\n" + filterStr + "\n" + otherPredicatesStrs;
                         if (optionalPredicatesSparql) {
+                            if (!predicateStr) {
+                                // if only optional predicate make first predicate not optional (when only one class ...)
+                                optionalPredicatesSparql = `?${querySet.elements[0].fromNode.label} rdf:type <${querySet.elements[0].fromNode.id}>.\n` + optionalPredicatesSparql;
+                                optionalPredicatesSparql = optionalPredicatesSparql.replace("OPTIONAL", "");
+                            }
+
                             whereStr += optionalPredicatesSparql;
                         }
                         //  whereStr = "{" + whereStr + "}";
@@ -483,7 +515,12 @@ var KGquery = (function () {
                         "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>" +
                         "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>";
 
-                    query += " Select " + selectStr + "  " + fromStr + " where {" + whereStr + "}";
+                    var queryType = "SELECT";
+                    if (options.output == "shacl") {
+                        queryType = "CONSTRUCT";
+                        selectStr = "";
+                    }
+                    query += queryType + " " + selectStr + "  " + fromStr + " where {" + whereStr + "}";
 
                     query += " " + groupByStr + " limit 10000";
 
@@ -492,13 +529,19 @@ var KGquery = (function () {
 
                 //execute query
                 function (callbackSeries) {
-                    var url = Config.sources[self.currentSource].sparql_server.url + "?format=json&query=";
+                    //var url = Config.sources[self.currentSource].sparql_server.url + "?format=text&query=";
 
+                    //url="http://51.178.139.80:8890/sparql?format=text/Turtle&query="
+                    var url = Config.sources[self.currentSource].sparql_server.url + "?format=json&query=";
+                    if (options.output == "shacl") {
+                        url = "http://51.178.139.80:8890/sparql?format=text/Turtle&query=";
+                    }
                     self.currentSparqlQuery = {
                         url: url,
                         query: query,
                         source: self.currentSource,
                     };
+                    query = Sparql_common.setPrefixesInSelectQuery(query);
 
                     Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: self.currentSource, caller: "getObjectRestrictions" }, function (err, result) {
                         if (err) {
@@ -557,13 +600,14 @@ var KGquery = (function () {
             });
         });
 
-        ResponsiveUI.onToolSelect("lineage", null, function () {
+        MainController.onToolSelect("lineage", null, function () {
             setTimeout(function () {
                 Lineage_whiteboard.drawNewGraph(visjsData, "graphDiv");
             }, 2000);
         });
     };
-    self.queryToTagsGeometry = function (data) {
+    self.queryToTagsGeometry = function (result) {
+        const data = result.results.bindings;
         var tagsMap = {};
         data.forEach(function (item) {
             for (var key in item) {
@@ -572,7 +616,7 @@ var KGquery = (function () {
                 }
             }
         });
-        ResponsiveUI.onToolSelect("TagsGeometry", null, function () {
+        MainController.onToolSelect("TagsGeometry", null, function () {
             setTimeout(function () {
                 //   import TagsGeometry from "../../../../plugins/TagsGeometry/public/js/main.js";
                 TagsGeometry.draw(tagsMap);
@@ -580,11 +624,12 @@ var KGquery = (function () {
         });
     };
 
-    self.queryToTagsCalendar = function (data) {
+    self.queryToTagsCalendar = function (result) {
+        const data = result.results.bindings;
         if (data.length == 0) {
             return alert("no result");
         }
-        ResponsiveUI.onToolSelect("TagsCalendar", null, function () {
+        MainController.onToolSelect("TagsCalendar", null, function () {
             setTimeout(function () {
                 //   import TagsGeometry from "../../../../plugins/TagsGeometry/public/js/main.js";
                 TagsCalendar.drawSparqlResultTimeLine({ data: data });
@@ -632,7 +677,7 @@ var KGquery = (function () {
                     value = item[col].value;
 
                     //format date
-                    if (item[col].datatype == "http://www.w3.org/2001/XMLSchema#datetime") {
+                    if (item[col].datatype == "http://www.w3.org/2001/XMLSchema#dateTime") {
                         var p = value.indexOf("T00:00:00.000Z");
                         if (p > -1) {
                             value = value.substring(0, p);
@@ -646,13 +691,12 @@ var KGquery = (function () {
             tableData.push(line);
         });
 
-        $("#KGquery_dataTableDialogDiv").dialog("open");
         $("#KGquery_dataTableDialogDiv").dialog("option", "title", "Query result size: " + tableData.length);
 
-        $("#KGquery_dataTableDialogDiv").css("left", "10px");
-        $("#KGquery_dataTableDiv").width("90vW");
-        //  $("#mainDialogDiv").html("<div id='KGquery_dataTableDiv' style='width:100vW;heigth:100vH'></div>")
-        Export.showDataTable("KGquery_dataTableDiv", tableCols, tableData, null, { paging: true }, function (err, datatable) {
+        //$("#KGquery_dataTableDialogDiv").css("left", "10px");
+        //$("#KGquery_dataTableDialogDiv").width("90vW");
+
+        Export.showDataTable("KGquery_dataTableDialogDiv", tableCols, tableData, null, { paging: true }, function (err, datatable) {
             $("#dataTableDivExport").on("click", "td", function () {
                 var table = $("#dataTableDivExport").DataTable();
 
@@ -665,7 +709,8 @@ var KGquery = (function () {
                 var dataItem = self.currentData[datasetIndex];
                 var varName = self.tableCols[index.column].title;
                 if (true || !dataItem[varName]) {
-                    varName = varName.split("_")[0];
+                    varName = KGquery.currentSelectedPredicates.filter((key) => key.id == varName)[0].data.varName;
+                    //varName = varName.split("_")[0];
                 }
                 var uri = dataItem[varName].value;
                 var node = { data: { id: uri } };
@@ -730,10 +775,8 @@ var KGquery = (function () {
         var isGraphDisplayed = $("#KGquery_graphDiv").css("display");
         if (!forceGraph && isGraphDisplayed == "block") {
             $("#KGquery_graphDiv").css("display", "none");
-            $("#KGquery_dataTableDiv").css("display", "block");
         } else {
             $("#KGquery_graphDiv").css("display", "block");
-            $("#KGquery_dataTableDiv").css("display", "none");
         }
     };
 
@@ -763,6 +806,28 @@ var KGquery = (function () {
 
     self.addOutputType = function () {
         $("KGquery_outputTypeSelect");
+    };
+    self.initMyQuery = function () {
+        SavedQueriesWidget.showDialog("STORED_KGQUERY_QUERIES", "tabs_myQueries", KGquery.currentSource, null, KGquery_myQueries.save, KGquery_myQueries.load);
+    };
+    self.initQuery = function () {
+        if ($("#tabs_Query").children().length == 0) {
+            $("#tabs_Query").load("./modules/tools/KGquery/html/KGqueryQueryTab.html", function () {
+                //  KGquery.addQuerySet();
+            });
+        }
+    };
+    self.initGraph = function () {
+        if ($("#tabs_Graph").children().length == 0) {
+            $("#tabs_Graph").load("./modules/tools/KGquery/html/KGqueryGraphTab.html", function () {
+                KGquery_graph.init();
+                //  KGquery_graph.drawVisjsModel("saved");
+            });
+        }
+    };
+
+    self.checkRequirements = function () {
+        KGquery.queryKG("shacl");
     };
 
     return self;

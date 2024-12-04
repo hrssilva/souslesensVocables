@@ -78,13 +78,13 @@ var KGquery_graph = (function () {
                     KGquery_graph.message("loading graph display");
                     self.KGqueryGraph.loadGraph(visjsGraphFileName, null, function (err, result) {
                         if (err) {
-                            // return callbackSeries("notFound");
+                            return callbackSeries("notFound");
 
-                            self.DrawImportsCommonGraph(source);
+                            //self.DrawImportsCommonGraph(source);
                             ///  return callbackSeries("generate commonGraph");
                         }
                         visjsData = result;
-                        if (result.options && result.options.output) {
+                        if (result && result.options && result.options.output) {
                             display = result.options.output;
                         }
 
@@ -213,7 +213,7 @@ var KGquery_graph = (function () {
                 visjsData.nodes.forEach(function (node) {
                     node.x = node.x || 0;
                     node.y = node.y || 0;
-                    node.fixed = false;
+                    //node.fixed = false;
                     newNodes.push(node);
                 });
                 visjsData.nodes = newNodes;
@@ -221,7 +221,14 @@ var KGquery_graph = (function () {
                 if (display == "list") {
                     return KGquery_nodeSelector.showInferredModelInJstree(visjsData);
                 }
-
+                /*self.visjsOptions.visjsOptions.physics={enabled: true,
+                stabilization: {
+                  enabled: true,
+                  iterations: 1000, // Nombre d'itérations pour stabiliser le réseau
+                  updateInterval: 25,
+                  onlyDynamicEdges: false,
+                  fit: true
+                }};*/
                 self.KGqueryGraph = new VisjsGraphClass("KGquery_graphDiv", visjsData, self.visjsOptions);
 
                 // cannot get colors from loadGraph ???!!
@@ -233,6 +240,22 @@ var KGquery_graph = (function () {
                     });
                     //    self.KGqueryGraph.data.nodes.update(visjsData.nodes);
                     KGquery_graph.message("", true);
+                    var nodes_sizes = [];
+                    self.KGqueryGraph.data.nodes.get().forEach(function (node) {
+                        //delete node.x;
+                        //delete node.y;
+                        if (node.size) {
+                            node.originalSize = node.size;
+                        }
+
+                        nodes_sizes.push(node);
+                    });
+                    self.KGqueryGraph.data.nodes.update(nodes_sizes);
+                    self.KGqueryGraph.network.moveTo({
+                        position: { x: 0, y: 0 }, // Position centrale, à ajuster si nécessaire
+                        scale: 1 / 0.9,
+                    });
+                    self.KGqueryGraph.onScaleChange();
                 });
 
                 //  KGquery.clearAll();
@@ -251,11 +274,13 @@ var KGquery_graph = (function () {
 
     self.DrawImportsCommonGraph = function () {
         var source = KGquery.currentSource;
-        var sources = [];
+        var sources = [source];
         var imports = Config.sources[source].imports;
         if (imports) {
             sources = sources.concat(imports);
         }
+
+        self.saveVisjsModelGraph();
         var visjsData = { nodes: [], edges: [] };
         var uniqueNodes = {};
         self.KGqueryGraph = new VisjsGraphClass("KGquery_graphDiv", { nodes: [], edges: [] }, self.visjsOptions);
@@ -272,7 +297,7 @@ var KGquery_graph = (function () {
                                 uniqueNodes[node.id] = 1;
                                 node.x = null;
                                 node.y = null;
-                                node.fixed = false;
+                                //node.fixed = false;
                                 visjsData.nodes.push(node);
                             }
                         });
@@ -291,6 +316,7 @@ var KGquery_graph = (function () {
                 if (err) {
                     return alert(err);
                 }
+
                 self.KGqueryGraph = new VisjsGraphClass("KGquery_graphDiv", visjsData, self.visjsOptions);
 
                 // cannot get colors from loadGraph ???!!
@@ -405,6 +431,7 @@ var KGquery_graph = (function () {
                     callback("no inferred model for source " + source);
                 }
 
+                var reflexiveEdges = {};
                 inferredModel.forEach(function (item) {
                     item.sClass = item.sClass || item.sparent;
                     item.oClass = item.oClass || item.oparent;
@@ -456,7 +483,14 @@ var KGquery_graph = (function () {
                             color: Lineage_whiteboard.defaultPredicateEdgeColor,
                         };
                         if (item.sClass.value == item.oClass.value) {
-                            (edge.dashes = [5, 5]), (edge.selfReference = { renderBehindTheNode: true, size: 50 });
+                            if (!reflexiveEdges[item.sClass.value]) {
+                                reflexiveEdges[item.sClass.value] = 0;
+                            }
+
+                            var edgeSize = 30 + reflexiveEdges[item.sClass.value];
+
+                            (edge.dashes = [5, 5]), (edge.selfReference = { renderBehindTheNode: true, size: edgeSize });
+                            reflexiveEdges[item.sClass.value] += 15;
                         }
                         visjsData.edges.push(edge);
                     }
@@ -591,7 +625,71 @@ var KGquery_graph = (function () {
     self.message = function (message, stopWaitImage) {
         $("#KGquery_graph_messageDiv").html(message);
     };
+    self.genereateCommonDecoration = function () {
+        var source = KGquery.currentSource;
+        var sources = [];
+        var imports = Config.sources[source].imports;
+        if (imports) {
+            sources = sources.concat(imports);
+        }
 
+        //self.saveVisjsModelGraph();
+
+        var commonDecoration = {};
+
+        async.eachSeries(
+            sources,
+            function (source, callbackEach) {
+                var visjsGraphFileName = source + "_decoration.json";
+                var payload = {
+                    dir: "graphs/",
+                    fileName: visjsGraphFileName,
+                };
+                //get decoration file
+                $.ajax({
+                    type: "GET",
+                    url: `${Config.apiUrl}/data/file`,
+                    data: payload,
+                    dataType: "json",
+                    success: function (result, _textStatus, _jqXHR) {
+                        var data = JSON.parse(result);
+                        commonDecoration = { ...commonDecoration, ...data };
+
+                        // J'ajoute mes différentes décorations aux classes visés dans le visjsdata
+                        // Si j'ai des icones je  met dans un répertoire côté client les icones nécessaires à ce graph
+                        callbackEach();
+                    },
+                    error(err) {
+                        return callbackEach();
+                    },
+                });
+            },
+            function (err) {
+                if (err) {
+                    return alert(err);
+                }
+                var fileName = MainController.currentSource + "_decoration.json";
+                var payload = {
+                    dir: "graphs/",
+                    fileName: fileName,
+                    data: JSON.stringify(commonDecoration),
+                };
+                $.ajax({
+                    type: "POST",
+                    url: `${Config.apiUrl}/data/file`,
+                    data: payload,
+                    dataType: "json",
+                    success: function (_result, _textStatus, _jqXHR) {
+                        MainController.UI.message("Decoration saved");
+                        callbackSeries();
+                    },
+                    error(err) {
+                        return callbackSeries(err);
+                    },
+                });
+            }
+        );
+    };
     return self;
 })();
 

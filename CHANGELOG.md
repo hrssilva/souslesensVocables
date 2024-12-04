@@ -2,6 +2,416 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.95.0](https://github.com/souslesens/souslesensVocables/compare/1.94.0...1.95.0) (2024-11-28)
+
+## [1.94.0](https://github.com/souslesens/souslesensVocables/compare/1.93.1...1.94.0) (2024-11-27)
+
+> [!IMPORTANT]
+> Updating to 1.94.0 require a manual operation to upgrade to virtuoso 7.2.14. Execute the following
+> script **before** upgrade.
+
+```bash
+docker compose exec virtuoso sh
+# on the virtuoso container
+isql-v
+# on the isql console
+exec('checkpoint');
+# back on the virtuoso container
+rm virtuoso.trx
+# back on host
+docker compose up -d
+```
+
+### Features
+
+* **api/jowl:** activate jowlServer when the enabled flag is true ([b0c791b](https://github.com/souslesens/souslesensVocables/commit/b0c791be979a1dc2bd58445f0398148919a925bb))
+* **mainapp:** activate slsApi when the enabled flag is true ([8a28581](https://github.com/souslesens/souslesensVocables/commit/8a28581879e88375aa3ebf56edec790444f94e8f))
+
+
+### Various changes
+
+* **compose:** upgrade virtuoso version to 7.2.14 ([218f9709](https://github.com/souslesens/souslesensVocables/commit/218f9709215c5efbe0e0f945ab18d0ef52026939))
+
+
+### [1.93.1](https://github.com/souslesens/souslesensVocables/compare/1.93.0...1.93.1) (2024-11-25)
+
+
+### Bug Fixes
+
+* **package:** restore node-graphviz in package.json ([28fed65](https://github.com/souslesens/souslesensVocables/commit/28fed65c8fab69dfaaf9312fd59a7e9e52f8906e))
+
+## [1.93.0](https://github.com/souslesens/souslesensVocables/compare/1.92.0...1.93.0) (2024-11-25)
+
+
+### Features
+
+* **model/config:** improve the readibility of the validation errors report ([e51b4f2](https://github.com/souslesens/souslesensVocables/commit/e51b4f29efc988ee64966c85d669c44c926aeab7))
+
+
+### Bug Fixes
+
+* **model/config:** do not retrieve empty values for the root category ([255bb08](https://github.com/souslesens/souslesensVocables/commit/255bb084c565e1b81226c102ed8375068d9a1e27))
+
+## [1.92.0](https://github.com/souslesens/souslesensVocables/compare/1.91.2...1.92.0) (2024-11-20)
+
+
+### Features
+
+* Add graph download button in lineage ([6e70270](https://github.com/souslesens/souslesensVocables/commit/6e70270c371bf2a2539c5bfac014182808a1ebb8))
+* **mainapp:** catch sls-api errors ([2a90e2f](https://github.com/souslesens/souslesensVocables/commit/2a90e2f3ff4bb1e52785dc6ae953f1bf43b6b3f3))
+
+### [1.91.2](https://github.com/souslesens/souslesensVocables/compare/1.91.1...1.91.2) (2024-11-18)
+
+### [1.91.1](https://github.com/souslesens/souslesensVocables/compare/1.91.0...1.91.1) (2024-11-18)
+
+
+### Bug Fixes
+
+* **public:** use an empty list for the selector when the config is missing ([7884c3d](https://github.com/souslesens/souslesensVocables/commit/7884c3dfee40ec1efc7dbd75829c0e2bc521863c))
+
+## [1.91.0](https://github.com/souslesens/souslesensVocables/compare/1.90.0...1.91.0) (2024-11-18)
+
+
+### Features
+
+* **express:** use zod to validate the mainConfig.json at startup ([31f98d1](https://github.com/souslesens/souslesensVocables/commit/31f98d121923686839f4ee4f0cb73d0ad79b23b0))
+* **mainapp:** update ElasticSearch indexes when uploading a graph ([5ebd876](https://github.com/souslesens/souslesensVocables/commit/5ebd8763ce3c580a777f0815bb427678fec2e90e))
+* optional entries in mainconfig ([b9566f5](https://github.com/souslesens/souslesensVocables/commit/b9566f52e846bc7b7fb32ba7e6e8733374aa94ae))
+* **public/vocables:** sort tools selector from the tools_available field ([37f7494](https://github.com/souslesens/souslesensVocables/commit/37f749430456c38fa6854fb52bbf31d14f536286))
+* strict mainconfig validation ([db19adf](https://github.com/souslesens/souslesensVocables/commit/db19adf63e38dd6030c23c7439cbaad9809240ea))
+
+
+### Bug Fixes
+
+* **configEditor:** SourcesDialog: prefix must be uniq ([99cab17](https://github.com/souslesens/souslesensVocables/commit/99cab170faf1e988ed608c8fb2f01be7e2a71163))
+* **mainapp:** ensure to checkout the plugin repository with an empty version ([f6e7b0b](https://github.com/souslesens/souslesensVocables/commit/f6e7b0b821eea47b19d697a51693b5110047d572))
+* **mainapp:** show the reason of the error when a plugin cannot be fetched ([2a6c0da](https://github.com/souslesens/souslesensVocables/commit/2a6c0daf4776f7e6a9f94d176b60382686dffde6))
+
+## [1.90.0](https://github.com/souslesens/souslesensVocables/compare/1.89.0...1.90.0) (2024-10-22)
+
+
+### Features
+
+* **mainapp:** reload the sources in the window.Config constant ([5876ba0](https://github.com/souslesens/souslesensVocables/commit/5876ba0ae97298c98e99724cef2bd8f0ba830f28))
+
+## [1.89.0](https://github.com/souslesens/souslesensVocables/compare/1.88.0...1.89.0) (2024-10-18)
+
+## [1.88.0](https://github.com/souslesens/souslesensVocables/compare/1.87.0...1.88.0) (2024-10-16)
+
+> [!IMPORTANT]
+> Updating to 1.88.0 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Features
+
+* **mainapp:** add prefix field on SourcesDialog ([e12c334](https://github.com/souslesens/souslesensVocables/commit/e12c334916c3250900c6e557a2f57e411062e37e))
+* **mainapp:** add the Lineage Predicates accordion to Source form dialog ([9261836](https://github.com/souslesens/souslesensVocables/commit/926183658cb85a6c7f35a99c277ecad2bb039e09))
+* **migrations:** add prefix field in sources.json ([e8950a1](https://github.com/souslesens/souslesensVocables/commit/e8950a1de9240dbf83ddd88e0aa4dd34b722ef7e))
+
+
+### Bug Fixes
+
+* **mainapp:** add the missing imports field in the Source form dialog ([5d89cb8](https://github.com/souslesens/souslesensVocables/commit/5d89cb84e121cebfbe4398ccf132b69114fc17c1))
+* **mainapp:** fix group validation ([33f8134](https://github.com/souslesens/souslesensVocables/commit/33f8134c214c6ddba8adc4eb8a1447392ead777f))
+* **mainapp:** handle predicates correctly ([7859f0b](https://github.com/souslesens/souslesensVocables/commit/7859f0bbd0cc9f15bea963a5c4d1aa9a4ec71b71))
+* **mainapp:** set error string to helperText ([c741a88](https://github.com/souslesens/souslesensVocables/commit/c741a88014de3b7d4e223f009386ff607bd41f3c))
+
+## [1.87.0](https://github.com/souslesens/souslesensVocables/compare/1.86.3...1.87.0) (2024-10-11)
+
+
+### Features
+
+* **lineage:** add edit source dialog ([7940f8b](https://github.com/souslesens/souslesensVocables/commit/7940f8b1a42e0e761661937550f5d108cffac36a))
+* **lineage:** check if source is owned by user to show the edit source btn ([3d6b53d](https://github.com/souslesens/souslesensVocables/commit/3d6b53dc4c4f67e5e6fa72524eb53198050c1a04))
+* **mainapp:** move the UserSources delete dialog to a dedicated component ([d9dd873](https://github.com/souslesens/souslesensVocables/commit/d9dd8732a7c9a6593f892e3186c6b9ae02c4498a))
+* **mainapp:** rewrite the form to edit Source in the ConfigEditor ([1ca4a35](https://github.com/souslesens/souslesensVocables/commit/1ca4a35e8c2e19b1794d9d81368590bd14c9cb47))
+* **public:** use upload graph modal in onto creator ([898e893](https://github.com/souslesens/souslesensVocables/commit/898e8934ecaefadde80e0b3246e721040e7174f0))
+
+### [1.86.3](https://github.com/souslesens/souslesensVocables/compare/1.86.2...1.86.3) (2024-10-01)
+
+
+### Bug Fixes
+
+* **api:** add missing parameters in elasticsearch search query ([ee798bc](https://github.com/souslesens/souslesensVocables/commit/ee798bc4eddbce22347057d563ff4344b6e86b94))
+
+### [1.86.2](https://github.com/souslesens/souslesensVocables/compare/1.86.1...1.86.2) (2024-10-01)
+
+
+### Features
+
+* **api:** add route to perfom a batched search query on elasticsearch ([53d6f44](https://github.com/souslesens/souslesensVocables/commit/53d6f44ba1ae5491262bab97817489449dfcf30a))
+* **vocables:** use elastic/search api to search terms on multiple sources ([1449b00](https://github.com/souslesens/souslesensVocables/commit/1449b00cc7a758f85f82b95bca3539a972bca111))
+
+
+### [1.86.1](https://github.com/souslesens/souslesensVocables/compare/1.86.0...1.86.1) (2024-09-30)
+
+
+### Bug Fixes
+
+* **graphManagement:** preventDefault when submit upload/download form ([76e0e06](https://github.com/souslesens/souslesensVocables/commit/76e0e06b158bf66cdbb729922d649d2d7901eb1c))
+
+## [1.86.0](https://github.com/souslesens/souslesensVocables/compare/1.85.0...1.86.0) (2024-09-27)
+
+> [!IMPORTANT]
+> Updating to 1.86.0 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Features
+
+* **ConfigEditor:** add AllowedTools in profiles table ([3c8ea46](https://github.com/souslesens/souslesensVocables/commit/3c8ea463c50994c8ab9f27414bb3f7969c80d5ce))
+
+## [1.85.0](https://github.com/souslesens/souslesensVocables/compare/1.84.0...1.85.0) (2024-09-23)
+
+
+### Features
+
+* **api:** add api/sources for user ([7b9d068](https://github.com/souslesens/souslesensVocables/commit/7b9d068818e3c6451b2d8352f89b0e78ffd2d06a))
+* **mainapp:** allow downloading graph management as csv ([060b2d0](https://github.com/souslesens/souslesensVocables/commit/060b2d0118d65523ba2f7e42e2a57b3319e069a6))
+
+
+### Bug Fixes
+
+* **api/config:** don't get all config even if user is admin ([95af912](https://github.com/souslesens/souslesensVocables/commit/95af9123fd9c024f6f5d0f3b4f63a2028a36fc12))
+* **userManagement:** use user routes for fetching sources ([cba02fd](https://github.com/souslesens/souslesensVocables/commit/cba02fd59f2c73b2996bf3e80f67634e119b0110))
+
+## [1.84.1](https://github.com/souslesens/souslesensVocables/compare/1.84.0...1.84.1) (2024-09-30)
+
+
+### Bug Fixes
+
+* **graphManagement:** preventDefault when submit upload/download form ([333509a](https://github.com/souslesens/souslesensVocables/commit/333509a13c56eb5ebe1381056b9bc47f92dff87f))
+
+## [1.84.0](https://github.com/souslesens/souslesensVocables/compare/1.83.0...1.84.0) (2024-09-20)
+
+
+### Bug Fixes
+
+* **mainapp:** do not raise a require error when editing a profile ([4b9ebe4](https://github.com/souslesens/souslesensVocables/commit/4b9ebe4c298254eec2501bdd642db26ad022bef5)), closes [#885](https://github.com/souslesens/souslesensVocables/issues/885)
+
+## [1.83.0](https://github.com/souslesens/souslesensVocables/compare/1.82.1...1.83.0) (2024-09-17)
+
+
+### Features
+
+* **mainapp:** add snackbar messages with the token renewal in UserManagement ([7c63fa2](https://github.com/souslesens/souslesensVocables/commit/7c63fa2656f062e77b4f1468165ef39653b0fc0a))
+* **mainapp:** allow downloading individual db/source ([4e0fdd6](https://github.com/souslesens/souslesensVocables/commit/4e0fdd6e68dc0380d461a3f2060039d7ae4481de))
+* **mainapp:** make json downloads prettier ([73ef151](https://github.com/souslesens/souslesensVocables/commit/73ef151bcce60863d96b8e34b4035d3ed227983f))
+* **mainapp:** move UserManagement in the main dialog ([c336b18](https://github.com/souslesens/souslesensVocables/commit/c336b187eb2d3f2a6e200e7323ffd7e3714a2b15))
+* **mainapp:** revamp the UserManagement to allow sources edition ([1162940](https://github.com/souslesens/souslesensVocables/commit/1162940a41ef8506095430dac7a202695863369b))
+* **model:** load default graph on start ([7f0c947](https://github.com/souslesens/souslesensVocables/commit/7f0c947822fa1e9f773e635338fa2e9cc5e715c0))
+
+
+### Bug Fixes
+
+* **api:** the token renewal needs to fetch the login identifier from the body ([c3d00a1](https://github.com/souslesens/souslesensVocables/commit/c3d00a1e2e75652a4e519dff5daccd88d8de5f0d))
+* **app:** check config.auth before isAuthenticated ([345eab6](https://github.com/souslesens/souslesensVocables/commit/345eab6bb987e70883014f4c5e9e05aba8090cf3))
+* **mainapp:** use the repository object when updating Plugin Repository ([a9a8721](https://github.com/souslesens/souslesensVocables/commit/a9a8721fdbc166b2d69270a27a21efb11530976c))
+
+### [1.82.1](https://github.com/souslesens/souslesensVocables/compare/1.82.0...1.82.1) (2024-09-03)
+
+
+### Bug Fixes
+
+* plugins route are create dynamically ([740003e](https://github.com/souslesens/souslesensVocables/commit/740003ee108f0bb6d0612233ca0a01032c4bb3b1))
+* req.isAuthenticated is a function and it must be called ([df46ed2](https://github.com/souslesens/souslesensVocables/commit/df46ed255ad9e57a4288240c19519f518371f71d))
+
+## [1.82.0](https://github.com/souslesens/souslesensVocables/compare/1.81.1...1.82.0) (2024-09-03)
+
+
+### Features
+
+* **auth:** implements Auth0 authentication strategy with passport ([98005e7](https://github.com/souslesens/souslesensVocables/commit/98005e70e79fa327c31e34b09ce1dfb72f0ab885))
+* **auth:** implements auth0 roles retrieving from API ([cfb1770](https://github.com/souslesens/souslesensVocables/commit/cfb1770aa53354178034bac078e422ab80a98445))
+* **mainapp:** add json download for sources and databases ([9f9ec2c](https://github.com/souslesens/souslesensVocables/commit/9f9ec2c1561a8efbc620af2f0afcfc7b67845f11))
+* **mainapp:** replace filter autocomplete by input ([e6596a4](https://github.com/souslesens/souslesensVocables/commit/e6596a4289ac72775b6536f944a5131c8f8193b5))
+* **packages:** install the module passport-auth0 ([a76ee05](https://github.com/souslesens/souslesensVocables/commit/a76ee05dc64f849388ba891310f09f69b2f84722))
+
+### [1.81.1](https://github.com/souslesens/souslesensVocables/compare/1.81.0...1.81.1) (2024-08-27)
+
+> [!IMPORTANT]
+> Updating to 1.81.1 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Bug Fixes
+
+* **Dockerfile:** install git ([83364fd](https://github.com/souslesens/souslesensVocables/commit/83364fdd5fc7acd7dccd2630e38ba4e8f978c745))
+* **migrations:** create missing plugins.json file if missing ([367c3e8](https://github.com/souslesens/souslesensVocables/commit/367c3e8059288b2d35cb66e8a783e4480995afe0))
+
+## [1.81.0](https://github.com/souslesens/souslesensVocables/compare/1.80.1...1.81.0) (2024-08-26)
+
+
+### Features
+
+* **api:** add the routes to manage repositories of plugins ([cadde8d](https://github.com/souslesens/souslesensVocables/commit/cadde8d3c700cbfec9d4b83d17d02dbf111e4382))
+* **api:** rename the admin endpoint /plugins to /plugins/config ([9e08934](https://github.com/souslesens/souslesensVocables/commit/9e08934d772a96bc3b33c1b7a94bdf979b6a537c))
+* **mainapp:** allow to sort and filter the repositories table ([75c095b](https://github.com/souslesens/souslesensVocables/commit/75c095b32b860add26f7e7f660bff99809a8b2f5))
+* **mainapp:** implements the plugins repositories management interface ([f3a93f2](https://github.com/souslesens/souslesensVocables/commit/f3a93f2ba3623d6c2520457246f1ce7fe5c16966))
+* **mainapp:** implements the repositories API with Plugin module ([e575fd2](https://github.com/souslesens/souslesensVocables/commit/e575fd24e934116bba1bfda1ad6e7a5381c32a88))
+
+
+### Bug Fixes
+
+* **api:** always fetch repositories ([9416c8e](https://github.com/souslesens/souslesensVocables/commit/9416c8e0e261033b77f3faa1dea1f11ed50be4e2))
+* **api:** don't create symlink for multiple plugins repo ([88ed68d](https://github.com/souslesens/souslesensVocables/commit/88ed68dda3d9e7d7d79f58e339609d4db9610f70))
+* **mainapp:** add the name property on the PasswordField component ([cd212f6](https://github.com/souslesens/souslesensVocables/commit/cd212f6afa0a09b3483e9a00d41a0803d0a4dbe8))
+* **model:** fetch, not pull plugins repo ([97e296e](https://github.com/souslesens/souslesensVocables/commit/97e296e1a4c1199b36df7bcdf1ba9b98fe294895))
+* **test:** change tools number ([f2fefae](https://github.com/souslesens/souslesensVocables/commit/f2fefae8ff7e96d3af80a06b1d5bca84c38529a9))
+
+### [1.80.1](https://github.com/souslesens/souslesensVocables/compare/1.80.0...1.80.1) (2024-08-01)
+
+
+### Bug Fixes
+
+* **ConfigEditor:** Missing Mui module usage with the SourcesTable component ([cf66f00](https://github.com/souslesens/souslesensVocables/commit/cf66f00d3f3338c2d938d6be621575166d70ba1d))
+* **ConfigEditor:** Missins Mui module usage with CircularProgress ([7e15474](https://github.com/souslesens/souslesensVocables/commit/7e154742a9e6afe9980bb69f8bb3c48d24899aae))
+* **ConfigEditor:** the logs API will now return a message with 500 error ([44b5113](https://github.com/souslesens/souslesensVocables/commit/44b51134814536462631dd968db665155b7e2d12))
+* **model/profiles:** load the config before setting the theme ([ddc01df](https://github.com/souslesens/souslesensVocables/commit/ddc01df20a31d593f9bafb1e3e5f11f129d70a35))
+
+## [1.80.0](https://github.com/souslesens/souslesensVocables/compare/1.79.0...1.80.0) (2024-07-24)
+
+
+### Bug Fixes
+
+* **model/databases:** use one connection when batchSelect ([4ebb4e4](https://github.com/souslesens/souslesensVocables/commit/4ebb4e4ea2133387fa16a79ad366b791f741b379))
+* **model/tools:** only retrieve plugins directory when using git repo ([ca629d9](https://github.com/souslesens/souslesensVocables/commit/ca629d90e99f260ca7f40c88e3cec9e424dba6ab))
+
+## [1.79.0](https://github.com/souslesens/souslesensVocables/compare/1.78.2...1.79.0) (2024-07-19)
+
+
+### Features
+
+* **ConfigEditor:** add an API entry to save the plugins configuration ([b7100f1](https://github.com/souslesens/souslesensVocables/commit/b7100f1bd04353e3830e33e23ae02d36611cd4a6))
+* **configEditor:** add the plugin tab ([e3734c8](https://github.com/souslesens/souslesensVocables/commit/e3734c8fbc1ae3b6306f4433f003252d46009424))
+* **ConfigEditor:** implements the PluginsForm ([39cfc15](https://github.com/souslesens/souslesensVocables/commit/39cfc156650435eadece41dcc954823d72fe37fa))
+* **model/config:** add readMainConfig function and use it ([856b4b5](https://github.com/souslesens/souslesensVocables/commit/856b4b5a31f31df5c6fe974556662bb86ef3f804))
+* **model/tools:** convert the option during writeConfig ([b7e189f](https://github.com/souslesens/souslesensVocables/commit/b7e189f1c341dc65e4a1a0c6401d26b5dada2841))
+* **model/utils:** add convertType function to cast string in JS types ([ce3ccc9](https://github.com/souslesens/souslesensVocables/commit/ce3ccc90fa4df3eaa0f6a796294cb00ff4f56e0b))
+
+
+### Bug Fixes
+
+* **model/tools:** add the config property to all the plugins ([dd3047a](https://github.com/souslesens/souslesensVocables/commit/dd3047ab233093f2b527a16795a09c340e219a8e))
+* **tests:** configure jest to use CONFIG_PATH environment variable ([d8456aa](https://github.com/souslesens/souslesensVocables/commit/d8456aa14968c552d326fb5b5f6b8f27e39db4b2))
+
+### [1.78.2](https://github.com/souslesens/souslesensVocables/compare/1.78.1...1.78.2) (2024-07-11)
+
+
+### Bug Fixes
+
+* **KGquery:** Graph is a KG feature, not a tool ([14515c0](https://github.com/souslesens/souslesensVocables/commit/14515c0a6badf6c1b1a7633c1e519cf70dbc3c6e))
+* **model/databases:** fix fonction name ([66779d4](https://github.com/souslesens/souslesensVocables/commit/66779d4229254f04cff4e173cb75835f6129d190))
+
+### [1.78.1](https://github.com/souslesens/souslesensVocables/compare/1.78.0...1.78.1) (2024-07-09)
+
+
+### Bug Fixes
+
+* **model/databases:** use one connection when batchSelect ([ce492ec](https://github.com/souslesens/souslesensVocables/commit/ce492ec564c7d1332a3aecb004e0216514846630))
+
+## [1.78.0](https://github.com/souslesens/souslesensVocables/compare/1.77.1...1.78.0) (2024-07-04)
+
+
+### Features
+
+* add mainConfig.js model and allow editing settings ([2f1e01a](https://github.com/souslesens/souslesensVocables/commit/2f1e01a0786ceb2037407d2b398814f102bea377))
+* center save button of Settings form ([617a74f](https://github.com/souslesens/souslesensVocables/commit/617a74f62aa8078112113fe93f21389a7164d804))
+* **ConfigEditor:** add a settings tab to configure basic mainConfig options ([cc9905a](https://github.com/souslesens/souslesensVocables/commit/cc9905a6c899063732878580e299326a75350801))
+* extract tool logic into model/tools.js ([a585c3d](https://github.com/souslesens/souslesensVocables/commit/a585c3d2ab9bcf417dc78156ddc9fece5e743eb1))
+* **mainapp:** add a Tool.ts file to connect to admin/all-tools endpoint ([f8615e7](https://github.com/souslesens/souslesensVocables/commit/f8615e744cbaff664dcaa36fd1a3fb82b1405633))
+* make all known tools retrievable on admin/all-tools route ([9f4998a](https://github.com/souslesens/souslesensVocables/commit/9f4998a5b4f2fa2ee12f2779924809cb3e3e8e9b))
+* manage tools server side ([6f5be84](https://github.com/souslesens/souslesensVocables/commit/6f5be84b407de34c835755348d2ef7e7d7b785e6))
+* remove dividers ([4feaa9f](https://github.com/souslesens/souslesensVocables/commit/4feaa9fbcda655179a49bf3c98f75c74525333a5))
+* show feedback when saving settings ([e0667af](https://github.com/souslesens/souslesensVocables/commit/e0667afcbd86757aa88f8c8d0d4f9a0f6dbe1ed5))
+* use checkboxes to render settings Select options ([5b5c287](https://github.com/souslesens/souslesensVocables/commit/5b5c287f9e7d04b8e58c2cd870426efdb000ebe2))
+
+
+### Bug Fixes
+
+* add missing theme property to Profile type declaration ([9d05bee](https://github.com/souslesens/souslesensVocables/commit/9d05bee5e0638e8adb936f0932b5bc85ac916d6b))
+* correct specification of Profile zod schema ([39d22f0](https://github.com/souslesens/souslesensVocables/commit/39d22f090f2a7f012b71f306442c54f6b7dc4d2f))
+* pass models to model constructors and update tests ([17466a7](https://github.com/souslesens/souslesensVocables/commit/17466a7886bd6d37277ad2c8f4cc827a20af2e09))
+
+### [1.77.1](https://github.com/souslesens/souslesensVocables/compare/1.77.0...1.77.1) (2024-07-04)
+
+
+### Bug Fixes
+
+* **api:** allow user to get rdf graphs (only allowed graphs) ([a52db6a](https://github.com/souslesens/souslesensVocables/commit/a52db6a5f65bba7d1c0f91177aa45e5ec2d38ba9))
+
+## [1.77.0](https://github.com/souslesens/souslesensVocables/compare/1.76.0...1.77.0) (2024-07-03)
+
+
+### Features
+
+* **KGquery:** Add a generic configuration to define links between tools ([62573d1](https://github.com/souslesens/souslesensVocables/commit/62573d1111a42c51a97c912066ffcdf9bac4eeda)), closes [#777](https://github.com/souslesens/souslesensVocables/issues/777)
+* **tools:** toTools is defined plugin side ([a709430](https://github.com/souslesens/souslesensVocables/commit/a709430986392f41a091db28b6cc83ae69c3bb81))
+
+## [1.76.0](https://github.com/souslesens/souslesensVocables/compare/1.75.2...1.76.0) (2024-07-01)
+
+
+### Bug Fixes
+
+* **logs:** don't zip old logs ([f5aa6a7](https://github.com/souslesens/souslesensVocables/commit/f5aa6a75b02657f0bce113e5f2254436f835aff1))
+
+### [1.75.2](https://github.com/souslesens/souslesensVocables/compare/1.75.1...1.75.2) (2024-06-27)
+
+
+### Features
+
+* **KGbuilder:** batch select data in database ([63c9120](https://github.com/souslesens/souslesensVocables/commit/63c912077daf1a9206a631cd944feabe5b8c3e9a))
+
+### [1.75.1](https://github.com/souslesens/souslesensVocables/compare/1.75.0...1.75.1) (2024-06-19)
+
+## [1.75.0](https://github.com/souslesens/souslesensVocables/compare/1.74.2...1.75.0) (2024-06-19)
+
+### [1.74.2](https://github.com/souslesens/souslesensVocables/compare/1.74.1...1.74.2) (2024-06-12)
+
+### [1.74.1](https://github.com/souslesens/souslesensVocables/compare/1.74.0...1.74.1) (2024-06-12)
+
+## [1.74.0](https://github.com/souslesens/souslesensVocables/compare/1.73.0...1.74.0) (2024-06-12)
+
+
+### Features
+
+* **ConfigEditor:** move all the promises in the same block ([fe46d7e](https://github.com/souslesens/souslesensVocables/commit/fe46d7e90c278e9cdc954376c08bc88127d25e9c))
+* **ConfigEditor:** store the tab index in the URL for futher usage ([db9b8c4](https://github.com/souslesens/souslesensVocables/commit/db9b8c441e43fdcd83650046f81d29054efa9ff6))
+* **graphManagement:** set chunk size to 10Mo ([1dac8f8](https://github.com/souslesens/souslesensVocables/commit/1dac8f88e92030c3fb4652855c233e06be44f519))
+* **UI:** set or replace tool params when a tool is selected ([45154b9](https://github.com/souslesens/souslesensVocables/commit/45154b98df0f1b6ba80cd659bf53e82db8829da0))
+
+
+### Bug Fixes
+
+* prevent infinite rendering by moving state update outside of render flow ([8bb95d2](https://github.com/souslesens/souslesensVocables/commit/8bb95d22a154c8655629ce352524ba37d8aa66eb))
+
+## [1.73.0](https://github.com/souslesens/souslesensVocables/compare/1.72.1...1.73.0) (2024-06-05)
+
+
+### Features
+
+* **configEditor:** Do not allow to publish source in PRIVATE group ([2a69032](https://github.com/souslesens/souslesensVocables/commit/2a69032223546d0a21dda5aae671a1f82a5bd4b7))
+* **ConfigEditor:** store database events in the main log ([c900052](https://github.com/souslesens/souslesensVocables/commit/c9000525bcf3de9a21b3bb9d47106d2d66c4821e))
+* **ConfigEditor:** store profile events in the main log ([b2195d2](https://github.com/souslesens/souslesensVocables/commit/b2195d2de2475e5947409c97e9954de950446cee))
+* **ConfigEditor:** store source events in the main log ([db113d5](https://github.com/souslesens/souslesensVocables/commit/db113d505621496ee0847f80783135cef2284533))
+* **ConfigEditor:** store user events in the main log ([f7f179e](https://github.com/souslesens/souslesensVocables/commit/f7f179e4ffd5523ac2451c1b30d3740e599c6255))
+* **GraphManagement:** write log events during upload and download process ([e7bab68](https://github.com/souslesens/souslesensVocables/commit/e7bab68ae2e7077a3db1ae0b8516c314b0bb357e))
+* **logs:** add action to logs ([73fa031](https://github.com/souslesens/souslesensVocables/commit/73fa0312a66d27aa680bfa41e5480d3f83bafd06))
+* **logs:** log tools with his source (if available) ([3025b71](https://github.com/souslesens/souslesensVocables/commit/3025b7108a556836d6709d2218b242d635d91586))
+* **mainapp:** add a function to write event in the vocables.log ([b58ad96](https://github.com/souslesens/souslesensVocables/commit/b58ad96a151b9df8e11d13b5ed56fd551bb5f566))
+* **migrations:** add a field to vocables log (action) ([0204031](https://github.com/souslesens/souslesensVocables/commit/02040310edc45b1a177f3a59d9937ce10a7cbdc8))
+* **responsive:** remove useless logs ([7796e01](https://github.com/souslesens/souslesensVocables/commit/7796e015c27371b16b1e62a3c51e56570863eb78))
+
 ### [1.72.1](https://github.com/souslesens/souslesensVocables/compare/1.72.0...1.72.1) (2024-05-22)
 
 ## [1.72.0](https://github.com/souslesens/souslesensVocables/compare/1.71.0...1.72.0) (2024-05-21)

@@ -1,47 +1,39 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { useReducer, useState, ChangeEvent, SyntheticEvent, MouseEventHandler, Dispatch } from "react";
 import {
-    Alert,
-    Box,
     Button,
-    Chip,
-    CircularProgress,
     Dialog,
-    DialogActions,
     DialogContent,
-    MenuItem,
-    Paper,
-    Snackbar,
     Stack,
-    Table,
-    TableBody,
-    TableCell,
+    TextField,
+    MenuItem,
+    DialogActions,
+    Box,
+    CircularProgress,
+    Alert,
+    Snackbar,
     TableContainer,
+    Paper,
+    Table,
     TableHead,
     TableRow,
-    TextField,
+    TableCell,
+    TableSortLabel,
+    TableBody,
+    Chip,
+    IconButton,
 } from "@mui/material";
-import Autocomplete from "@mui/material/Autocomplete";
-import TableSortLabel from "@mui/material/TableSortLabel";
-import { Done } from "@mui/icons-material";
+import { Done, Download, Edit } from "@mui/icons-material";
 
-import * as React from "react";
 import { SRD } from "srd";
 import { ulid } from "ulid";
 
-import { useModel } from "../Admin";
+import { Msg, useModel } from "../Admin";
 import { ButtonWithConfirmation } from "./ButtonWithConfirmation";
 import { PasswordField } from "./PasswordField";
 import { TestingButton } from "./TestingButton";
-import {
-    addDatabase,
-    Database,
-    DatabaseSchema,
-    defaultDatabase,
-    deleteDatabase,
-    editDatabase,
-    SourceAccessControl,
-} from "../Database";
-import { style } from "../Utils";
+import { addDatabase, Database, DatabaseSchema, defaultDatabase, deleteDatabase, editDatabase } from "../Database";
+import { writeLog } from "../Log";
+import { cleanUpText, jsonToDownloadUrl } from "../Utils";
 
 const enum Type {
     ResetDatabase,
@@ -59,13 +51,18 @@ type DatabaseEditionState = {
 };
 
 type DatabaseFormProps = {
+    me: string;
     database?: Database;
     create?: boolean;
 };
 
 type Msg_ =
-    | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string } }
-
+    | { type: Type.ResetDatabase; payload: Database }
+    | { type: Type.ServerRespondedWithDatabases; payload: { id: string; value: string } }
+    | {
+          type: Type.UserUpdatedField;
+          payload: { id: string; value: string | number };
+      };
 
 const updateDatabase = (databaseEditionState: DatabaseEditionState, msg: Msg_): DatabaseEditionState => {
     switch (msg.type) {
@@ -77,37 +74,36 @@ const updateDatabase = (databaseEditionState: DatabaseEditionState, msg: Msg_): 
                 form: {
                     ...databaseEditionState.form,
                     [msg.payload.id]: msg.payload.value,
-                }
+                },
             };
     }
-}
+};
 
-const validateForm = (form: DatabaseFormProps) => {
+const validateForm = (form: Database) => {
     const validation = DatabaseSchema.safeParse(form);
 
-    let errors = {};
+    const errors: Record<string, string> = {};
     if (!validation.success) {
-        validation.error.issues.map(item => item.path.map(path => errors[path] = item.message));
+        validation.error.issues.map((item) => item.path.map((path) => (errors[path] = item.message)));
     }
 
     return errors;
 };
 
-const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false }: DatabaseFormProps) => {
+const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false, me = "" }: DatabaseFormProps) => {
     const { updateModel } = useModel();
-    const [databaseModel, update] = React.useReducer(updateDatabase, { form: database });
-    const [displayPassword, setDisplayPassword] = React.useState(false);
-    const [currentErrors, setErrors] = React.useState({});
-    const [open, setOpen] = React.useState(false);
+    const [databaseModel, update] = useReducer(updateDatabase, { form: database });
+    const [currentErrors, setErrors] = useState<Record<string, string>>({});
+    const [open, setOpen] = useState(false);
 
     const handleOpen = () => {
-        update({ type: Type.ResetDatabase, payload: database})
+        update({ type: Type.ResetDatabase, payload: database });
         setErrors({});
         setOpen(true);
     };
     const handleClose = () => setOpen(false);
 
-    const handleValidation = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleValidation: MouseEventHandler = (event) => {
         const errors = validateForm(databaseModel.form);
         setErrors(errors);
 
@@ -119,12 +115,13 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
             } else {
                 void editDatabase(databaseModel.form, updateModel);
             }
-
+            const mode = create ? "create" : "edit";
+            void writeLog(me, "ConfigEditor", mode, databaseModel.form.name ?? "");
         }
     };
 
-    const handleFieldUpdate = (fieldName: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-        let fieldValue = event.target.value;
+    const handleFieldUpdate = (fieldName: string) => (event: ChangeEvent<HTMLInputElement>) => {
+        let fieldValue: string | number = event.target.value;
 
         switch (fieldName) {
             case "port":
@@ -139,21 +136,21 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
 
     return (
         <>
-            <Button variant="contained" color="primary" onClick={handleOpen}>
-                {create ? "Create Database" : "Edit"}
-            </Button>
-            <Dialog
-                fullWidth={true}
-                maxWidth="md"
-                onClose={handleClose}
-                open={open}
-                PaperProps={{ component: "form" }}
-            >
+            {create ? (
+                <Button variant="contained" color="primary" onClick={handleOpen}>
+                    Create Database
+                </Button>
+            ) : (
+                <IconButton color="primary" onClick={handleOpen} title={"Edit"}>
+                    <Edit />
+                </IconButton>
+            )}
+            <Dialog fullWidth={true} maxWidth="md" onClose={handleClose} open={open} PaperProps={{ component: "form" }}>
                 <DialogContent sx={{ marginTop: "1em" }}>
                     <Stack spacing={4}>
                         <TextField
                             defaultValue={databaseModel.form.id}
-                            error={currentErrors.name}
+                            error={currentErrors.name !== undefined}
                             fullWidth
                             helperText={currentErrors.name}
                             id="name"
@@ -163,7 +160,7 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                         />
                         <TextField
                             defaultValue={databaseModel.form.driver}
-                            error={currentErrors.driver}
+                            error={currentErrors.driver !== undefined}
                             fullWidth
                             helperText={currentErrors.driver}
                             id="driver"
@@ -177,7 +174,7 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                         </TextField>
                         <Stack direction="row" spacing={1}>
                             <TextField
-                                error={currentErrors.host}
+                                error={currentErrors.host !== undefined}
                                 fullWidth
                                 helperText={currentErrors.host}
                                 id="host"
@@ -187,7 +184,7 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                                 value={databaseModel.form.host}
                             />
                             <TextField
-                                error={currentErrors.port}
+                                error={currentErrors.port !== undefined}
                                 helperText={currentErrors.port}
                                 id="port"
                                 label="Port"
@@ -198,7 +195,7 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                             />
                         </Stack>
                         <TextField
-                            error={currentErrors.database}
+                            error={currentErrors.database !== undefined}
                             fullWidth
                             helperText={currentErrors.database}
                             id="database"
@@ -208,7 +205,7 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                             value={databaseModel.form.database}
                         />
                         <TextField
-                            error={currentErrors.user}
+                            error={currentErrors.user !== undefined}
                             fullWidth
                             helperText={currentErrors.user}
                             id="username"
@@ -217,18 +214,20 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                             required
                             value={databaseModel.form.user}
                         />
-                        <PasswordField error={currentErrors.password} id="password" label="Password" onChange={handleFieldUpdate("password")} value={databaseModel.form.password} />
+                        <PasswordField
+                            error={currentErrors.password !== undefined}
+                            helperText={currentErrors.password}
+                            id="password"
+                            label="Password"
+                            onChange={handleFieldUpdate("password")}
+                            value={databaseModel.form.password}
+                        />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button
-                        color="primary"
-                        component="label"
-                        onClick={handleValidation}
-                        startIcon={<Done />}
-                        type="submit"
-                        variant="contained"
-                    >Submit</Button>
+                    <Button color="primary" onClick={handleValidation} startIcon={<Done />} type="submit" variant="contained">
+                        Submit
+                    </Button>
                 </DialogActions>
             </Dialog>
         </>
@@ -237,18 +236,20 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
 
 const DatabasesTable = () => {
     const { model, updateModel } = useModel();
-    const [filteringChars, setFilteringChars] = React.useState("");
-    const [orderBy, setOrderBy] = React.useState<keyof Database>("id");
-    const [order, setOrder] = React.useState<Order>("asc");
+    const [filteringChars, setFilteringChars] = useState("");
+    const [orderBy, setOrderBy] = useState<keyof Database>("id");
+    const [order, setOrder] = useState<Order>("asc");
 
-    const [snackOpen, setSnackOpen] = React.useState<bool>(false);
-    const [snackMessage, setSnackMessage] = React.useState<string>("");
+    const [snackOpen, setSnackOpen] = useState(false);
+    const [snackMessage, setSnackMessage] = useState("");
+
+    const me = SRD.withDefault("", model.me);
 
     type Order = "asc" | "desc";
 
-    const handleCopyIdentifier = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCopyIdentifier = (id: string) => {
         setSnackOpen(false);
-        navigator.clipboard.writeText(event.target.innerText);
+        void navigator.clipboard.writeText(id);
         setSnackOpen(true);
         setSnackMessage("The identifier has been copied in the clipboard.");
     };
@@ -259,12 +260,17 @@ const DatabasesTable = () => {
         setOrderBy(property);
     }
 
-    const handleSnackbarClose = async (event: React.SyntheticEvent | Event, reason?: string) => {
+    const handleSnackbarClose = (_event: SyntheticEvent | Event, reason?: string) => {
         if (reason === "clickaway") {
             return;
         }
         setSnackOpen(false);
-    }
+    };
+
+    const handleDeleteDatabase = (database: Database, updateModel: Dispatch<Msg>) => {
+        void deleteDatabase(database, updateModel);
+        void writeLog(me, "ConfigEditor", "delete", database.name ?? "");
+    };
 
     const renderDatabases = SRD.match(
         {
@@ -288,18 +294,18 @@ const DatabasesTable = () => {
                 });
 
                 return (
-                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ mx: 12, my: 4 }} useFlexGap>
+                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ m: 4 }} useFlexGap>
                         <Snackbar autoHideDuration={2000} open={snackOpen} onClose={handleSnackbarClose}>
-                            <Alert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+                            <Alert onClose={handleSnackbarClose} severity="success" sx={{ width: "100%" }}>
                                 {snackMessage}
                             </Alert>
                         </Snackbar>
-                        <Autocomplete
-                            disablePortal
+                        <TextField
+                            label="Search Databases by name"
                             id="filter databases"
-                            options={sortedDatabases.map((database: Database) => { return database.name })}
-                            onInputChange={(event, newInputValue) => setFilteringChars(newInputValue)}
-                            renderInput={(params) => <TextField {...params} label="Search Databases by name" />}
+                            onChange={(event) => {
+                                setFilteringChars(event.target.value);
+                            }}
                         />
                         <TableContainer sx={{ height: "400px" }} component={Paper}>
                             <Table stickyHeader>
@@ -330,26 +336,40 @@ const DatabasesTable = () => {
                                 </TableHead>
                                 <TableBody sx={{ width: "100%", overflow: "visible" }}>
                                     {sortedDatabases
-                                        .filter((database: Database) => database.id.includes(filteringChars))
+                                        .filter((database: Database) => cleanUpText(database.id).includes(cleanUpText(filteringChars)))
                                         .map((database: Database) => {
                                             return (
                                                 <TableRow key={database.name}>
-                                                    <TableCell>
-                                                        {database.name}
-                                                    </TableCell>
+                                                    <TableCell>{database.name}</TableCell>
                                                     <TableCell align="center">
-                                                        <Chip label={database.id} onClick={handleCopyIdentifier} size="small" />
+                                                        <Chip label={database.id} onClick={() => handleCopyIdentifier(database.id)} size="small" />
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         <Chip label={database.driver} size="small" />
                                                     </TableCell>
                                                     <TableCell align="center">
-                                                        <TestingButton id={database.id} variant="contained" />
+                                                        <TestingButton id={database.id} />
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                                                            <DatabaseFormDialog database={database} />
-                                                            <ButtonWithConfirmation label="Delete" msg={() => deleteDatabase(database, updateModel)} />
+                                                            <IconButton
+                                                                color="primary"
+                                                                sx={{
+                                                                    // FIXME Need to override the jquery css
+                                                                    color: "rgb(25, 118, 210) !important",
+                                                                }}
+                                                                title={"Download JSON"}
+                                                                href={createSingleDatabaseDownloadUrl(
+                                                                    // TODO fix typing
+                                                                    (model.databases as unknown as Record<string, Database[]>).data,
+                                                                    database.id
+                                                                )}
+                                                                download={`database-${database.id}.json`}
+                                                            >
+                                                                <Download />
+                                                            </IconButton>
+                                                            <DatabaseFormDialog database={database} me={me} />
+                                                            <ButtonWithConfirmation label="Delete" msg={() => handleDeleteDatabase(database, updateModel)} />
                                                         </Stack>
                                                     </TableCell>
                                                 </TableRow>
@@ -359,7 +379,21 @@ const DatabasesTable = () => {
                             </Table>
                         </TableContainer>
                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                            <DatabaseFormDialog create={true} />
+                            <Button
+                                variant="outlined"
+                                sx={{
+                                    // FIXME Need to override the jquery css
+                                    color: "rgb(25, 118, 210) !important",
+                                }}
+                                href={createDatabasesDownloadUrl(
+                                    // TODO fix typing
+                                    (model.databases as unknown as Record<string, Database[]>).data
+                                )}
+                                download={"databases.json"}
+                            >
+                                Download JSON
+                            </Button>
+                            <DatabaseFormDialog create={true} me={me} />
                         </Stack>
                     </Stack>
                 );
@@ -371,4 +405,17 @@ const DatabasesTable = () => {
     return renderDatabases;
 };
 
-export { DatabasesTable, Mode, Msg_, Type };
+function createDatabasesDownloadUrl(databases: Database[]): string {
+    return jsonToDownloadUrl(databases);
+}
+
+function createSingleDatabaseDownloadUrl(databases: Database[], databaseId: string): string {
+    const database = databases.find((d) => d.id === databaseId);
+    if (database) {
+        return jsonToDownloadUrl(database);
+    } else {
+        return "";
+    }
+}
+
+export { DatabasesTable, Mode, Type };

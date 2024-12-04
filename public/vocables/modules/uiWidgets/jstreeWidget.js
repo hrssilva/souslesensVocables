@@ -112,8 +112,9 @@ var JstreeWidget = (function () {
             self.dialogDiv = "smallDialogDiv";
 
             $("#smallDialogDiv").dialog("option", "title", "Select items");
-            $("#smallDialogDiv").dialog("open");
-            $("#smallDialogDiv").load("modules/uiWidgets/jsTreeWidget.html", function () {
+
+            $("#smallDialogDiv").load("modules/uiWidgets/html/jsTreeWidget.html", function () {
+                $("#smallDialogDiv").dialog("open");
                 self.loadJsTree("jstreeWidget_treeDiv", jstreeData, options, callback);
             });
             return;
@@ -304,9 +305,19 @@ var JstreeWidget = (function () {
             .jstree("destroy")
             .empty();
     };
-
+    self.empty = function (jstreeDiv) {
+        $("#" + jstreeDiv)
+            .jstree(true)
+            .delete_node(
+                $("#" + jstreeDiv)
+                    .jstree(true)
+                    .get_node("#").children
+            );
+    };
     self.addNodesToJstree = function (jstreeDiv, parentNodeId_, jstreeData, options, callback) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         if (!options) {
             options = {};
         }
@@ -318,6 +329,9 @@ var JstreeWidget = (function () {
             position = "last";
         }
         self.orderJstreeDataForCreation(jstreeDiv, jstreeData);
+        if (!Array.isArray(jstreeData)) {
+            jstreeData = [jstreeData];
+        }
         jstreeData.forEach(function (node) {
             var Jstree_id = $("#" + jstreeDiv)
                 .jstree(true)
@@ -366,7 +380,9 @@ var JstreeWidget = (function () {
         self.setTreeAppearance();
     };
     self.deleteBranch = function (jstreeDiv, nodeId, deleteNodeItself) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         var descendants = self.getNodeDescendants(jstreeDiv, nodeId, null, true);
         if (deleteNodeItself) {
             if (descendants.indexOf(nodeId) < 0) {
@@ -390,21 +406,27 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
         }
     };
     self.getjsTreeCheckedNodes = function (jstreeDiv) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         return $("#" + jstreeDiv)
             .jstree()
             .get_checked(true);
     };
 
     self.setjsTreeCheckedNodes = function (jstreeDiv, checkedNodes) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         return $("#" + jstreeDiv)
             .jstree()
             .check_node(checkedNodes);
     };
 
     self.getjsTreeNodes = function (jstreeDiv, IdsOnly, parentNodeId) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         if (!parentNodeId) {
             parentNodeId = "#";
         }
@@ -431,14 +453,18 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
     };
 
     self.getjsTreeNodeObj = function (jstreeDiv, id) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         return $("#" + jstreeDiv)
             .jstree(true)
             .get_node(id);
     };
     // get node from node.data field
     self.getNodeByDataField = function (jstreeDiv, property, value) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         if (!$("#" + jstreeDiv).jstree(true)) {
             return null;
         }
@@ -454,13 +480,15 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
         return matchingNode;
     };
 
-    self.getNodeDescendants = function (jstreeDiv, nodeId, depth, onlyIds) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+    self.getNodeDescendants = function (jstreeDiv, parentNodeId, depth, onlyIds) {
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         var nodes = [];
         var nodeIdsMap = {};
-        var currentLevel = 0;
-        var recurse = function (nodeId) {
-            if (depth && currentLevel++ > depth) {
+
+        var recurse = function (nodeId, level) {
+            if (depth && level > depth) {
                 return;
             }
 
@@ -469,26 +497,32 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
                 .get_node(nodeId);
             if (!nodeIdsMap[nodeId]) {
                 nodeIdsMap[nodeId] = 1;
-                if (onlyIds) {
-                    nodes.push(node.id);
-                } else {
-                    nodes.push(node);
+                if (nodeId != parentNodeId) {
+                    if (onlyIds) {
+                        nodes.push(node.id);
+                    } else {
+                        nodes.push(node);
+                    }
                 }
-
                 // Attempt to traverse if the node has children
                 if (node.children) {
                     node.children.forEach(function (child) {
-                        recurse(child);
+                        recurse(child, level + 1);
                     });
                 }
             }
         };
-        recurse(nodeId);
+        recurse(parentNodeId, 0);
 
         return nodes;
     };
     self.openNodeDescendants = function (jstreeDiv, nodeId, depth) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
+        $("#" + (jstreeDiv || self.jstreeDiv))
+            .jstree()
+            .open_node(nodeId);
         var descendants = JstreeWidget.getNodeDescendants(jstreeDiv || self.jstreeDiv, nodeId, depth);
         $("#" + (jstreeDiv || self.jstreeDiv))
             .jstree()
@@ -496,7 +530,9 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
     };
 
     self.setTreeParentDivDimensions = function (jstreeDiv) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         var parentDiv = $("#" + jstreeDiv).parent();
         if (!parentDiv) {
             // || parentDiv.width)
@@ -536,7 +572,9 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
         return;
     };
     self.onAllTreeCbxChange = function (allCBX, jstreeDiv) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         var checked = $(allCBX).prop("checked");
         if (checked) {
             $("#" + jstreeDiv)
@@ -549,13 +587,17 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
         }
     };
     self.checkAll = function (jstreeDiv) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         $("#" + jstreeDiv)
             .jstree()
             .check_all();
     };
     self.openNode = function (jstreeDiv, nodeId) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         $("#" + jstreeDiv)
             .jstree()
             .open_node(nodeId);
@@ -628,7 +670,9 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
     };
 
     self.orderJstreeDataForCreation = function (jstreeDiv, JstreeData) {
-        if (!jstreeDiv) jstreeDiv = self.jstreeDiv;
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
         var length = JstreeData.length;
         var n = 0;
         while (n < length) {
@@ -692,6 +736,40 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
             .jstree(true)
             .search(value);
         $("#jstreeWidget_searchInput").val("");
+    };
+    self.updateJstree = function (divId, newData) {
+        if (!Array.isArray(newData)) {
+            return;
+        }
+        var newData2 = JSON.parse(JSON.stringify(newData));
+        var keyToKeep = ["data", "text", "id", "parent"];
+        newData2.forEach(function (item) {
+            for (let key in item) {
+                if (!keyToKeep.includes(key)) {
+                    delete item[key];
+                }
+            }
+        });
+        newData2 = newData2.filter(function (item) {
+            return item.id != "#";
+        });
+        $("#" + divId).jstree(true).settings.core.data = newData2;
+
+        $("#" + divId)
+            .jstree(true)
+            .refresh();
+    };
+
+    self.filterTree = function (input, jstreeDiv) {
+        if (!jstreeDiv) {
+            jstreeDiv = self.jstreeDiv;
+        }
+        var keyword = input.val();
+        if (keyword != "" && keyword.length < 2) {
+            return;
+        }
+        $("#" + jstreeDiv).jstree("search", keyword);
+        //input.val("")
     };
 
     return self;

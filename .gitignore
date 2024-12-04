@@ -1,4 +1,5 @@
 plugins/*
+plugins.available/*
 !plugins
 
 # Cypress
@@ -153,3 +154,7 @@ mainapp/static/assets
 /mainapp/static/mainapp.js.LICENSE.txt
 /data/uploaded_rdf_data/
 /bin/other/
+/plugins/
+/scripts/personalScripts/
+/plugins/Lifex_cost/
+/plugins/

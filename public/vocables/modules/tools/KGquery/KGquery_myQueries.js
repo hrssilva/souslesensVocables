@@ -15,16 +15,44 @@ var KGquery_myQueries = (function () {
     };
 
     self.load = function (err, result) {
-        return; // ! not working correctly !!!!!!!!!!!!!!!!!!!!!!!!
+        // return; // ! not working correctly !!!!!!!!!!!!!!!!!!!!!!!!
         if (err) {
             return alert(err.responseText);
         }
-        ResponsiveUI.openTab("lineage-tab", "tabs_Query", KGquery_r.initQuery, this);
+        UI.openTab("lineage-tab", "tabs_Query", KGquery.initQuery, this);
         //  $("#KGquery_leftPanelTabs").tabs("option", "active", 1);
         KGquery.clearAll();
         KGquery.switchRightPanel(true);
         var querySets = result.querySets.sets;
 
+        async.eachSeries(
+            querySets,
+            function (set, callbackEach1) {
+                var index = 0;
+                async.eachSeries(
+                    set.elements,
+                    function (element, callbackEach2) {
+                        var node = element.fromNode;
+
+                        KGquery.addNode(node, null, function (err1, result2) {
+                            if (index++ > 0)
+                                // cest KGquery.addNode qui rajoure le noeud precedent
+                                return callbackEach2(err1);
+                            node = element.toNode;
+                            KGquery.addNode(node, null, function (err2, result2) {
+                                return callbackEach2(err2);
+                            });
+                        });
+                    },
+                    function (err2) {
+                        return callbackEach1(err2);
+                    }
+                );
+            },
+            function (err1) {}
+        );
+
+        return;
         querySets.forEach(function (set) {
             set.elements.forEach(function (element) {
                 var node = element.fromNode;

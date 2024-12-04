@@ -1,5 +1,5 @@
 const path = require("path");
-const { config } = require(path.resolve("model/config"));
+const { mainConfigModel } = require("../../../model/mainConfig");
 const logger = require(path.resolve("bin/logger..js"));
 const fs = require("fs");
 
@@ -10,15 +10,16 @@ module.exports = function () {
     };
 
     ///// GET api/v1/logs
-    function GET(req, res, _next) {
+    async function GET(req, res, _next) {
+        const config = await mainConfigModel.getConfig();
         const vocablesLog = path.join(config.logDir, "vocables.log");
-        if (! fs.existsSync(vocablesLog)) {
-            return res.status(500);
+        if (!fs.existsSync(vocablesLog)) {
+            return res.status(500).json({"message": "The log files are not available", "status": 500});
         }
 
         const vocablesLogStats = fs.lstatSync(vocablesLog);
-        if (! vocablesLogStats.isSymbolicLink()) {
-            return res.status(500);
+        if (!vocablesLogStats.isSymbolicLink()) {
+            return res.status(500).json({"message": "The log files are not available", "status": 500});
         }
 
         const symlink = fs.readlinkSync(vocablesLog);
@@ -26,11 +27,11 @@ module.exports = function () {
             .readdirSync(config.logDir)
             .filter((file) => file.startsWith("vocables.log."))
             .map((file) => {
-                date = path.extname(file).substring(1);
+                const date = path.extname(file).substring(1);
                 return { date: date, current: file == symlink };
             });
 
-        return res.status(200).json(files);
+        return res.status(200).json({"message": files, "status": 200});
     }
     GET.apiDoc = {
         security: [{ restrictAdmin: [] }],

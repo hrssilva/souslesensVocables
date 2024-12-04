@@ -1,16 +1,12 @@
-import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
-
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
     Alert,
     Box,
     Button,
     CircularProgress,
-    FormControl,
     InputAdornment,
-    InputLabel,
     MenuItem,
     Paper,
-    Select,
     Stack,
     Table,
     TableBody,
@@ -21,23 +17,24 @@ import {
     TableSortLabel,
     TextField,
 } from "@mui/material";
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CalendarMonth from "@mui/icons-material/CalendarMonth";
+
+import CsvDownloader from "react-csv-downloader";
+import { SRD } from "srd";
 
 import { useModel } from "../Admin";
-import * as React from "react";
-import { SRD } from "srd";
 import { Log, getLogs } from "../Log";
-import CsvDownloader from "react-csv-downloader";
+import { cleanUpText } from "../Utils";
 
 export const LogsTable = () => {
     const { model } = useModel();
 
-    const [filteringChars, setFilteringChars] = React.useState("");
-    const [orderBy, setOrderBy] = React.useState<keyof Log>("timestamp");
-    const [order, setOrder] = React.useState<Order>("desc");
+    const [filteringChars, setFilteringChars] = useState("");
+    const [orderBy, setOrderBy] = useState<keyof Log>("timestamp");
+    const [order, setOrder] = useState<Order>("desc");
 
-    const [selectedPeriod, setSelectedPeriod] = React.useState<string>(undefined);
-    const [selectedLogs, setSelectedLogs] = React.useState<Log[]>([]);
+    const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>(undefined);
+    const [selectedLogs, setSelectedLogs] = useState<Log[]>([]);
 
     type Order = "asc" | "desc";
 
@@ -47,12 +44,19 @@ export const LogsTable = () => {
         setOrderBy(property);
     };
 
-    const handleLogSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogSelection = (event: ChangeEvent<HTMLInputElement>) => {
         setSelectedPeriod(event.target.value);
     };
 
-    React.useEffect(() => {
-        getLogs(selectedPeriod).then((data) => setSelectedLogs(data));
+    useEffect(() => {
+        if (selectedPeriod !== undefined) {
+            getLogs(selectedPeriod)
+                .then((data) => setSelectedLogs(data))
+                .catch(() => {
+                    console.error("Error getting logs");
+                    setSelectedLogs([]);
+                });
+        }
     }, [selectedPeriod]);
 
     return SRD.match(
@@ -68,14 +72,23 @@ export const LogsTable = () => {
                     {`I stumbled into this error when I tried to fetch data: ${msg}. Please, reload this page.`}
                 </Alert>
             ),
-            success: () => {
+            success: (logFiles) => {
+                if (logFiles.status === 500) {
+                    return (
+                        <Alert variant="filled" severity="error" sx={{ m: 4 }}>
+                            {`${logFiles.message.toString()}, consult the administrator of this instance for more information.`}
+                        </Alert>
+                    );
+                }
+
+                const logFilesData = logFiles.message;
                 if (selectedPeriod === undefined) {
-                    setSelectedPeriod(model.logfiles.data.find((log) => log.current).date);
+                    setSelectedPeriod(logFilesData.find((log) => log.current)?.date);
                 }
 
                 const sortedLogs = () =>
                     selectedLogs
-                        .map((item, index) => ({ ...item, key: index }))
+                        .map((item, index) => ({ ...item, key: index.toString() }))
                         .slice()
                         .sort((a: Log, b: Log) => {
                             const left: string = a[orderBy];
@@ -86,15 +99,10 @@ export const LogsTable = () => {
                             return order === "asc" ? left.localeCompare(right) : right.localeCompare(left);
                         });
 
-                const memoizedLogs = React.useMemo(() => sortedLogs(), [selectedLogs, orderBy, order]);
-                const getOptions = () =>
-                    memoizedLogs.filter(function (this: Set<string>, { user }) {
-                        return !this.has(user) && this.add(user);
-                    }, new Set());
-                const memoizedOptions = React.useMemo(() => getOptions(), [selectedLogs]);
+                const memoizedLogs = useMemo(() => sortedLogs(), [selectedLogs, orderBy, order]);
 
                 return (
-                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ mx: 12, my: 4 }} useFlexGap>
+                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ m: 4 }} useFlexGap>
                         <Stack direction="row" spacing={{ xs: 2 }} useFlexGap>
                             <TextField
                                 select
@@ -102,7 +110,7 @@ export const LogsTable = () => {
                                 InputProps={{
                                     startAdornment: (
                                         <InputAdornment position="start">
-                                            <CalendarMonthIcon />
+                                            <CalendarMonth />
                                         </InputAdornment>
                                     ),
                                 }}
@@ -111,25 +119,18 @@ export const LogsTable = () => {
                                 size="medium"
                                 value={selectedPeriod}
                             >
-                                {model.logfiles.data.map((file) => (
-                                    <MenuItem value={file.date}>{file.date}</MenuItem>
+                                {logFilesData.map((file, i) => (
+                                    <MenuItem key={i} value={file.date}>
+                                        {file.date}
+                                    </MenuItem>
                                 ))}
                             </TextField>
-                            <Autocomplete
-                                disablePortal
+                            <TextField
+                                label="Search logs by username"
                                 id="search-logs"
-                                options={memoizedOptions}
-                                onInputChange={(event, newInputValue) => {
-                                    setFilteringChars(newInputValue);
+                                onChange={(event) => {
+                                    setFilteringChars(event.target.value);
                                 }}
-                                getOptionLabel={(option) => option.user}
-                                renderOption={(props, option) => (
-                                    <li {...props} key={option.key}>
-                                        {option.user}
-                                    </li>
-                                )}
-                                renderInput={(params) => <TextField {...params} label="Search logs by username" />}
-                                sx={{ flex: 1 }}
                             />
                         </Stack>
                         <TableContainer sx={{ height: "400px" }} component={Paper}>
@@ -151,6 +152,11 @@ export const LogsTable = () => {
                                                 Tool
                                             </TableSortLabel>
                                         </TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold" }}>
+                                            <TableSortLabel active={orderBy === "action"} direction={order} onClick={() => handleRequestSort("action")}>
+                                                Action
+                                            </TableSortLabel>
+                                        </TableCell>
                                         <TableCell style={{ fontWeight: "bold", width: "100%" }}>
                                             <TableSortLabel active={orderBy === "source"} direction={order} onClick={() => handleRequestSort("source")}>
                                                 Source
@@ -160,7 +166,7 @@ export const LogsTable = () => {
                                 </TableHead>
                                 <TableBody sx={{ width: "100%", overflow: "visible" }}>
                                     {memoizedLogs
-                                        .filter((log) => log.user.includes(filteringChars))
+                                        .filter((log) => cleanUpText(log.user).includes(cleanUpText(filteringChars)))
                                         .map((log) => {
                                             return (
                                                 <TableRow key={log.key}>
@@ -169,6 +175,7 @@ export const LogsTable = () => {
                                                     </TableCell>
                                                     <TableCell align="center">{log.user}</TableCell>
                                                     <TableCell align="center">{log.tool}</TableCell>
+                                                    <TableCell align="center">{log.action}</TableCell>
                                                     <TableCell>{log.source}</TableCell>
                                                 </TableRow>
                                             );
@@ -185,6 +192,6 @@ export const LogsTable = () => {
                 );
             },
         },
-        model.logfiles
+        model.logFiles
     );
 };

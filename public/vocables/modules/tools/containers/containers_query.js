@@ -1,8 +1,11 @@
 import Sparql_common from "../../sparqlProxies/sparql_common.js";
 import Sparql_proxy from "../../sparqlProxies/sparql_proxy.js";
+import common from "../../shared/common.js";
+import JstreeWidget from "../../uiWidgets/jstreeWidget.js";
 
 var Containers_query = (function () {
     var self = {};
+    self.descendantsLimit = 300;
     self.getTopContainer = function (source, options, callback) {
         if (!options) {
             options = {};
@@ -10,6 +13,9 @@ var Containers_query = (function () {
         var filterStr = "";
         if (false && options.memberClass) {
             filterStr = "?member rdf:type ?memberClass filter (?memberClass=<" + options.memberClass + ">)";
+        }
+        if (options.filter) {
+            filterStr += " " + options.filter;
         }
 
         var fromStr = Sparql_common.getFromStr(source, false, false);
@@ -30,9 +36,9 @@ var Containers_query = (function () {
 
         Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: source }, function (err, result) {
             if (err) {
-                return callback(err);
+                return alert(err);
             }
-            return callback(null, result);
+            callback(err, result);
         });
     };
 
@@ -41,20 +47,37 @@ var Containers_query = (function () {
         var filter = options.filter || "";
         if (containerId) {
             // needs options.useFilterKeyWord because VALUES dont work
-            filter = Sparql_common.setFilter("parent", containerId, null, { useFilterKeyWord: 1 });
+            filter = Sparql_common.setFilter("root", containerId, null, { useFilterKeyWord: 1 });
         }
 
         if (!options.leaves) {
-            filter += " FILTER (?descendantType in(rdf:Bag,rdf:List))";
+            filter += " FILTER (?memberType in(rdf:Bag,rdf:List))";
         }
 
-        var pathOperator = "";
+        var pathOperator = "+";
 
         if (options.depth) {
             pathOperator = "{1," + options.depth + "}";
         }
+
         var query =
             "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n" +
+            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n" +
+            "SELECT distinct ?parent  ?member ?parentLabel  ?memberLabel " +
+            '(GROUP_CONCAT( distinct ?memberType;separator=",") as ?memberTypes) ' +
+            fromStr +
+            " WHERE {" +
+            "  ?root  rdfs:member" +
+            pathOperator +
+            " ?member.\n" +
+            "  ?parent rdfs:member ?member .\n" +
+            "?member rdf:type ?memberType." +
+            "   OPTIONAL{?member rdfs:label ?memberLabel} \n" +
+            "   OPTIONAL{?parent rdfs:label ?parentLabel} \n" +
+            filter +
+            "} limit 10000 ";
+
+        /*   "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n" +
             "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n" +
             "SELECT distinct ?descendant ?descendantParent ?descendantLabel ?descendantParentLabel " +
             fromStr +
@@ -68,14 +91,18 @@ var Containers_query = (function () {
             "            \n" +
             "  ?descendant rdf:type ?descendantType." +
             filter +
-            "} " +
-            "      ";
+            "}order by ?descendantLabel " +
+            "   LIMIT   " +
+            self.descendantsLimit;*/
 
         var url = Config.sources[source].sparql_server.url + "?format=json&query=";
 
         Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: source }, function (err, result) {
             if (err) {
                 return callback(err);
+            }
+            if (false && result.results.bindings.length >= self.descendantsLimit) {
+                alert("cannot show all nodes  :only: " + self.descendantsLimit + "");
             }
             return callback(null, result);
         });
@@ -94,17 +121,17 @@ var Containers_query = (function () {
         var url = Config.sources[source].sparql_server.url + "?format=json&query=";
 
         function execQuery(filter, callback) {
-            var pathOperator = "+";
+            var pathOperator = "*";
             if (options.depth) {
                 pathOperator = "{1," + options.depth + "}";
             }
             var query =
                 "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n" +
                 "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n" +
-                "SELECT distinct ?ancestor ?ancestorChild " +
+                "SELECT distinct ?ancestor ?ancestorChild ?ancestorChildLabel" +
                 fromStr +
                 "WHERE {\n" +
-                " optional{?ancestor rdfs:member ?ancestorChild.}\n" +
+                " optional{?ancestor rdfs:member ?ancestorChild .}\n" +
                 "  ?ancestorChild  rdfs:member" +
                 pathOperator +
                 " ?child.\n" +
@@ -187,12 +214,12 @@ var Containers_query = (function () {
                  WHERE {?searchValue ^rdfs:member* ?member.
                     ?member ^rdfs:member ?parent.
                     ?member rdf:type ?memberType.
-                    ?member rdfs:label ?memberLabel.
-                    ?parent rdfs:label ?parentLabel.
+                    OPTIONAL {?member rdfs:label ?memberLabel.}
+                    OPTIONAL {?parent rdfs:label ?parentLabel.}
                     
                     {select ?searchValue where{
                         ?parent0  rdfs:member${pathOperator} ?searchValue.
-                        ?searchValue rdfs:label ?searchValueLabel.
+                        OPTIONAL { ?searchValue rdfs:label ?searchValueLabel.}
                         ${filterContainer0Str}
                         ${filter}
                         }

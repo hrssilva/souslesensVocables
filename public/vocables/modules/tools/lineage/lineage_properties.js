@@ -92,11 +92,11 @@ var Lineage_properties = (function () {
 
     self.openNode = function (node) {
         var options = { subPropIds: node.data.id };
-        MainController.UI.message("searching in " + node.data.source);
+        UI.message("searching in " + node.data.source);
         // @ts-ignore
         Sparql_OWL.getObjectPropertiesDomainAndRange(node.data.source, null, options, function (err, result) {
             if (err) {
-                return MainController.UI.message(err);
+                return UI.message(err);
             }
             var data = common.array.sort(common.array.distinctValues(result, "prop"), "propLabel");
             var distinctIds = {};
@@ -124,7 +124,7 @@ var Lineage_properties = (function () {
                 }
             });
             JstreeWidget.addNodesToJstree("Lineage_propertiesTree", node.id, jstreeData);
-            MainController.UI.message("", true);
+            UI.message("", true);
         });
     };
 
@@ -163,8 +163,13 @@ var Lineage_properties = (function () {
                                 distinctIds[item.prop.value] = 1;
 
                                 var parent = source;
+                                /*
                                 if (item.subProp) {
                                     parent = item.subProp.value;
+                                }*/
+                                var superProp = Config.ontologiesVocabularyModels[source].properties[item.prop.value].superProp;
+                                if (superProp != null) {
+                                    parent = superProp;
                                 }
                                 jstreeData.push({
                                     text: item.propLabel.value,
@@ -245,7 +250,7 @@ var Lineage_properties = (function () {
         Sparql_OWL.getPropertiesRestrictionsDescription(source, properties, options, function (err, result) {
             if (err) {
                 alert(err.responseText);
-                return MainController.UI.message(err.responseText, true);
+                return UI.message(err.responseText, true);
             }
             var visjsData = { nodes: [], edges: [] };
 
@@ -786,8 +791,10 @@ var Lineage_properties = (function () {
                     filterNodes = Lineage_whiteboard.lineageVisjsGraph.data.nodes.getIds();
                 }
             }
-            if (properties && properties.length > 0) options.filter = Sparql_common.setFilter("prop", properties);
-            MainController.UI.message("searching...");
+            if (properties && properties.length > 0) {
+                options.filter = Sparql_common.setFilter("prop", properties);
+            }
+            UI.message("searching...");
             Sparql_OWL.getInferredPropertiesDomainsAndRanges(source, options, function (err, result) {
                 if (err) {
                     return callback(err);
@@ -795,9 +802,9 @@ var Lineage_properties = (function () {
                 var allProps = [];
                 if (Object.keys(allProps).length == 0) {
                 }
-                //  MainController.UI.message("No data found",true)
+                //  UI.message("No data found",true)
 
-                MainController.UI.message("drawing...");
+                UI.message("drawing...");
                 for (var propId in result) {
                     var item = result[propId];
 
@@ -860,13 +867,18 @@ var Lineage_properties = (function () {
         },
     };
 
-    self.searchTermInSources = function () {
-        // var term = $("#LineageProperties_searchTermInSourcesInput").val();
-        var term = $("#LineageProperties_searchAllSourcesTermInput").val();
-
-        var exactMatch = $("#LineageProperties_allExactMatchSearchCBX").prop("checked");
-        var searchAllSources = $("#LineageProperties_searchInAllSources").prop("checked");
-        var searchType = $("#LineageProperties_searchAllType").val();
+    self.searchTermInSources = function (term, inCurrentSource, exactMatch, searchType) {
+        if (!term) term = $("#LineageProperties_searchAllSourcesTermInput").val();
+        if (!exactMatch) {
+            exactMatch = $("#LineageProperties_allExactMatchSearchCBX").prop("checked");
+        }
+        var searchAllSources = false;
+        if (!inCurrentSource) {
+            searchAllSources = $("#LineageProperties_searchInAllSources").prop("checked");
+        }
+        if (!searchType) {
+            searchType = $("#LineageProperties_searchAllType").val();
+        }
 
         if (!term || term == "") {
             term == null;
@@ -898,7 +910,7 @@ var Lineage_properties = (function () {
             searchedSources,
             function (sourceLabel, callbackEach) {
                 $("waitImg").css("display", "block");
-                MainController.UI.message("searching in " + sourceLabel);
+                UI.message("searching in " + sourceLabel);
 
                 self.getPropertiesjsTreeData(
                     sourceLabel,
@@ -917,7 +929,12 @@ var Lineage_properties = (function () {
                         result.forEach(function (item) {
                             if (!uniqueIds[item.id]) {
                                 uniqueIds[item.id] = 1;
-                                item.parent = sourceLabel;
+                                //item.parent = sourceLabel;
+                                if (item.parent != sourceLabel) {
+                                    if (result.filter((node) => node.id == item.parent).length == 0) {
+                                        item.parent = sourceLabel;
+                                    }
+                                }
                                 item.type = "Property";
                                 jstreeData.push(item);
                             }
@@ -925,7 +942,13 @@ var Lineage_properties = (function () {
 
                         if (result.length > 0) {
                             var text = "<span class='searched_conceptSource'>" + sourceLabel + "</span>";
-                            jstreeData.push({ id: sourceLabel, text: text, type: "Source", parent: "#", data: { source: sourceLabel } });
+                            jstreeData.push({
+                                id: sourceLabel,
+                                text: text,
+                                type: "Source",
+                                parent: "#",
+                                data: { source: sourceLabel },
+                            });
                         }
 
                         callbackEach();
@@ -934,14 +957,14 @@ var Lineage_properties = (function () {
             },
             function (err) {
                 if (err) {
-                    MainController.UI.message(err, true);
+                    UI.message(err, true);
                 }
 
                 if (jstreeData.length == 0) {
                     $("#Lineage_propertiesTree").html("no properties found");
                 }
 
-                MainController.UI.message(jstreeData.length + " nodes found", true);
+                UI.message(jstreeData.length + " nodes found", true);
                 var options = {
                     selectTreeNodeFn: Lineage_properties.onTreeNodeClick,
                     openAll: true,
@@ -1106,7 +1129,16 @@ var Lineage_properties = (function () {
             }
         }
     };
-
+    self.changeIconForPropertiesGraphAction = function (div) {
+        var icon = $(div).children().attr("class");
+        if (icon == "allPropertyIcon slsv-invisible-button" || icon == "slsv-invisible-button allPropertyIcon") {
+            $(div).children().removeClass("allPropertyIcon");
+            $(div).children().addClass("currentPropertyIcon");
+        } else {
+            $(div).children().removeClass("currentPropertyIcon");
+            $(div).children().addClass("allPropertyIcon");
+        }
+    };
     return self;
 })();
 

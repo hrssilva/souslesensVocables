@@ -2,6 +2,9 @@ const bcrypt = require("bcrypt");
 const fs = require("fs");
 const merge = require("lodash.merge");
 
+// create data/mapping dir if not exists
+fs.mkdirSync("data/mappings", { recursive: true });
+
 // Create configs dir if not exists
 fs.mkdirSync("config/users", { recursive: true });
 
@@ -85,6 +88,33 @@ const sourcesTemplatePath = "config_templates/sources.json.default";
 if (!fs.existsSync(sourcesPath)) {
     fs.readFile(sourcesTemplatePath, (_err, data) => {
         fs.writeFileSync(sourcesPath, JSON.stringify(JSON.parse(data), null, 2));
+    });
+}
+
+// config/databases.json
+const databasesPath = "config/databases.json";
+const databasesTemplatePath = "config_templates/databases.json.default";
+if (!fs.existsSync(databasesPath)) {
+    fs.readFile(databasesTemplatePath, (_err, data) => {
+        fs.writeFileSync(databasesPath, JSON.stringify(JSON.parse(data), null, 2));
+    });
+}
+
+// config/plugins.json
+const pluginsPath = "config/plugins.json";
+const pluginsTemplatePath = "config_templates/plugins.json.default";
+if (!fs.existsSync(pluginsPath)) {
+    fs.readFile(pluginsTemplatePath, (_err, data) => {
+        fs.writeFileSync(pluginsPath, JSON.stringify(JSON.parse(data), null, 2));
+    });
+}
+
+// config/pluginsConfig.json
+const pluginsConfigPath = "config/pluginsConfig.json";
+const pluginsConfigTemplatePath = "config_templates/pluginsConfig.json.default";
+if (!fs.existsSync(pluginsConfigPath)) {
+    fs.readFile(pluginsConfigTemplatePath, (_err, data) => {
+        fs.writeFileSync(pluginsConfigPath, JSON.stringify(JSON.parse(data), null, 2));
     });
 }
 

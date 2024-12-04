@@ -66,12 +66,14 @@ var Export = (function () {
             //nodes without edges
 
             nodes.forEach(function (node) {
-                if (linkedNodes[node.id]) return;
+                if (linkedNodes[node.id]) {
+                    return;
+                }
                 var line = [node.label, "", "", node.id, "", ""];
                 dataset.push(line);
             });
 
-            MainController.UI.message("", true);
+            UI.message("", true);
             var columnDefs = [{ width: 200, targets: [0, 1, 2] }];
             Export.showDataTable(divId, cols, dataset, null, { fixedColumns: 1, columnDefs: columnDefs });
         } else {
@@ -271,11 +273,11 @@ var Export = (function () {
             options = {};
         }
 
-        MainController.UI.message("exporting node descendants...");
+        UI.message("exporting node descendants...");
         $("#waitImg").css("display", "block");
         SearchUtil.getParentAllDescendants(parentId, indexes, null, function (err, result) {
             if (err) {
-                MainController.UI.message(err, true);
+                UI.message(err, true);
             }
             var matrixLabels = [];
             var matrixIds = [];
@@ -330,7 +332,7 @@ var Export = (function () {
             }
             cols.push({ title: "-----", defaultContent: "" });
 
-            MainController.UI.message("", true);
+            UI.message("", true);
             Export.showDataTable(null, cols, matrixLabels);
         });
     };
@@ -384,63 +386,70 @@ var Export = (function () {
             self.dataTable.destroy();
             $("#dataTableDiv").html("");
         }
-        if (!div) {
+        if (options.divId) {
+            div = options.divId;
+        } else {
             div = "mainDialogDiv";
+            //$("#" + div).dialog("open");
         }
-        try {
+
+        var width = "97%";
+        if (options.width) width = options.width;
+        var height = "75vh";
+        if (options.height) height = options.height;
+
+        $("#" + div).html("<div style='width: " + width + ";height:" + height + "'> <table class='cell-border' id='dataTableDivExport'></table></div>");
+        //  $("#" + div).html("<div style='width: 97%;height:75vh'> <table class='cell-border' id='dataTableDivExport'></table></div>");
+
+        if (!buttons) {
+            buttons = "Bfrtip";
+        }
+
+        if (!buttons) {
+            buttons = "Bfrtip";
+        }
+        var params = {
+            data: dataSet,
+            columns: cols,
+            fixedColumns: true,
+            pageLength: 200,
+            dom: buttons,
+            buttons: [
+                {
+                    extend: "csvHtml5",
+                    text: "Export CSV",
+                    fieldBoundary: "",
+                    fieldSeparator: ";",
+                },
+                "copy",
+            ],
+
+            paging: false,
+            /*  columnDefs: [
+    { width: 400, targets: 0 }
+],
+fixedColumns: true*/
+
+            //  order: []
+        };
+
+        if (false && options && options.fixedColumns) {
+            params.fixedColumns = true;
+        }
+        if (false && options && options.columnDefs) {
+            params.columnDefs = options.columnDefs;
+        }
+        if (options && options.paging) {
+            params.paging = true;
+        }
+        self.dataTable = $("#dataTableDivExport").DataTable(params);
+        if (div == "mainDialogDiv") {
+            //open the dialog after the datatable is loaded to be on center
             $("#" + div).dialog("open");
-        } catch (e) {}
-
-        $("#" + div)
-            .parent()
-            .show("fast", function () {
-                $("#" + div).html("<table id='dataTableDivExport'></table>");
-                if (!buttons) {
-                    buttons = "Bfrtip";
-                }
-
-                if (!buttons) {
-                    buttons = "Bfrtip";
-                }
-                var params = {
-                    data: dataSet,
-                    columns: cols,
-                    fixedColumns: true,
-                    pageLength: 200,
-                    dom: buttons,
-                    buttons: [
-                        {
-                            extend: "csvHtml5",
-                            text: "Export CSV",
-                            fieldBoundary: "",
-                            fieldSeparator: ";",
-                        },
-                        "copy",
-                    ],
-
-                    paging: false,
-                    /*  columnDefs: [
-            { width: 400, targets: 0 }
-        ],
-        fixedColumns: true*/
-
-                    //  order: []
-                };
-
-                if (false && options && options.fixedColumns) {
-                    params.fixedColumns = true;
-                }
-                if (false && options && options.columnDefs) {
-                    params.columnDefs = options.columnDefs;
-                }
-                if (options && options.paging) {
-                    params.paging = true;
-                }
-                self.dataTable = $("#dataTableDivExport").DataTable(params);
-                if (callback) {
-                    return callback(null, self.dataTable);
-                }
-            });
+        }
+        if (callback) {
+            return callback(null, self.dataTable);
+        }
     };
 
     return self;
@@ -448,5 +457,4 @@ var Export = (function () {
 
 export default Export;
 
-window.Export = Export;
 window.Export = Export;

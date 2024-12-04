@@ -1,8 +1,5 @@
 import Sparql_common from "../sparqlProxies/sparql_common.js";
-
 import SparqlQuery_bot from "./sparqlQuery_bot.js";
-
-import BotEngine from "./_botEngine.js";
 import _botEngine from "./_botEngine.js";
 import Sparql_OWL from "../sparqlProxies/sparql_OWL.js";
 
@@ -11,6 +8,8 @@ var KGquery_filter_bot = (function () {
     self.title = "Filter Class";
 
     self.start = function (data, currentQuery, validateFn) {
+        _botEngine.startParams = _botEngine.fillStartParams(arguments);
+
         self.data = data;
         self.filter = "";
         self.filterItems = [];
@@ -21,17 +20,17 @@ var KGquery_filter_bot = (function () {
             workflow = self.workflow_filterClass;
         }
 
-        BotEngine.init(KGquery_filter_bot, workflow, null, function () {
+        _botEngine.init(KGquery_filter_bot, workflow, null, function () {
             self.validateFn = validateFn;
             self.callbackFn = function () {
-                var filterLabel = BotEngine.getQueryText();
+                var filterLabel = _botEngine.getQueryText();
                 return self.validateFn(null, { filter: self.filter, filterLabel: filterLabel, filterParams: self.filterParams });
             };
 
             self.params = currentQuery;
             SparqlQuery_bot.params = currentQuery;
 
-            BotEngine.nextStep();
+            _botEngine.nextStep();
         });
     };
 
@@ -98,7 +97,7 @@ var KGquery_filter_bot = (function () {
             { id: "label", label: "rdfs:label contains" },
             { id: "labelsList", label: "Choose rdfs:label" },
         ];
-        BotEngine.showList(choices, "individualsFilterType");
+        _botEngine.showList(choices, "individualsFilterType");
     };
     self.functions.listPropertiesFn = function () {
         if (self.params.property) {
@@ -110,7 +109,7 @@ var KGquery_filter_bot = (function () {
         if (self.data && self.data.nonObjectProperties) {
             choices = choices.concat(self.data.nonObjectProperties);
         }
-        BotEngine.showList(choices, "property");
+        _botEngine.showList(choices, "property");
     };
 
     self.functions.choosePropertyOperatorFn = function () {
@@ -122,7 +121,7 @@ var KGquery_filter_bot = (function () {
         });
         self.params.propertyDatatype = datatype;
         var choices = [];
-        if (self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#date" || self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#datetime") {
+        if (self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#date" || self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#dateTime") {
             // propertyOperator = ">";
             choices = ["=", "<", "<=", ">", ">=", "range"];
         } else if (self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#int") {
@@ -135,21 +134,21 @@ var KGquery_filter_bot = (function () {
             choices = ["=", "!=", "contains", ">", "!contains", "ChooseInList"];
         }
 
-        BotEngine.showList(choices, "propertyOperator");
+        _botEngine.showList(choices, "propertyOperator");
     };
 
     self.functions.promptIndividualsLabelFn = function () {
         self.params.individualsFilterType = "label";
-        BotEngine.promptValue("enter value", "individualsFilterValue");
+        _botEngine.promptValue("enter value", "individualsFilterValue");
     };
 
     self.functions.promptPropertyValueFn = function () {
         if (!self.params.propertyDatatype || self.params.propertyDatatype == "xsd:string") {
-            BotEngine.promptValue("enter value", "propertyValue");
+            _botEngine.promptValue("enter value", "propertyValue");
         } else if (
             !self.params.propertyDatatype ||
             self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#date" ||
-            self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#datetime"
+            self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#dateTime"
         ) {
             if (self.params.propertyOperator == "range") {
                 DateWidget.showDateRangePicker("widgetGenericDialogDiv", null, null, function (minDate, maxDate) {
@@ -159,16 +158,16 @@ var KGquery_filter_bot = (function () {
                 });
                 return;
             } else {
-                BotEngine.promptValue("enter value", "propertyValue", null, { datePicker: 1 });
+                _botEngine.promptValue("enter value", "propertyValue", null, { datePicker: 1 });
             }
         } else {
-            BotEngine.promptValue("enter value", "propertyValue");
+            _botEngine.promptValue("enter value", "propertyValue");
         }
     };
 
     self.functions.listLogicalOperatorFn = function () {
         var choices = ["end", "AND", "OR"];
-        BotEngine.showList(choices, "filterBooleanOperator");
+        _botEngine.showList(choices, "filterBooleanOperator");
     };
 
     self.functions.setSparqlQueryFilterFn = function () {
@@ -197,11 +196,14 @@ var KGquery_filter_bot = (function () {
         if (dateValueRange) {
             var minDate = new Date(dateValueRange.minDate).toISOString();
             var maxDate = new Date(dateValueRange.maxDate).toISOString();
+            minDate = common.ISODateStrToRDFString(minDate);
+            maxDate = common.ISODateStrToRDFString(maxDate);
             self.filterItems.push(filterBooleanOperator + "?" + varName + "_" + propLabel + " " + ">=" + ' "' + minDate + '"^^xsd:dateTime ');
             self.filterItems.push(filterBooleanOperator + "?" + varName + "_" + propLabel + " " + "<=" + ' "' + maxDate + '"^^xsd:dateTime  &&');
         } else if (propertyValue) {
-            if (self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#date" || self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#datetime") {
+            if (self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#date" || self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#dateTime") {
                 var dateStr = new Date(propertyValue).toISOString();
+                dateStr = common.ISODateStrToRDFString(dateStr);
                 self.filterItems.push(filterBooleanOperator + "?" + varName + "_" + propLabel + " " + propertyOperator + ' "' + dateStr + '"^^xsd:dateTime');
             } else if (self.params.propertyDatatype == "http://www.w3.org/2001/XMLSchema#int") {
                 self.filterItems.push(filterBooleanOperator + "?" + varName + "_" + propLabel + " " + propertyOperator + ' "' + propertyValue + '"^^xsd:int ');
@@ -236,9 +238,13 @@ var KGquery_filter_bot = (function () {
         if (self.params.filterBooleanOperator == "end") {
             self.functions.writeFilterFn();
 
-            BotEngine.nextStep();
+            _botEngine.nextStep();
         } else {
             _botEngine.currentObj = self.workflow_filterClass;
+            _botEngine.currentBot.params.property = "";
+            _botEngine.currentBot.params.propertyDatatype = "";
+            _botEngine.currentBot.params.propertyOperator = "";
+            _botEngine.currentBot.params.propertyValue = "";
             _botEngine.nextStep();
         }
     };

@@ -17,6 +17,8 @@ var KGcreator_bot = (function () {
     self.title = "Create mappings";
     self.lastObj = null;
     self.start = function (node, callbackFn) {
+        _botEngine.startParams = _botEngine.fillStartParams(arguments);
+
         self.currentUri = null;
 
         var workflow = null;
@@ -166,7 +168,7 @@ var KGcreator_bot = (function () {
                 //   columnBlankNode: { addMappingToModelFn: self.workflowRdfType },
                 blankNode: { addMappingToModelFn: self.workflowRdfType },
                 namedIndividual: { addMappingToModelFn: self.workflowRdfType },
-                class: { listSuperClassVocabFn: { listSuperClassFn: { listClassLabelColumnFn: { addMappingToModelFn: {} } } } },
+                class: { listSuperClassVocabFn: { listSuperClassFn: { listClassLabelColumnFn: { addMappingToModelFn: self.workflowColumnmMappingOther } } } },
                 other: self.workflowColumnmMappingOther,
                 bag: { addMappingToModelFn: {} },
             },
@@ -205,6 +207,9 @@ var KGcreator_bot = (function () {
         setPredicateObjectColumnUriTypeFn: "Choose object URI type",
         listLitteralFormatFn: "choose date format",
         createSubPropertyFn: "Enter subProperty label",
+        listSuperClassVocabFn: "choose Super Class ontology",
+        listSuperClassFn: "choose Super Class ",
+        listClassLabelColumnFn: "choose class label column",
     };
 
     self.functions = {
@@ -217,7 +222,7 @@ var KGcreator_bot = (function () {
 
         createDatatypePropertyFn: function () {
             var classId = self.getColumnClass(self.params.tripleModels, self.params.column);
-            CreateResource_bot.start(CreateResource_bot.workFlowDatatypeProperty, { datatypePropertyDomain: classId }, function (err, result) {
+            CreateResource_bot.start(CreateResource_bot.workFlowDatatypeProperty, { source: self.params.source, datatypePropertyDomain: classId }, function (err, result) {
                 KGcreator_bot.start(KGcreator_bot.lastObj);
             });
         },
@@ -264,7 +269,7 @@ var KGcreator_bot = (function () {
             }
 
             self.params.predicateObjectTable = self.params.table;
-            BotEngine.nextStep();
+            _botEngine.nextStep();
         },
         listTableColumnsFn: function () {
             var table = self.params.predicateObjectTable || self.params.table;
@@ -298,7 +303,7 @@ var KGcreator_bot = (function () {
         },
         promptTargetColumnVocabularyFn: function () {
             CommonBotFunctions.listVocabsFn(self.params.source, "predicateObjectColumnVocabulary");
-            // BotEngine.nextStep();
+            // _botEngine.nextStep();
         },
 
         predicateObjectColumnClassFn: function () {
@@ -328,7 +333,7 @@ var KGcreator_bot = (function () {
 
         createSubPropertyFn: function () {
             _botEngine.promptValue("enter subProperty label", "subPropLabel", null, {}, function (subPropLabel) {
-                Lineage_createRelation.createSubProperty(self.params.source, self.params.propertyId, subPropLabel, function (err, subPropertyObj) {
+                Lineage_createRelation.createSubProperty(self.params.source, self.params.propertyId, subPropLabel, true, function (err, subPropertyObj) {
                     if (err) {
                         return _botEngine.abort(err.responseText);
                     }
@@ -342,12 +347,12 @@ var KGcreator_bot = (function () {
         listFilteredPropertiesFn: function () {
             var columnClasses = self.getColumnClasses(KGcreator.currentConfig.currentMappings[self.params.table].tripleModels, self.params.column);
             /*  if (self.params.predicateObjectColumnClass.startsWith("@")) {
-                BotEngine.abort("cannot find predicates for a dynamic class object");
+                _botEngine.abort("cannot find predicates for a dynamic class object");
             }*/
             if (!columnClasses || columnClasses.lengh == 0) return _botEngine.abort("cannot find column type");
 
             var source = self.params.predicateObjectColumnVocabulary || self.params.source; // both cases existing or not predicate object
-            OntologyModels.getAllowedPropertiesBetweenNodes(source, columnClasses, self.params.predicateObjectColumnClass, function (err, result) {
+            OntologyModels.getAllowedPropertiesBetweenNodes(source, columnClasses, self.params.predicateObjectColumnClass, null, function (err, result) {
                 self.params.predicateObjectColumnClass = null; // not used after properties are found
 
                 if (err) {
@@ -484,7 +489,7 @@ var KGcreator_bot = (function () {
                 if (KGcreator.currentConfig.currentMappings[self.params.table].virtualColumns.indexOf(self.currentUri) < 0) {
                     KGcreator.currentConfig.currentMappings[self.params.table].virtualColumns.push(self.currentUri);
                 }
-                //  return callback ? callback() : BotEngine.nextStep();
+                //  return callback ? callback() : _botEngine.nextStep();
             }
 
             if (uriType) {
@@ -545,6 +550,7 @@ var KGcreator_bot = (function () {
                         s: self.currentUri,
                         p: "rdfs:label",
                         o: classLabelColumn,
+                        isString: true,
                     }
                 );
                 return self.functions.saveFn();
@@ -569,7 +575,7 @@ var KGcreator_bot = (function () {
                 self.params.tripleModels.push(triple);
                 self.functions.saveFn();
                 KGcreator.showTableVirtualColumnsTree(self.params.table);
-                //   return callback ? callback() : BotEngine.nextStep();
+                //   return callback ? callback() : _botEngine.nextStep();
             }
             if (valueType && valueColumn) {
                 self.params.valueType = null;
@@ -581,7 +587,7 @@ var KGcreator_bot = (function () {
                 };
                 self.params.tripleModels.push(triple);
                 self.functions.saveFn();
-                //  return callback ? callback() : BotEngine.nextStep();
+                //  return callback ? callback() : _botEngine.nextStep();
             }
 
             if (propertyId && predicateObjectColumn) {
@@ -621,18 +627,18 @@ var KGcreator_bot = (function () {
                 }
                 self.params.tripleModels.push(triple);
                 self.functions.saveFn(callback);
-                //  return callback ? callback() : BotEngine.nextStep();
-                //  return BotEngine.nextStep();
+                //  return callback ? callback() : _botEngine.nextStep();
+                //  return _botEngine.nextStep();
             }
         },
 
         ObjectPredicateInOtherTableFn: function () {
             if (!self.params.predicateObjectTable) {
-                return BotEngine.abort("no targetColumnTable");
+                return _botEngine.abort("no targetColumnTable");
             }
 
             if (self.params.predicateObjectTable == self.params.table) {
-                return BotEngine.abort(" targetColumnTable==table");
+                return _botEngine.abort(" targetColumnTable==table");
             }
 
             var sourcecolumnType = self.getColumnClasses(self.params.tripleModels, self.params.column);
@@ -643,10 +649,10 @@ var KGcreator_bot = (function () {
             var ok = sourcecolumnType && targetcolumnType;
 
             if (!ok) {
-                return BotEngine.abort(" cannot proceed :no class defined for both subject and object");
+                return _botEngine.abort(" cannot proceed :no class defined for both subject and object");
             }
             self.params.predicateObjectColumnClass = targetcolumnType;
-            BotEngine.nextStep();
+            _botEngine.nextStep();
         },
         writeObjectPredicateJoinKeyFn: function () {
             var triple = {
@@ -659,7 +665,7 @@ var KGcreator_bot = (function () {
             KGcreator.currentConfig.currentMappings[self.params.predicateObjectTable].tripleModels = self.params.targetTripleModels;
             KGcreator.saveDataSourceMappings(self.params.source, self.params.datasource.name, KGcreator.currentConfig.currentMappings, function (err, result) {
                 if (err) {
-                    return BotEngine.abort(err);
+                    return _botEngine.abort(err);
                 }
                 _botEngine.message("mapping Saved");
                 return _botEngine.nextStep();
@@ -675,9 +681,9 @@ var KGcreator_bot = (function () {
             KGcreator.rawConfig.databaseSources[KGcreator.currentConfig.currentDataSource.name].tableJoins.push(join);
             KGcreator.saveSlsvSourceConfig(function (err, result) {
                 if (err) {
-                    BotEngine.abort(err);
+                    _botEngine.abort(err);
                 }
-                BotEngine.nextStep();
+                _botEngine.nextStep();
                 KGcreator_graph.drawDataSourceMappings();
             });
         },
@@ -696,8 +702,17 @@ var KGcreator_bot = (function () {
             if (virtualColumns) {
                 columns = virtualColumns.concat(columns);
             }
+            columns.sort();
+            /* function(a,b){
+                if(a.label>b.label)
+                    return 1;
+                if(a.label<b.label)
+                    return -1;
+                return 0;
+            })*/
 
             _botEngine.showList(columns, "classLabelColumn", true);
+            $("#bot_resourcesProposalSelect").val(self.params.column);
         },
 
         saveFn: function (callback) {
@@ -727,7 +742,7 @@ var KGcreator_bot = (function () {
     self.getColumnClasses = function (tripleModels, columnName) {
         var columnClasses = [];
         tripleModels.forEach(function (item) {
-            if ((item.s == columnName || item.s == columnName + "_$") && item.p == "rdf:type") {
+            if ((item.s == columnName || item.s == columnName + "_$") && (item.p == "rdf:type" || item.p == "rdfs:subClassOf")) {
                 if (item.o.indexOf("owl:") < 0) {
                     if (!columnClasses) {
                     }

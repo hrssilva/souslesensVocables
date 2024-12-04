@@ -1,4 +1,4 @@
-import Admin from "../tools/admin.js";
+import Admin from "../tools/admin/admin.js";
 import ElasticSearchProxy from "./elasticSearchProxy.js";
 import Sparql_common from "../sparqlProxies/sparql_common.js";
 import Sparql_generic from "../sparqlProxies/sparql_generic.js";
@@ -177,12 +177,15 @@ indexes.push(source.toLowerCase());
                                         if (!matches[source]) {
                                             matches[source] = [];
                                         }
-                                        matches[source].push({
-                                            source: source,
-                                            id: toHit._source.id,
-                                            label: toHit._source.label,
-                                            parents: toHit._source.parents,
-                                        });
+                                        if (!options.type || toHit._source.type.indexOf(options.type) > -1) {
+                                            matches[source].push({
+                                                source: source,
+                                                id: toHit._source.id,
+                                                label: toHit._source.label,
+                                                parents: toHit._source.parents,
+                                                type: toHit._source.type,
+                                            });
+                                        }
                                         var parentsArray = toHit._source.parents;
                                         if (Array.isArray(parentsArray)) {
                                             //} && toHit._source.parents.split) {
@@ -223,16 +226,31 @@ indexes.push(source.toLowerCase());
                                     excludes: ["attachment.content", "parents"],
                                 },
                             };
-                            ElasticSearchProxy.queryElastic(query, indexes, function (err, result) {
-                                if (err) {
-                                    return callbackSeries(err);
-                                }
-                                result.hits.hits.forEach(function (hit) {
-                                    parentsMap[hit._source.id] = hit._source.label;
-                                });
-                                allClassesArray.parentIdsLabelsMap = parentsMap;
-                                return callbackSeries();
-                            });
+
+                            const payload = {
+                                method: "POST",
+                                headers: { "content-type": "application/json" },
+                                body: JSON.stringify({ indices: indexes, uris: ids }),
+                            };
+
+                            fetch(`${Config.apiUrl}/elasticsearch/search`, payload)
+                                .then((result) => {
+                                    result
+                                        .json()
+                                        .then((json) => {
+                                            const hits = json.hits;
+                                            hits.forEach(function (hit) {
+                                                parentsMap[hit._source.id] = hit._source.label;
+                                            });
+                                            allClassesArray.parentIdsLabelsMap = parentsMap;
+                                            return callbackSeries();
+                                        })
+                                        .catch((e) => {
+                                            console.log(e);
+                                            callbackSeries(e);
+                                        });
+                                })
+                                .catch((e) => callbackSeries(e));
                         },
                     ],
 
@@ -285,7 +303,7 @@ indexes.push(source.toLowerCase());
                         };
                         str += JSON.stringify(header) + "\r\n" + JSON.stringify(query) + "\r\n";
                     });
-                    MainController.UI.message("getting labels " + allHits.length + " ...");
+                    UI.message("getting labels " + allHits.length + " ...");
                     ElasticSearchProxy.executeMsearch(str, [indexes], function (err, result) {
                         if (err) {
                             return callbackEach(err);
@@ -421,7 +439,7 @@ indexes.push(source.toLowerCase());
 
     self.getElasticSearchMatches = function (words, indexes, mode, from, size, options, callback) {
         $("#waitImg").css("display", "block");
-        //   MainController.UI.message("Searching exact matches ")
+        //   UI.message("Searching exact matches ")
 
         self.entitiesMap = {};
         var bulQueryStr = "";
@@ -503,6 +521,7 @@ indexes.push(source.toLowerCase());
 
         var withImports = $("#admin_refreshIndexWithImportCBX").prop("checked");
         options.withoutImports = true;
+        options.parentsTopDown = true;
         var sources = [sourceLabel];
         if (withImports) {
             sources = sources.concat(Config.sources[sourceLabel].imports || []);
@@ -536,6 +555,9 @@ indexes.push(source.toLowerCase());
                                         if (index++ == 0 && !options.ids) {
                                             replaceIndex = true;
                                         }
+                                        data.forEach(function (item) {
+                                            item.type = "Class";
+                                        });
                                         self.indexData(sourceLabel.toLowerCase(), data, replaceIndex, function (err, result) {
                                             if (err) {
                                                 return callbackEach(err);
@@ -545,13 +567,13 @@ indexes.push(source.toLowerCase());
                                             }
                                             totalLines += result.length;
                                             totalLinesAllsources += totalLines;
-                                            MainController.UI.message("indexed " + totalLines + "/" + classesArray.length + " in index " + sourceLabel.toLowerCase());
+                                            UI.message("indexed " + totalLines + "/" + classesArray.length + " in index " + sourceLabel.toLowerCase());
 
                                             callbackEach();
                                         });
                                     },
                                     function (err) {
-                                        // MainController.UI.message("DONE " + sourceLabel + " total indexed : " + totalLinesAllsources, true);
+                                        // UI.message("DONE " + sourceLabel + " total indexed : " + totalLinesAllsources, true);
                                         return callbackSeries(err);
                                     }
                                 );
@@ -560,17 +582,13 @@ indexes.push(source.toLowerCase());
 
                         // indexNamedIndividuals
                         function (callbackSeries) {
-                            /*   if (true || !options.indexNamedIndividuals) {
-                  return callbackSeries();
-              }*/
-
                             var taxonomyClassesIdsMap = {};
                             taxonomyClasses.forEach(function (item) {
                                 taxonomyClassesIdsMap[item.id] = item;
                             });
 
                             var totalLines = 0;
-                            MainController.UI.message("indexing namedIndividuals");
+                            UI.message("indexing namedIndividuals");
 
                             var processor = function (data, callbackProcessor) {
                                 var individualsToIndex = [];
@@ -580,7 +598,7 @@ indexes.push(source.toLowerCase());
 
                                     if (taxonomyClassesIdsMap[item.type2.value]) {
                                         parent = item.type2.value;
-                                        parents = taxonomyClassesIdsMap[item.type2.value].parents;
+                                        parents = taxonomyClassesIdsMap[item.type2.value].parents.concat(item.type2.value);
                                     } else {
                                         parent = item.type2.value;
                                         parents = [item.type2.value, sourceLabel];
@@ -593,7 +611,8 @@ indexes.push(source.toLowerCase());
                                         skoslabels: [skosLabel],
                                         parent: parent,
                                         parents: parents,
-                                        type: item.type2.value,
+                                        type: "NamedIndividual",
+                                        //  type: item.type2.value,
                                     });
                                 });
 
@@ -608,7 +627,7 @@ indexes.push(source.toLowerCase());
                                     totalLines += result.length;
                                     totalLinesAllsources += totalLines;
 
-                                    MainController.UI.message("indexed " + totalLines + " namedIndividuals in index " + sourceLabel.toLowerCase());
+                                    UI.message("indexed " + totalLines + " namedIndividuals in index " + sourceLabel.toLowerCase());
 
                                     callbackProcessor(err);
                                 });
@@ -626,7 +645,7 @@ indexes.push(source.toLowerCase());
                             if (!options.indexProperties) {
                                 return callbackSeries();
                             }
-                            MainController.UI.message("indexing properties");
+                            UI.message("indexing properties");
                             totalLines = 0;
                             Sparql_OWL.getObjectProperties(sourceLabel, {}, function (err, result) {
                                 if (err) {
@@ -637,8 +656,8 @@ indexes.push(source.toLowerCase());
                                     allData.push({
                                         id: item.property.value,
                                         label: item.propertyLabel.value,
-                                        type: "property",
-                                        owltype: "ObjectProperty",
+                                        // type: "property",
+                                        type: "ObjectProperty",
                                     });
                                 });
 
@@ -655,7 +674,7 @@ indexes.push(source.toLowerCase());
                                             }
                                             totalLines += result.length;
                                             totalLinesAllsources += totalLines;
-                                            MainController.UI.message("indexed " + totalLines + " objectProperties in index " + sourceLabel.toLowerCase());
+                                            UI.message("indexed " + totalLines + " objectProperties in index " + sourceLabel.toLowerCase());
                                             callbackEach();
                                         });
                                     },
@@ -665,9 +684,11 @@ indexes.push(source.toLowerCase());
                                 );
                             });
                         },
+
+                        // containers --> like classes --> care to refresh
                     ],
                     function (err) {
-                        // MainController.UI.message("indexed " + totalLines + " in index " + sourceLabel.toLowerCase());
+                        // UI.message("indexed " + totalLines + " in index " + sourceLabel.toLowerCase());
 
                         return callbackEachSource(err);
                     }
@@ -679,7 +700,7 @@ indexes.push(source.toLowerCase());
                 if (err) {
                     alert(err.responseText);
                 } else {
-                    MainController.UI.message("ALL DONE  total indexed : " + totalLinesAllsources);
+                    UI.message("ALL DONE  total indexed : " + totalLinesAllsources);
                 }
                 if (callback) {
                     return callback(err);
@@ -704,7 +725,7 @@ indexes.push(source.toLowerCase());
     self.addObjectsToIndex = function (sourceLabel, ids, callback) {
         var filter = " filter (?subject =<" + self.currentNodeId + ">) ";
         filter = Sparql_common.setFilter("subject", ids);
-        Sparql_generic.getSourceTaxonomy(sourceLabel, { filter: filter }, function (err, result) {
+        Sparql_generic.getSourceTaxonomy(sourceLabel, { filter: filter, withoutImports: true, parentsTopDown: true }, function (err, result) {
             var classesArray = [];
             for (var key in result.classesMap) {
                 classesArray.push(result.classesMap[key]);

@@ -32,7 +32,8 @@
         <script type="module" src="modules/shared/socketIoProxy.js" charset="utf-8"></script>
         <script type="module" src="modules/shared/common.js" charset="utf-8"></script>
         <script type="module" src="modules/graph/visjsGraph2.js"></script>
-        <script type="module" src="modules/graph/canvas2svg.js"></script>
+        <script type="module" src="modules/graph/visjsUtil.js"></script>
+        <script src="modules/graph/canvas2svg.js"></script>
         <script type="module" src="modules/graph/SVGexport.js"></script>
         <script type="module" src="modules/graph/graphMLexport.js"></script>
 
@@ -55,11 +56,12 @@
 
         <!-- <script type="module" src="modules/tools/sourceBrowser.js"></script>-->
 
-        <script type="module" src="modules/tools/SPARQL_endpoint.js"></script>
+        <script type="module" src="modules/tools/SPARQL/SPARQL_endpoint.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_whiteboard.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_sources.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_properties.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_common.js"></script>
+        <script type="module" src="modules/tools/lineage/lineage_axioms.js"></script>
 
         <script type="module" src="modules/tools/lineage/lineage_dictionary.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_combine.js"></script>
@@ -68,23 +70,20 @@
         <script type="module" src="modules/tools/lineage/linkedData/lineage_linkedData_mappings.js"></script>
         <script type="module" src="modules/tools/lineage/linkedData/lineage_linkedData_query.js"></script>
 
-        <script type="module" src="modules/tools/lineage/lineage_upperOntologies.js"></script>
-
         <script type="module" src="modules/tools/containers/containers_graph.js"></script>
         <script type="module" src="modules/tools/containers/containers_tree.js"></script>
         <script type="module" src="modules/tools/containers/containers_query.js"></script>
         <script type="module" src="modules/tools/containers/containers_widget.js"></script>
-        <script type="module" src="modules/tools/lineage/lineage_containers.js"></script>
 
         <script type="module" src="modules/tools/lineage/lineage_selection.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_filterBy.js"></script>
-        <script type="module" src="modules/tools/lineage/lineage_styles.js"></script>
 
         <script type="module" src="modules/tools/lineage/lineage_relations.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_relationFilter.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_relationIndividualsFilter.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_rules.js"></script>
         <script type="module" src="modules/tools/lineage/lineage_createSLSVsource.js"></script>
+        <script type="module" src="modules/tools/lineage/lineage_createResource.js"></script>
         <script type="module" src="modules/shared/ontologyModels.js"></script>
 
         <script type="module" src="modules/uiWidgets/predicatesSelectorWidget.js"></script>
@@ -102,37 +101,41 @@
         <script type="module" src="modules/uiWidgets/individualValuefilterWidget.js"></script>
         <script type="module" src="modules/tools/KGquery/individualAggregateWidget.js"></script>
         <script type="module" src="modules/uiWidgets/simpleListSelectorWidget.js"></script>
+        <script type="module" src="modules/uiWidgets/simpleListFilterWidget.js"></script>
         <script type="module" src="modules/uiWidgets/FOL2graphWidget.js"></script>
 
-        <script type="module" src="modules/tools/owlEditor.js"></script>
-        <script type="module" src="modules/tools/Standardizer.js"></script>
-        <script type="module" src="modules/tools/SQLquery.js"></script>
-        <script type="module" src="modules/tools/admin.js"></script>
+        <script type="module" src="modules/tools/standardizer/Standardizer.js"></script>
+        <script type="module" src="modules/tools/SQLquery/SQLquery.js"></script>
+        <script type="module" src="modules/tools/admin/admin.js"></script>
         <script type="module" src="modules/tools/ConfigEditor.js"></script>
         <script type="module" src="modules/tools/GraphManagement.js"></script>
         <script type="module" src="modules/tools/UserManagement.js"></script>
 
+        <script type="module" src="modules/tools/EditSourceDialog/EditSourceDialog.js"></script>
+        <script type="module" src="modules/tools/DownloadGraphModal/DownloadGraphModal.js"></script>
+        <script type="module" src="modules/tools/UploadGraphModal/UploadGraphModal.js"></script>
         <script type="module" src="modules/tools/KGcreator/KGcreator.js"></script>
         <script type="module" src="modules/tools/KGcreator/KGcreator_mappings.js"></script>
         <script type="module" src="modules/tools/KGcreator/KGcreator_graph.js"></script>
         <script type="module" src="modules/tools/KGcreator/KGcreator_run.js"></script>
+        <script type="module" src="modules/tools/mappingModeler/mappingModeler.js"></script>
         <script type="module" src="modules/tools/KGcreator/KGcreator_joinTables.js"></script>
 
         <!--   <script type="module" src="modules/tools/KGcreatorGraph.js"></script>-->
 
-        <script type="module" src="modules/tools/KGpropertyFilter.js"></script>
-        <script type="module" src="modules/tools/composer.js"></script>
         <script type="module" src="modules/tools/sparqlQueryUI.js"></script>
-
-        <script type="module" src="modules/tools/ontologiesStats.js"></script>
 
         <script src="config/app_config.js"></script>
 
         <script type="module" src="modules/shared/authentification.js"></script>
-        <script type="module" src="modules/tools/myDashboard.js"></script>
 
-        <script type="module" src="modules/tools/axioms/axioms_editor.js"></script>
+        <script type="module" src="modules/tools/axioms/html/old/axiom_editorUI.js"></script>
+        <script type="module" src="modules/tools/axioms/axiom_editor.js"></script>
         <script type="module" src="modules/tools/axioms/axioms_graph.js"></script>
+        <script type="module" src="modules/tools/axioms/axioms_manager.js"></script>
+        <script type="module" src="modules/tools/axioms/axiom_activeLegend.js"></script>
+        <script type="module" src="modules/tools/axioms/axioms_suggestions.js"></script>
+        <script type="module" src="modules/tools/axioms/nodeInfosAxioms.js"></script>
 
         <script type="module" src="modules/sparqlProxies/sparql_proxy.js"></script>
         <script type="module" src="modules/sparqlProxies/sparql_generic.js"></script>
@@ -140,6 +143,10 @@
         <script type="module" src="modules/sparqlProxies/sparql_OWL.js"></script>
 
         <script type="module" src="modules/bots/nodeRelations_bot.js"></script>
+        <script type="module" src="modules/bots/createAxiomResource_bot.js"></script>
+
+        <script type="module" src="modules/bots/createRestriction_bot.js"></script>
+        <script type="module" src="modules/bots/mappingModeler_bot.js"></script>
         <!--   <script type="module" src="modules/sparqlProxies/sparql_INDIVIDUALS.js"></script>-->
 
         <script type="module" src="modules/sparqlProxies/sparql_common.js"></script>
@@ -155,8 +162,12 @@
         <script type="module" src="modules/search/elasticSearchProxy.js"></script>
 
         <script type="module" src="modules/tools/lineage/lineage_reasoner.js"></script>
+        <script type="module" src="modules/shared/subGraph.js"></script>
 
         <script type="module" src="modules/tools/lineage/lineage_similars.js"></script>
+
+        <script type="module" src="modules/tools/weaver/weaver.js"></script>
+
         <script type="module" src="modules/shared/graphLoader.js"></script>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
@@ -164,6 +175,13 @@
         <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+        <script type="module" src="modules/tools/KGconstraints/Cfihos_pump_poc.js"></script>
+        <script type="module" src="modules/tools/KGconstraints/KGconstraints_editor.js"></script>
+        <script type="module" src="modules/tools/KGconstraints/KGconstraintsModeler.js"></script>
+        <script type="module" src="modules/tools/KGconstraints/KGconstraints_validator.js"></script>
+
+        <script type="module" src="./modules/shared/shacl.js"></script>
 
         <link
             rel="stylesheet"
@@ -212,17 +230,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" />
 
-        <link rel="stylesheet" href="./responsive/index.css" />
-
-        <link rel="stylesheet/less" type="text/css" href="./responsive/styles.less" />
-        <script src="./responsive/less.min.js"></script>
-        <!--<script src="https://cdn.jsdelivr.net/npm/less" ></script>-->
-        <script type="module" src="./responsive/responsiveUI.js"></script>
-        <script type="module" src="./responsive/lineage/lineage_r.js"></script>
-
-        <!--<script type="module" src="./responsive/widget/botEngineResponsive.js"></script>-->
-        <script type="module" src="./responsive/KGquery/KGquery_r.js"></script>
-        <script type="module" src="./responsive/KGcreator/Kgcreator_r.js"></script>
+        <link rel="stylesheet/less" type="text/css" href="./modules/shared/styles.less" />
+        <script src="./js/external/less.min.js"></script>
+        <script type="module" src="./modules/shared/UI.js"></script>
         <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-indigo.css" />
 
         <script type="module">
@@ -269,7 +279,7 @@
                         },
 
                         function (callBackSeries) {
-                            ResponsiveUI.setSlsvCssClasses(function () {
+                            UI.setSlsvCssClasses(function () {
                                 callBackSeries();
                             });
                         },
@@ -279,12 +289,6 @@
                                 callBackSeries(err);
                             });
                         },
-                        function (callBackSeries) {
-                            MainController.onAfterLogin(function (err) {
-                                callBackSeries(err);
-                            });
-                        },
-
                         function (callbackSeries) {
                             try {
                                 loadToolsAndPlugins(function () {
@@ -293,6 +297,11 @@
                             } catch (error) {
                                 console.error("Failed to load tools and plugins", error);
                             }
+                        },
+                        function (callBackSeries) {
+                            MainController.onAfterLogin(function (err) {
+                                callBackSeries(err);
+                            });
                         },
                     ],
                     function (err) {
@@ -303,74 +312,25 @@
 
                         $("#mainDialogDiv").dialog({
                             autoOpen: false,
-                            //height: 800,
-                            //width: $(document).width() * 0.85,
+                            height: "auto",
+                            width: "auto",
                             modal: false,
-                            close: function (event, ui) {
-                                window.scrollTo(0, 0);
-                            },
-                            drag: function (event, ui) {
-                                $("#mainDialogDiv").parent().css("transform", "unset");
-                            },
-                            open(event, ui) {
-                                $("#mainDialogDiv").parent().css("transform", "translate(-50%,-50%)");
-                                $("#mainDialogDiv").parent().css("top", "50%");
-                                $("#mainDialogDiv").parent().css("left", "50%");
-                            },
-                        });
-                        $("#mainDialogDiv2").dialog({
-                            autoOpen: false,
-                            //height: 800,
-                            //width: $(document).width() * 0.85,
-                            modal: false,
-                            close: function (event, ui) {
-                                window.scrollTo(0, 0);
-                            },
-                            drag: function (event, ui) {
-                                $("#mainDialogDiv2").parent().css("transform", "unset");
-                            },
-                            open(event, ui) {
-                                $("#mainDialogDiv2").parent().css("transform", "translate(-50%,-50%)");
-                                $("#mainDialogDiv2").parent().css("top", "50%");
-                                $("#mainDialogDiv2").parent().css("left", "50%");
-                            },
+                            position: { my: "center", at: "center", of: window },
                         });
 
                         $("#smallDialogDiv").dialog({
                             autoOpen: false,
-                            //height: 600,
-                            //width: 800,
+
+                            height: "auto",
+                            width: "auto",
                             modal: false,
-                            close: function (event, ui) {
-                                window.scrollTo(0, 0);
-                            },
-                            drag: function (event, ui) {
-                                $("#smallDialogDiv").parent().css("transform", "unset");
-                            },
-                            open(event, ui) {
-                                $("#smallDialogDiv").parent().css("transform", "translate(-50%,-50%)");
-                                $("#smallDialogDiv").parent().css("top", "50%");
-                                $("#smallDialogDiv").parent().css("left", "50%");
-                            },
                         });
                         $("#botPanel").dialog({
                             autoOpen: false,
-                            //height: 600,
-                            //width: 800,
+
+                            height: "auto",
+                            width: "auto",
                             modal: false,
-                            close: function (event, ui) {
-                                //$("#previousButtonBot").remove();
-                                //$("#resetButtonBot").remove();
-                                $("#BotUpperButtons").remove();
-                            },
-                            drag: function (event, ui) {
-                                $("#botPanel").parent().css("transform", "unset");
-                            },
-                            open(event, ui) {
-                                $("#botPanel").parent().css("transform", "translate(-50%,-50%)");
-                                $("#botPanel").parent().css("top", "50%");
-                                $("#botPanel").parent().css("left", "50%");
-                            },
                         });
                         $("#widgetGenericDialogDiv").dialog({
                             autoOpen: false,
@@ -382,21 +342,31 @@
                             if (target == "_slsvCallback") {
                                 var id = $(this).attr("href");
                                 event.preventDefault();
-                                NodeInfosWidget.showNodeInfos(null, id, "mainDialogDiv", null, function (err, result) {
+                                var divId = "mainDialogDiv";
+                                //if (MainController.currentTool == "KGquery" || NodeInfosAxioms.nodeInfosAxiomsLoaded == true) {
+                                if (MainController.currentTool == "KGquery") {
+                                    divId = "smallDialogDiv";
+                                }
+
+                                NodeInfosWidget.showNodeInfos(null, id, divId, null, function (err, result) {
                                     if (err) {
                                         $("#mainDialogDiv").dialog("close");
                                         window.open(id, "_blank");
                                     }
+                                    /*
+                                    if (NodeInfosAxioms.nodeInfosAxiomsLoaded) {
+                                        NodeInfosAxioms.reduceNodeInfoAxioms();
+                                    }*/
                                 });
                             }
                         });
 
-                        MainController.UI.setCredits();
+                        UI.setCredits();
 
                         $("#ChangeSourceButton").hide();
                         $("#index_topContolPanel").hide();
                         $("#Lineage_graphEditionButtons").hide();
-                        ResponsiveUI.init();
+                        UI.init();
                     }
                 );
             });
@@ -415,7 +385,7 @@
                             </tr>
                         </table>
                     </div>
-                    <button class="w3-display-bottommiddle slsv-invisible-button" onclick="ResponsiveUI.hideShowMenuBar(this)">
+                    <button class="w3-display-bottommiddle slsv-invisible-button" onclick="UI.hideShowMenuBar(this)">
                         <img src="./icons/CommonIcons/ArrowMenuBar.png" />
                     </button>
 
@@ -428,25 +398,25 @@
                     <!-- <button onclick="TagsGeometry.showDialog()">tagsGeo</button>-->
                 </div>
                 <div id="MenuBarFooter">
-                    <button class="slsvLogo-icon slsv-invisible-button w3-left" style="height: 57px; width: 80px"></button>
+                    <button class="slsvLogo-icon slsv-invisible-button w3-left" style="height: 57px; width: 80px" onclick="UI.homePage()"></button>
                     <div id="toolSelectionSection" class="w3-bar-item w3-dropdown-hover slsv-bg-intense slsv-top-menu-Button" style="padding: 23px">
                         <div class="w3-sand w3-round-xlarge" style="display: flex; flex-direction: row; align-items: center; margin-left: 10px; margin-top: 0px; padding: 0px">
                             <div id="ToolBorder" class="toolSelectionBorder" style="margin: 3px; padding: 5px; display: flex; align-items: flex-start; margin-left: 5px">
                                 <button id="selectedTool" class="slsv-invisible-button" style="padding: 0px; margin-left: 10px">Tool</button>
                                 <button class="arrow-icon slsv-invisible-button" style="width: 20px; height: 20px; margin-left: 3px; margin-right: 10px"></button>
                                 <div class="w3-dropdown-content Lineage_PopUpStyle PopUpBorder">
-                                    <!-- <select id="toolsSelect" style="min-width:150px" class="Lineage_PopUpStyle" size="8" onclick="ResponsiveUI.onToolSelect($(this).val())" style="overflow: auto"></select>-->
+                                    <!-- <select id="toolsSelect" style="min-width:150px" class="Lineage_PopUpStyle" size="8" onclick="MainController.onToolSelect($(this).val())" style="overflow: auto"></select>-->
                                     <div
                                         id="toolsSelect"
                                         style="min-width: 150px; display: flex; flex-direction: column; overflow: auto; max-height: 300px"
                                         class="Lineage_PopUpStyle"
                                         size="8"
-                                        onclick="ResponsiveUI.onToolSelect(null,event)"
+                                        onclick="MainController.onToolSelect(null,event)"
                                     ></div>
                                 </div>
                             </div>
 
-                            <div id="currentToolTitle"></div>
+                            <div id="currentToolTitle" style="display: flex; flex-direction: row; align-items: center"></div>
                         </div>
                     </div>
 
@@ -479,12 +449,12 @@
                     </div>
 
                     <div class="w3-bar-item w3-right">
-                        <button class="w3-button slsv-right-top-bar-button" onclick="MainController.UI.copyCurrentQuery()">Copy Query</button>
+                        <button class="w3-button slsv-right-top-bar-button" onclick="UI.copyCurrentQuery()">Copy Query</button>
                     </div>
                     <div class="w3-bar-item w3-dropdown-hover slsv-bg-intense slsv-top-menu-Button w3-right">
                         <button style="display: none" id="theme-selector-btn" class="w3-button slsv-right-top-bar-button">Themes</button>
                         <div class="w3-dropdown-content Lineage_PopUpStyle PopUpBorder">
-                            <select id="themeSelect" class="Lineage_PopUpStyle" size="8" onclick="ResponsiveUI.changeTheme($(this).val())" style="overflow: auto"></select>
+                            <select id="themeSelect" class="Lineage_PopUpStyle" size="8" onclick="UI.changeTheme($(this).val())" style="overflow: auto"></select>
                         </div>
                     </div>
                 </div>

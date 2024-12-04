@@ -9,14 +9,14 @@ import KGcreator_joinTables from "./KGcreator_joinTables.js";
 import GraphDisplayLegend from "../../graph/graphDisplayLegend.js";
 import SimpleListSelectorWidget from "../../uiWidgets/simpleListSelectorWidget.js";
 import KGcreator_bot from "../../bots/KGcreator_bot.js";
-import ResponsiveUI from "../../../responsive/responsiveUI.js";
+import UI from "../../../modules/shared/UI.js";
 
 var KGcreator_graph = (function () {
     var self = {};
 
     self.drawOntologyModel = function (source) {
-        $("#KGcreator_topButtons").load("./responsive/KGcreator/html/linkButtons.html", function () {
-            ResponsiveUI.PopUpOnHoverButtons();
+        $("#KGcreator_topButtons").load("./modules/tools/KGcreator/html/linkButtons.html", function () {
+            //UI.PopUpOnHoverButtons();
         });
 
         //return;
@@ -59,7 +59,7 @@ var KGcreator_graph = (function () {
             },
         };
         options.visjsOptions.manipulation = {
-            enabled: false,
+            enabled: true,
             initiallyActive: true,
             deleteNode: false,
             deleteEdge: false,
@@ -368,7 +368,7 @@ var KGcreator_graph = (function () {
                         return alert(err);
                     }
 
-                    MainController.UI.message("join saved");
+                    UI.message("join saved");
                 });
             });
         } else if (sourceNode.data && sourceNode.data.type == "column" && targetNode.data && targetNode.data.type == "column") {
@@ -514,7 +514,7 @@ var KGcreator_graph = (function () {
     };
 
     self.addInterTableJoinsToVisjsData = function (dataSource, visjsData) {
-        if (!KGcreator.rawConfig.databaseSources[dataSource] || !KGcreator.rawConfig.databaseSources[dataSource].tableJoins) {
+        if (!KGcreator.rawConfig || !KGcreator.rawConfig.databaseSources[dataSource] || !KGcreator.rawConfig.databaseSources[dataSource].tableJoins) {
             return visjsData;
         }
         var edges = [];
@@ -542,11 +542,13 @@ var KGcreator_graph = (function () {
 
     /////////////////////////////////////////Detailed Mappings//////////////////////////////////////////////////////
 
-    self.drawDetailedMappings = function (tablesToDraw) {
+    self.drawDetailedMappings = function (tablesToDraw, divId) {
         if (tablesToDraw && !Array.isArray(tablesToDraw)) {
             tablesToDraw = [tablesToDraw];
         }
-
+        if (!divId) {
+            divId = "KGcreator_mappingsGraphDiv";
+        }
         var sourceMappings = KGcreator.currentConfig.currentMappings;
         var visjsData = { nodes: [], edges: [] };
 
@@ -583,6 +585,9 @@ var KGcreator_graph = (function () {
                     if (id.endsWith("_$")) {
                         return "column";
                     }
+                    if (id.startsWith("@")) {
+                        return "column";
+                    }
                     var role = null;
                     columns.forEach(function (column) {
                         if (column == id) {
@@ -602,6 +607,8 @@ var KGcreator_graph = (function () {
                         if (str.indexOf("http") > -1) {
                             return { type: "Class", color: "#70ac47", shape: "box", size: 30 };
                         } else if (str.indexOf(":") > -1) {
+                            drawRelation = false; //rdf Bag
+                            return null;
                             return { type: "OwlType", color: "#aaa", shape: "ellipse" };
                         } else if (str.endsWith("_$")) {
                             return { type: "blankNode", color: "#00afef", shape: "square" };
@@ -667,6 +674,7 @@ var KGcreator_graph = (function () {
                             var label = Sparql_common.getLabelFromURI(item.o);
 
                             var attrs = getNodeAttrs(item.o);
+                            if (!attrs) return;
                             visjsData.nodes.push({
                                 id: oId,
                                 label: label,
@@ -687,6 +695,10 @@ var KGcreator_graph = (function () {
 
                         var edgeId = sId + item.p + oId;
                         var label = Sparql_common.getLabelFromURI(item.p);
+                        if (label.endsWith("member")) {
+                            var color = "#07b611";
+                            var dashes = true;
+                        }
                         if (!existingNodes[edgeId]) {
                             existingNodes[edgeId] = 1;
                             visjsData.edges.push({
@@ -694,7 +706,9 @@ var KGcreator_graph = (function () {
                                 from: sId,
                                 to: oId,
                                 label: label,
-                                font: { size: 12, ital: true, color: "brown" },
+                                color: color,
+                                dashes: dashes,
+                                font: { size: 12, ital: true, color: color || "brown" },
                                 // color: getNodeAttrs(item.o),
                                 arrows: {
                                     to: {
@@ -704,6 +718,7 @@ var KGcreator_graph = (function () {
                                     },
                                 },
                             });
+                        } else {
                         }
                     }
                     if (index == 0) {
@@ -725,11 +740,6 @@ var KGcreator_graph = (function () {
 
         visjsData = self.addInterTableJoinsToVisjsData(KGcreator.currentConfig.currentDataSource.name, visjsData);
 
-        /*  $("#KGcreator_dialogDiv").dialog("open");
-          $("#KGcreator_dialogDiv").dialog("option", "title", " Mappings");
-          $("#KGcreator_dialogDiv").load("modules/tools/KGcreator/html/detailedMappings.html", function() {*/
-        //  $("#KGcreator_resourceslinkingTab").load("modules/tools/KGcreator/html/detailedMappings.html", function() {
-
         var options = {
             onclickFn: KGcreator_graph.onDetailedGraphNodeClick,
             visjsOptions: {
@@ -748,7 +758,7 @@ var KGcreator_graph = (function () {
             },
         };
 
-        self.mappingVisjsGraph = new VisjsGraphClass("KGcreator_mappingsGraphDiv", visjsData, options);
+        self.mappingVisjsGraph = new VisjsGraphClass(divId, visjsData, options);
         self.mappingVisjsGraph.draw();
         GraphDisplayLegend.drawLegend("KGcreatorMappings", "KGcreatorVisjsLegendCanvas", false);
         /*   $('#KGcreatorVisjsLegendCanvas').css('right','55%');
@@ -789,7 +799,7 @@ var KGcreator_graph = (function () {
             },
         };
 
-        return KGcreator_bot.start(node);
+        //   return KGcreator_bot.start(node);
 
         if (sourceNode.data && sourceNode.data.role == "column") {
             if (sourceNode.data.table != targetNode.data.table) {

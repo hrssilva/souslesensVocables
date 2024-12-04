@@ -1,7 +1,7 @@
 {
     "souslesensUrl": "http://localhost:3010",
     "souslesensUrlForVirtuoso": "http://vocables:3010",
-    "listenPort": "3010",
+    "listenPort": 3010,
     "serverUrl": "../slsv",
     "theme": {
         "selector": true,
@@ -28,6 +28,16 @@
         "UserManagement",
         "OntoCreator"
     ],
+    "auth0": {
+        "domain": "xxx",
+        "clientID": "xxx",
+        "clientSecret": "xxx",
+        "scope": "openid email profile",
+        "api": {
+            "clientID": "",
+            "clientSecret": ""
+        }
+    },
     "keycloak": {
         "realm": "master",
         "publicClient": false,
@@ -40,31 +50,31 @@
         "elasticsearch"
     ],
     "sparql_server": {
-        "url": "http://xxx:8890/sparql",
+        "url": "http://localhost:8890/sparql",
         "user": "",
         "password": ""
     },
     "ElasticSearch": {
-        "url": "http://xxx:9200/",
-        "user": "",
-        "password": "",
+        "url": "http://localhost:9200/",
+        "user": "elastic",
+        "password": "toto",
         "skipSslVerify": false,
-        "other_servers": []
+        "other_servers": [],
+        "searchChunkSize": 20
     },
     "jowlServer": {
-        "url": "http://xxx"
+        "enabled": true,
+        "url": "http://localhost"
     },
     "slsApi": {
+        "enabled": true,
         "url": "http://localhost:8008"
-    },
-    "logger": {
-        "errorsLogPath": "logs/error.log",
-        "usersLogPath": "logs/vocables.log"
     },
     "authenticationDatabase": {
         "user": "",
         "password": "",
         "host": "",
+        "port": 3306,
         "database": "",
         "table": "",
         "loginColumn": "",
@@ -72,4 +82,3 @@
         "groupsColumn": ""
     }
 }
-

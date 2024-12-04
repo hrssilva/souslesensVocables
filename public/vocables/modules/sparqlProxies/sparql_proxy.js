@@ -101,6 +101,7 @@ var Sparql_proxy = (function () {
         if (!options) {
             options = {};
         }
+
         // query=query.replace(/[\n\r]/g," ")
         if (false) {
             query = self.addFromLabelsGraphToQuery(query);
@@ -113,8 +114,8 @@ var Sparql_proxy = (function () {
         var headers = {};
         if (options.source) {
             sourceParams = Config.sources[options.source];
-        } else {
-            sourceParams = Config.sources[MainController.currentSource];
+        } else if (MainController.currentSource) {
+            sourceParams = Config.sources[MainController.currentSource || Config._defaultSource];
         }
 
         /*    if(!sourceParams.graphUri){// cas des sources sans graphe
@@ -143,7 +144,8 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
             useProxy = true;
         }
 
-        if (sourceParams && sourceParams.sparql_server.method && sourceParams.sparql_server.method == "GET") {
+        var getMethod = sourceParams && sourceParams.sparql_server.method && sourceParams.sparql_server.method == "GET";
+        if (getMethod) {
             payload.GET = true;
             var query2 = encodeURIComponent(query);
             query2 = query2.replace(/%2B/g, "+").trim();
@@ -151,6 +153,18 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
             if (sourceParams && sourceParams.sparql_server.headers) {
                 payload.options = JSON.stringify({ headers: sourceParams.sparql_server.headers, useProxy: useProxy });
             }
+            return $.ajax({
+                type: "GET",
+                url: `${Config.apiUrl}/sparqlProxy`,
+                data: payload,
+                dataType: "json",
+                success: function (data, _textStatus, _jqXHR) {
+                    if (headers["Accept"] && headers["Accept"].indexOf("json") < 0) {
+                        return callback(null, data);
+                    }
+                },
+                error: function (data) {},
+            });
         } else {
             //POST
             payload.POST = true;
@@ -160,14 +174,16 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
             }
             if (sourceParams && sourceParams.sparql_server.type == "fuseki") {
                 url = url.replace("&query=", "");
-            }
-
-            if (options.acceptHeader) {
+            } else if (options.acceptHeader) {
                 headers["Accept"] = options.acceptHeader;
             } else {
                 headers["Accept"] = "application/sparql-results+json";
             }
             headers["Content-Type"] = "application/x-www-form-urlencoded";
+
+            if (query.toUpperCase().indexOf("CONSTRUCT ") > -1) {
+                headers = { "Content-Type": "text/turtle; charset=UTF-8" };
+            }
             var body = {
                 params: { query: query, useProxy: useProxy },
                 headers: headers,
@@ -194,6 +210,11 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
                 if (headers["Accept"] && headers["Accept"].indexOf("json") < 0) {
                     return callback(null, data);
                 }
+
+                if (headers["Content-Type"] && headers["Content-Type"].indexOf("text") > -1) {
+                    return callback(null, data);
+                }
+
                 if (data.result && typeof data.result != "object") {
                     data = JSON.parse(data.result.trim());
                 }
@@ -206,7 +227,7 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
                     console.log(data.results.bindings.length);
                 }
                 if (data.results.bindings.length == 0) {
-                } // MainController.UI.message("No data found", true);
+                } // UI.message("No data found", true);
 
                 callback(null, data);
             },
@@ -222,7 +243,7 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
                     alert(err.responseText.substring(0, err.responseText.indexOf(".")) + "\n select more detailed data");
                 } else {
                     console.log(err.responseText);
-                    MainController.UI.message("error in sparql query");
+                    UI.message("error in sparql query");
                 }
 
                 $("#waitImg").css("display", "none");
@@ -230,7 +251,7 @@ query=query.replace(/GRAPH ?[a-zA-Z0-9]+\{/,"{")
                 console.log(JSON.stringify(err));
                 // eslint-disable-next-line no-console
                 console.log(JSON.stringify(query));
-                MainController.UI.message(err.responseText);
+                UI.message(err.responseText);
                 if (callback) {
                     return callback(err);
                 }

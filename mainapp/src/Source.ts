@@ -1,15 +1,18 @@
 import { ulid } from "ulid";
-import { Mode, Type, Msg_ } from "./Component/SourcesTable";
-import { failure, success } from "srd";
-import { Msg } from "./Admin";
-import React from "react";
-import * as z from "zod";
+import { z } from "zod";
 
-const endpoint = "/api/v1/sources";
+const endpoint = "/api/v1/admin/sources";
+const userEndpoint = "/api/v1/sources";
 const indicesEndpoint = "/api/v1/elasticsearch/indices";
 const graphsEndpoint = "/api/v1/sparql/graphs";
 
 type Response = { message: string; resources: ServerSource[] };
+
+async function getSourcesForUser(): Promise<ServerSource[]> {
+    const response = await fetch(userEndpoint);
+    const json = (await response.json()) as Response;
+    return mapSources(json.resources);
+}
 
 async function getSources(): Promise<ServerSource[]> {
     const response = await fetch(endpoint);
@@ -17,30 +20,30 @@ async function getSources(): Promise<ServerSource[]> {
     return mapSources(json.resources);
 }
 
-const getGraphSize = (source: ServerSource, graphs: GraphInfo[]) => {
-    const graphInfo = graphs.find((g) => g.name == source.graphUri);
+const getGraphSize = (source: ServerSource, graphs: GraphInfo[] | null) => {
+    const graphInfo = graphs?.find((g) => g.name == source.graphUri);
     return graphInfo === undefined ? 0 : Number.parseInt(graphInfo.count);
 };
 
 async function getIndices(): Promise<string[]> {
     const response = await fetch(indicesEndpoint);
-    const json = await response.json();
+    const json = (await response.json()) as string[];
     return json;
 }
 
-interface GraphInfo {
+export interface GraphInfo {
     count: string;
     name: string;
 }
 async function getGraphs(): Promise<GraphInfo[]> {
     const response = await fetch(graphsEndpoint);
-    const json = await response.json();
+    const json = (await response.json()) as GraphInfo[];
     return json;
 }
 
 async function getMe(): Promise<string> {
     const response = await fetch("/api/v1/auth/whoami");
-    const json = await response.json();
+    const json = (await response.json()) as { user: { login: string } };
     return json.user.login;
 }
 
@@ -69,69 +72,53 @@ function mapSources(resources: ServerSource[]) {
     return mapped_sources;
 }
 
-export async function saveSource(body: InputSource, mode: Mode, updateModel: React.Dispatch<Msg>, updateLocal: React.Dispatch<Msg_>) {
+export async function saveSource(source: ServerSource, edition: boolean) {
     try {
         let response = null;
-        if (mode === Mode.Edition) {
-            response = await fetch(endpoint + "/" + body.name, {
+        if (edition) {
+            response = await fetch(endpoint + "/" + source.name, {
                 method: "put",
-                body: JSON.stringify(body, null, "\t"),
+                body: JSON.stringify(source, null, "\t"),
                 headers: { "Content-Type": "application/json" },
             });
         } else {
             response = await fetch(endpoint, {
                 method: "post",
-                body: JSON.stringify({ [body.name]: body }, null, "\t"),
+                body: JSON.stringify({ [source.name]: source }, null, "\t"),
                 headers: { "Content-Type": "application/json" },
             });
         }
         const { message, resources } = (await response.json()) as Response;
         if (response.status === 200) {
-            if (mode === Mode.Edition) {
+            if (edition) {
                 const sources: ServerSource[] = await getSources();
-                updateModel({ type: "ServerRespondedWithSources", payload: success(mapSources(sources)) });
-            } else {
-                updateModel({ type: "ServerRespondedWithSources", payload: success(mapSources(resources)) });
+                return { status: 200, message: mapSources(sources) };
             }
-            updateLocal({ type: Type.UserClickedModal, payload: false });
-            updateLocal({ type: Type.ResetSource, payload: mode });
-        } else {
-            updateModel({ type: "ServerRespondedWithSources", payload: failure(`${response.status}, ${message}`) });
+            return { status: 200, message: mapSources(resources) };
         }
+        return { status: response.status, message: message };
     } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        updateModel({ type: "ServerRespondedWithSources", payload: failure(`Uncatched : ${e}`) });
+        return { status: 500, message: e };
     }
 }
 
-export async function deleteSource(source: InputSource, updateModel: React.Dispatch<Msg>) {
+export async function deleteSource(source: ServerSource) {
     try {
         const response = await fetch(`${endpoint}/${source.name}`, { method: "delete" });
         const { message, resources } = (await response.json()) as Response;
+
         if (response.status === 200) {
-            updateModel({ type: "ServerRespondedWithSources", payload: success(mapSources(resources)) });
-        } else {
-            updateModel({ type: "ServerRespondedWithSources", payload: failure(`${response.status}, ${message}`) });
+            return { status: 200, message: mapSources(resources) };
         }
+        return { status: response.status, message: message };
     } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        updateModel({ type: "ServerRespondedWithSources", payload: failure(`Unhandled Error : ${e}`) });
+        return { status: 500, message: e };
     }
 }
 
 const decodeSource = (key: string, source: ServerSource): ServerSource => {
     return ServerSourceSchema.parse({ ...source, name: source.name ?? key });
 };
-
-function controllerDefault(schemaType: string | undefined): string {
-    if (schemaType === "OWL") {
-        return "Sparql_OWL";
-    } else if (schemaType === "SKOS") {
-        return "Sparql_SKOS";
-    } else {
-        return "default controller";
-    }
-}
 
 export type ServerSource = z.infer<typeof ServerSourceSchema>;
 export type InputSource = z.infer<typeof InputSourceSchema>;
@@ -179,6 +166,10 @@ const dataSourceSchema = z
 export const ServerSourceSchema = z.object({
     id: z.string().default(ulid()),
     name: z.string().default(""),
+    prefix: z
+        .string()
+        .default("")
+        .refine((val) => val.match(/^([a-z0-9][a-z0-9-]*){0,10}$/i), { message: "Can only contain alphanum and - chars" }),
     _type: z.string().optional(),
     graphUri: z.string().optional(),
     sparql_server: SparqlServerSchema,
@@ -199,7 +190,7 @@ export const ServerSourceSchema = z.object({
     taxonomyPredicates: z.array(z.string()).default(["rdfs:subClassOf"]),
 });
 
-export const InputSourceSchema = {
+const InputSourceSchemaBase = {
     id: z.string().default(ulid()),
     _type: z.string().optional(),
     graphUri: z.string().optional(),
@@ -218,15 +209,17 @@ export const InputSourceSchema = {
         .string()
         .nonempty({ message: "Required" })
         .min(3, { message: "3 chars min" })
-        .refine((val) => val.match(/^[^\/]/), { message: "Cannot start with /" }),
+        .refine((val) => val.match(/^[^/]/), { message: "Cannot start with /" }),
     owner: z.string().default(""),
     published: z.boolean().default(false),
     imports: z.array(z.string()).default([]),
     taxonomyPredicates: z.array(z.string()).default(["rdfs:subClassOf"]),
 };
 
-export const InputSourceSchemaCreate = {
-    ...InputSourceSchema,
+export const InputSourceSchema = z.object(InputSourceSchemaBase);
+
+export const InputSourceSchemaCreate = z.object({
+    ...InputSourceSchemaBase,
     name: z
         .string()
         .nonempty({ message: "Required" })
@@ -234,10 +227,11 @@ export const InputSourceSchemaCreate = {
         .refine((val) => val.match(/.{2,254}/i), { message: "Name can only contain between 2 and 255 chars" })
         .refine((val) => val.match(/^[a-z0-9]/i), { message: "Name have to start with alphanum char" })
         .refine((val) => val.match(/^[a-z0-9][a-z0-9-_]{1,253}$/i), { message: "Name can only contain alphanum and - or _ chars" }),
-};
+});
 
 export const sourceHelp = {
-    name: "The source name can only contain alphanum and - or _ chars and must be uniq",
+    name: "The source name can only contain alphanum and - or _ chars and must be unique",
+    prefix: "Prefix used for the GraphUri. Must contain lowercase alphanum chars and -",
     graphUri: "Graph URI is mandatory when using the default SPARQL server",
     sparql_server: {
         url: "_default if using the default SPARQL server, else, the URL of the SPARQL server",
@@ -256,7 +250,7 @@ export const sourceHelp = {
     predicates: "",
     group: "Group and subgroups (AAA/BBB) used to order the sources",
     imports: "List of imported sources",
-    taxonomyPredicates: "List of properties used to draw the taxonomies of classes and named individuals",
+    taxonomyPredicates: "List of properties used to draw the taxonomies of classes and named individuals in lineage actions",
     published: "The source will be visible by all user (with right permission to see it)",
     owner: "User that own the source. The user will have all right on the source.",
 };
@@ -300,4 +294,4 @@ export type SkosSource = CommonSource & SkosSpecificSource;
 
 export type _Source = Knowledge_GraphSource | SkosSource;
 
-export { getSources, getIndices, getGraphs, getMe, defaultDataSource, getGraphSize };
+export { getSources, getSourcesForUser, getIndices, getGraphs, getMe, defaultDataSource, getGraphSize };

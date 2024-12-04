@@ -1,67 +1,73 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { useState, useMemo, useReducer, useEffect, ChangeEvent, forwardRef, Ref, Dispatch, MouseEventHandler } from "react";
 import {
+    Box,
     Button,
     Checkbox,
     Chip,
+    CircularProgress,
     FormControl,
-    FormControlLabel,
-    FormGroup,
+    FormLabel,
     Grid,
     InputLabel,
-    FormLabel,
     MenuItem,
     Modal,
+    Paper,
     Select,
-    TextField,
-    Box,
-    CircularProgress,
+    SelectChangeEvent,
+    Stack,
     Table,
     TableBody,
     TableCell,
-    Paper,
     TableContainer,
     TableHead,
     TableRow,
-    Stack,
-    RadioGroup,
-    Radio,
+    TableSortLabel,
+    TextField,
+    Tooltip,
     Typography,
+    styled,
 } from "@mui/material";
+import { ExpandMore, ChevronRight } from "@mui/icons-material";
+
+import { TreeView, TreeItem, TreeItemProps, TreeItemContentProps, useTreeItem } from "@mui/x-tree-view";
+
 import clsx from "clsx";
-import { alpha, styled } from "@mui/material/styles";
-// import Grid from '@mui/material/Grid';
-import { TreeView, TreeItem, TreeItemProps, treeItemClasses, TreeItemContentProps, useTreeItem } from "@mui/x-tree-view";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CsvDownloader from "react-csv-downloader";
 import { useZorm, createCustomIssues } from "react-zorm";
 import { ZodIssue } from "zod";
-import * as z from "zod";
-import TableSortLabel from "@mui/material/TableSortLabel";
 
-import { useModel } from "../Admin";
-import * as React from "react";
+import { Msg, useModel } from "../Admin";
 import { SRD } from "srd";
 import { defaultProfile, saveProfile, Profile, deleteProfile, SourceAccessControl, ProfileSchema, ProfileSchemaCreate } from "../Profile";
 import { ServerSource } from "../Source";
-import { identity, style, joinWhenArray } from "../Utils";
+import { writeLog } from "../Log";
+import { identity, style, joinWhenArray, cleanUpText } from "../Utils";
 import { ulid } from "ulid";
 import { ButtonWithConfirmation } from "./ButtonWithConfirmation";
-import Autocomplete from "@mui/material/Autocomplete";
-import CsvDownloader from "react-csv-downloader";
-import red from "@mui/material/colors/red";
 import { errorMessage } from "./errorMessage";
+import { Datas } from "react-csv-downloader/dist/esm/lib/csv";
 
 const ProfilesTable = () => {
     const { model, updateModel } = useModel();
-    const [filteringChars, setFilteringChars] = React.useState("");
-    const [orderBy, setOrderBy] = React.useState<keyof Profile>("name");
-    const [order, setOrder] = React.useState<Order>("asc");
+    const [filteringChars, setFilteringChars] = useState("");
+    const [orderBy, setOrderBy] = useState<keyof Profile>("name");
+    const [order, setOrder] = useState<Order>("asc");
+
+    const me = SRD.withDefault("", model.me);
+
     type Order = "asc" | "desc";
+
     function handleRequestSort(property: keyof Profile) {
         const isAsc = orderBy === property && order === "asc";
         setOrder(isAsc ? "desc" : "asc");
         setOrderBy(property);
     }
+
+    const handleDeleteProfile = (profile: Profile, updateModel: Dispatch<Msg>) => {
+        void deleteProfile(profile, updateModel);
+        void writeLog(me, "ConfigEditor", "delete", profile.name);
+    };
+
     const renderProfiles = SRD.match(
         {
             // eslint-disable-next-line react/no-unescaped-entities
@@ -78,10 +84,9 @@ const ProfilesTable = () => {
             ),
             success: (gotProfiles: Profile[]) => {
                 const datas = gotProfiles.map((profile) => {
-                    const { allowedSourceSchemas, forbiddenTools, allowedTools, sourcesAccessControl, ...restOfProperties } = profile;
+                    const { allowedSourceSchemas, allowedTools, sourcesAccessControl, ...restOfProperties } = profile;
                     const processedData = {
                         ...restOfProperties,
-                        forbiddenTools: joinWhenArray(forbiddenTools),
                         allowedTools: joinWhenArray(allowedTools),
                         allowedSourceSchemas: allowedSourceSchemas.join(";"),
                         sourcesAccessControl: JSON.stringify(sourcesAccessControl),
@@ -96,12 +101,13 @@ const ProfilesTable = () => {
                     );
                     return { ...dataWithoutCarriageReturns };
                 });
-                const sortedProfiles: Profile[] = gotProfiles.slice().sort((a: Profile, b: Profile) => {let left: string = "";
-                    let right: string = "";
+                const sortedProfiles: Profile[] = gotProfiles.slice().sort((a: Profile, b: Profile) => {
+                    let left = "";
+                    let right = "";
 
                     if (a[orderBy] instanceof Array) {
-                        left = a[orderBy].toString();
-                        right = b[orderBy].toString();
+                        left = a[orderBy]?.toString() ?? "";
+                        right = b[orderBy]?.toString() ?? "";
                     } else {
                         left = a[orderBy] as string;
                         right = b[orderBy] as string;
@@ -110,15 +116,13 @@ const ProfilesTable = () => {
                     return order === "asc" ? left.localeCompare(right) : right.localeCompare(left);
                 });
                 return (
-                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ mx: 12, my: 4 }} useFlexGap>
-                        <Autocomplete
-                            disablePortal
+                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ m: 4 }} useFlexGap>
+                        <TextField
+                            label="Search Profiles by name"
                             id="filter profiles"
-                            options={gotProfiles.map((profile) => profile.name)}
-                            onInputChange={(event, newInputValue) => {
-                                setFilteringChars(newInputValue);
+                            onChange={(event) => {
+                                setFilteringChars(event.target.value);
                             }}
-                            renderInput={(params) => <TextField {...params} label="Search Profiles by name" />}
                         />
                         <TableContainer sx={{ height: "400px" }} component={Paper}>
                             <Table stickyHeader>
@@ -130,29 +134,50 @@ const ProfilesTable = () => {
                                             </TableSortLabel>
                                         </TableCell>
                                         <TableCell align="center" style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
+                                            <TableSortLabel active={orderBy === "allowedTools"} direction={order} onClick={() => handleRequestSort("allowedTools")}>
+                                                Allowed Tools
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
                                             <TableSortLabel active={orderBy === "allowedSourceSchemas"} direction={order} onClick={() => handleRequestSort("allowedSourceSchemas")}>
                                                 Allowed Sources
                                             </TableSortLabel>
                                         </TableCell>
-                                        <TableCell align="center" style={{ fontWeight: "bold" }}>Actions</TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold" }}>
+                                            Actions
+                                        </TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody sx={{ width: "100%", overflow: "visible" }}>
                                     {sortedProfiles
-                                        .filter((profile) => profile.name.includes(filteringChars))
+                                        .filter((profile) => cleanUpText(profile.name).includes(cleanUpText(filteringChars)))
                                         .map((profile) => {
                                             return (
                                                 <TableRow key={profile.id}>
                                                     <TableCell>{profile.name}</TableCell>
                                                     <TableCell align="center">
                                                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                                                            {profile.allowedSourceSchemas.map((source) => <Chip label={source} size="small" />)}
+                                                            {profile.allowedTools.slice(0, 3).map((tool) => (
+                                                                <Chip key={tool} label={tool} size="small" />
+                                                            ))}
+                                                            {profile.allowedTools.slice(3).length > 0 ? (
+                                                                <Tooltip title={profile.allowedTools.slice(3).join(", ")}>
+                                                                    <Chip label={`+ ${profile.allowedTools.slice(3).length}`} size="small" color="info" variant="outlined" />
+                                                                </Tooltip>
+                                                            ) : null}
                                                         </Stack>
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                                                            <ProfileForm profile={profile} />
-                                                            <ButtonWithConfirmation label="Delete" msg={() => deleteProfile(profile, updateModel)} />
+                                                            {profile.allowedSourceSchemas.map((source) => (
+                                                                <Chip key={source} label={source} size="small" />
+                                                            ))}
+                                                        </Stack>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
+                                                            <ProfileForm profile={profile} me={me} />
+                                                            <ButtonWithConfirmation label="Delete" msg={() => handleDeleteProfile(profile, updateModel)} />
                                                         </Stack>
                                                     </TableCell>
                                                 </TableRow>
@@ -165,7 +190,7 @@ const ProfilesTable = () => {
                             <CsvDownloader separator="&#9;" filename="profiles" extension=".tsv" datas={datas as Datas}>
                                 <Button variant="outlined">Download CSV</Button>
                             </CsvDownloader>
-                            <ProfileForm create={true} />
+                            <ProfileForm create={true} me={me} />
                         </Stack>
                     </Stack>
                 );
@@ -192,15 +217,16 @@ const enum Mode {
     Edition,
 }
 
-type Msg_ =
+export type Msg_ =
     | { type: Type.UserClickedModal; payload: boolean }
-    | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string } }
+    | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string | string[] } }
     | { type: Type.UserUpdatedSourceAccessControl; payload: { treeStr: string; newValue: SourceAccessControl | null } }
     | { type: Type.ResetProfile; payload: Profile }
     | { type: Type.UserClickedCheckAll; payload: { fieldname: string; value: boolean } };
 
 const updateProfile = (profileEditionState: ProfileEditionState, msg: Msg_): ProfileEditionState => {
-    const fieldToUpdate: any = msg.type === Type.UserClickedCheckAll || msg.type === Type.UserUpdatedField ? msg.payload.fieldname : null;
+    const fieldToUpdate = msg.type === Type.UserClickedCheckAll || msg.type === Type.UserUpdatedField ? msg.payload.fieldname : "";
+
     switch (msg.type) {
         case Type.UserClickedModal:
             return { ...profileEditionState, modal: msg.payload };
@@ -240,31 +266,38 @@ const updateProfile = (profileEditionState: ProfileEditionState, msg: Msg_): Pro
 };
 
 type ProfileFormProps = {
+    me: string;
     profile?: Profile;
     create?: boolean;
 };
 
-const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: ProfileFormProps) => {
-    const [nodesClicked, setNodeToExpand] = React.useState<Array<string>>([]);
+const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = "" }: ProfileFormProps) => {
+    const [nodesClicked, setNodeToExpand] = useState<Array<string>>([]);
     const { model, updateModel } = useModel();
     const unwrappedSources = SRD.unwrap([], identity, model.sources);
     const unwrappedProfiles = SRD.unwrap([], identity, model.profiles);
-    const [issues, setIssues] = React.useState<ZodIssue[]>([]);
-    const sources = React.useMemo(() => {
+    const [issues, setIssues] = useState<ZodIssue[]>([]);
+    const sources = useMemo(() => {
         return unwrappedSources;
     }, [unwrappedSources]);
 
     const schemaTypes = [...new Set(sources.map((source) => source.schemaType))];
 
-    const config = SRD.withDefault({ auth: "", tools_available: [] }, model.config);
-    const [profileModel, update] = React.useReducer(updateProfile, { modal: false, profileForm: profile });
+    const config = SRD.withDefault(
+        {
+            auth: "",
+            tools_available: [],
+            defaultGroups: [],
+            theme: {
+                defaultTheme: "",
+                selector: false,
+            },
+        },
+        model.config
+    );
+    const [profileModel, update] = useReducer(updateProfile, { modal: false, profileForm: profile });
 
-    // tools is all available tools (described in mainconfig.json) + tools that are found in forbiddenTools + ALL
-    const tools: string[] = ["ALL", ...profileModel.profileForm.forbiddenTools, ...config.tools_available].filter((val, idx, array) => {
-        return array.indexOf(val) === idx;
-    });
-
-    React.useEffect(() => {
+    useEffect(() => {
         update({ type: Type.ResetProfile, payload: profile });
     }, [profileModel.modal]);
     const handleOpen = () => update({ type: Type.UserClickedModal, payload: true });
@@ -272,12 +305,12 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: Profi
         setNodeToExpand([]);
         update({ type: Type.UserClickedModal, payload: false });
     };
-    const handleFieldUpdate = (fieldname: string) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    const handleFieldUpdate = (fieldname: string) => (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement> | SelectChangeEvent<string[]>) =>
         update({ type: Type.UserUpdatedField, payload: { fieldname: fieldname, newValue: event.target.value } });
 
     const profilesSchema = create ? ProfileSchemaCreate : ProfileSchema;
-    const zo = useZorm("form", z.object(profilesSchema), { setupListeners: false, customIssues: issues });
-    const handleSourceAccessControlUpdate = (src: SourceTreeNode) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const zo = useZorm("form", profilesSchema, { setupListeners: false, customIssues: issues });
+    const handleSourceAccessControlUpdate = (src: SourceTreeNode) => (event: SelectChangeEvent) => {
         const treeStr = src.treeStr;
 
         // Get the parent treeStr
@@ -330,9 +363,6 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: Profi
         });
     };
 
-    const handleCheckedAll = (fieldname: string) => (event: React.ChangeEvent<HTMLInputElement>) =>
-        update({ type: Type.UserClickedCheckAll, payload: { fieldname: fieldname, value: event.target.checked } });
-
     function validateProfileName(profileName: string) {
         const issues = createCustomIssues(ProfileSchema);
 
@@ -346,11 +376,12 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: Profi
     }
     const saveProfiles = () => {
         void saveProfile(profileModel.profileForm, create ? Mode.Creation : Mode.Edition, updateModel, update);
+        const mode = create ? "create" : "edit";
+        void writeLog(me, "ConfigEditor", mode, profileModel.profileForm.name);
     };
 
     const getAvailableThemes = () => {
-        return Object.keys(Config.slsvColorThemes)
-            .sort((a, b) => a.localeCompare(b));
+        return Object.keys(window.Config.slsvColorThemes).sort((a, b) => a.localeCompare(b));
     };
 
     const fieldsFromSource = (source: ServerSource) => {
@@ -469,8 +500,8 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: Profi
                 onNodeToggle={(_event, nodeIds) => {
                     setNodeToExpand(nodeIds);
                 }}
-                defaultCollapseIcon={<ExpandMoreIcon sx={{ width: 30, height: 30 }} />}
-                defaultExpandIcon={<ChevronRightIcon sx={{ width: 30, height: 30 }} />}
+                defaultCollapseIcon={<ExpandMore sx={{ width: 30, height: 30 }} />}
+                defaultExpandIcon={<ChevronRight sx={{ width: 30, height: 30 }} />}
             >
                 {treeviewSources}
             </TreeView>
@@ -546,57 +577,31 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: Profi
                                 <SourcesTreeView />
                             </FormControl>
                         </Box>
-                        <FormGroup>
-                            <FormControlLabel control={<Checkbox onChange={handleCheckedAll("allowedTools")} checked={profileModel.profileForm.allowedTools === "ALL"} />} label="Allow all tools" />
-
-                            <FormControl style={{ display: profileModel.profileForm.allowedTools === "ALL" ? "none" : "" }} disabled={profileModel.profileForm.allowedTools === "ALL"}>
-                                <InputLabel id="allowedTools-label">Allowed tools</InputLabel>
-                                <Select
-                                    labelId="allowedTools-label"
-                                    id="allowedTools"
-                                    multiple
-                                    value={!Array.isArray(profileModel.profileForm.allowedTools) ? [] : profileModel.profileForm.allowedTools}
-                                    label="select-allowedTools-label"
-                                    renderValue={(selected: string | string[]) => (typeof selected === "string" ? selected : selected.join(", "))}
-                                    onChange={handleFieldUpdate("allowedTools")}
-                                >
-                                    {tools.map((tool) => (
-                                        <MenuItem key={tool} value={tool}>
-                                            {tool}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </FormGroup>
                         <FormControl>
-                            <InputLabel id="forbiddenTools-label">Forbidden tools</InputLabel>
+                            <InputLabel id="allowedTools-label">Allowed tools</InputLabel>
                             <Select
-                                labelId="forbiddenTools-label"
-                                id="forbiddenTools"
+                                labelId="allowedTools-label"
+                                id="allowedTools"
                                 multiple
-                                value={!Array.isArray(profileModel.profileForm.forbiddenTools) ? [] : profileModel.profileForm.forbiddenTools}
-                                label="select-forbiddenTools-label"
-                                fullWidth
+                                value={profileModel.profileForm.allowedTools}
+                                label="select-allowedTools-label"
                                 renderValue={(selected: string | string[]) => (typeof selected === "string" ? selected : selected.join(", "))}
-                                onChange={handleFieldUpdate("forbiddenTools")}
+                                onChange={handleFieldUpdate("allowedTools")}
                             >
-                                {tools.map((tool) => (
+                                {config.tools_available.map((tool) => (
                                     <MenuItem key={tool} value={tool}>
-                                        <Checkbox checked={profileModel.profileForm.forbiddenTools.indexOf(tool) > -1} />
+                                        <Checkbox checked={profileModel.profileForm.allowedTools.includes(tool)} />
                                         {tool}
                                     </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
-                        <TextField
-                            defaultValue={profileModel.profileForm.theme ?? model.config.data.theme.defaultTheme}
-                            fullWidth
-                            id="theme"
-                            label="Theme"
-                            onChange={handleFieldUpdate("theme")}
-                            select
-                        >
-                            {getAvailableThemes().map((theme) => <MenuItem value={theme}>{theme}</MenuItem>)}
+                        <TextField defaultValue={profileModel.profileForm.theme ?? config.theme.defaultTheme} fullWidth id="theme" label="Theme" onChange={handleFieldUpdate("theme")} select>
+                            {getAvailableThemes().map((theme) => (
+                                <MenuItem key={theme} value={theme}>
+                                    {theme}
+                                </MenuItem>
+                            ))}
                         </TextField>
                         <Button disabled={zo.validation?.success === false || zo.customIssues.length > 0} type="submit" variant="contained" color="primary">
                             Save Profile
@@ -608,22 +613,22 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false }: Profi
     );
 };
 
-const CustomContent = React.forwardRef(function CustomContent(props: TreeItemContentProps, ref) {
+const CustomContent = forwardRef(function CustomContent(props: TreeItemContentProps, ref) {
     const { classes, className, label, nodeId, icon: iconProp, expansionIcon, displayIcon } = props;
 
     const { disabled, expanded, selected, focused, handleExpansion, handleSelection, preventSelection } = useTreeItem(nodeId);
 
     const icon = iconProp || expansionIcon || displayIcon;
 
-    const handleMouseDown = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const handleMouseDown: MouseEventHandler<HTMLDivElement> = (event) => {
         preventSelection(event);
     };
 
-    const handleExpansionClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const handleExpansionClick: MouseEventHandler<HTMLDivElement> = (event) => {
         handleExpansion(event);
     };
 
-    const handleSelectionClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const handleSelectionClick: MouseEventHandler<HTMLDivElement> = (event) => {
         handleSelection(event);
     };
 
@@ -636,7 +641,7 @@ const CustomContent = React.forwardRef(function CustomContent(props: TreeItemCon
                 [classes.disabled]: disabled,
             })}
             onMouseDown={handleMouseDown}
-            ref={ref as React.Ref<HTMLDivElement>}
+            ref={ref as Ref<HTMLDivElement>}
         >
             <CustomExpansionArrow onClick={handleExpansionClick} className={classes.iconContainer}>
                 {icon}
@@ -666,4 +671,4 @@ interface SourceTreeNode {
     treeStr: string;
 }
 
-export { ProfilesTable, Mode, Msg_, Type };
+export { ProfilesTable, Mode, Type };

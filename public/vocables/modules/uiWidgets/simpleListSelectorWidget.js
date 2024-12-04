@@ -10,22 +10,27 @@ var SimpleListSelectorWidget = (function () {
         }
 
         var multipleStr = "";
+        var onClick = "";
         if (options.multiple) {
             multipleStr = " multiple='multiple'";
+        } else {
+            onClick = " onclick='SimpleListSelectorWidget.onOKbutton()' ";
         }
+
         var html =
             "<div><select id='SimpleListSelectorWidget_select' size='" +
             options.size +
             "'" +
+            onClick +
             multipleStr +
             ">" +
             " </select> <br> <button onclick='SimpleListSelectorWidget.onOKbutton()'>OK</button></div>";
 
         var divId = "smallDialogDiv";
         self.divId = divId;
-        $("#" + divId).dialog("open");
 
         $("#" + divId).html(html);
+        $("#" + divId).dialog("open");
 
         if (options.title) {
             $("#" + divId).dialog("option", "title", options.title);

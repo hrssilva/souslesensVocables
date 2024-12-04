@@ -35,6 +35,10 @@ const VisjsGraphClass = function (graphDiv, data, options) {
         var visjsData = self.data;
         var _options = self.options;
 
+        var improvedLayout = true;
+        //When enabled, the network will use the Kamada Kawai algorithm for initial layout. For networks larger than 100 nodes, ...
+        if (self.data.edges.getIds && self.data.edges.getIds().length > 150) improvedLayout = false;
+
         self.drawingDone = false;
         self.currentContext = { divId: divId, options: _options, callback: callback };
         if (!_options) {
@@ -83,7 +87,8 @@ const VisjsGraphClass = function (graphDiv, data, options) {
             edges: {
                 //  scaling:{min:1,max:8}
             },
-            layout: { improvedLayout: false },
+
+            layout: { improvedLayout: improvedLayout },
         };
 
         for (var key in _options) {
@@ -99,7 +104,6 @@ const VisjsGraphClass = function (graphDiv, data, options) {
             $("#visjsGraph_layoutSelect").val("");
         }
 
-        self.globalOptions = options;
         self.network = new vis.Network(container, self.data, options.visjsOptions);
         self.simulationOn = true;
 
@@ -187,27 +191,56 @@ const VisjsGraphClass = function (graphDiv, data, options) {
 
             .on("dragStart", function (/** @type {{ nodes: any[]; }} */ params) {
                 var nodeId = params.nodes[0];
+
                 if (!nodeId) {
                     return;
                 }
+
+                self.movingNodeStartPosition = self.network.getPosition(nodeId);
                 //   var nodes = self.data.nodes.getIds();
                 var newNodes = [];
                 var fixed = false;
 
                 newNodes.push({ id: nodeId, fixed: fixed });
                 self.data.nodes.update(newNodes);
+                /*self.network.setOptions({ physics: {enabled: true,
+                    stabilization: {
+                      enabled: true,
+                      iterations: 1000, // Nombre d'itérations pour stabiliser le réseau
+                      updateInterval: 25,
+                      onlyDynamicEdges: false,
+                      fit: true
+                    }} });*/
             })
             .on("controlNodeDragging", function (params) {
                 self.currentDraggingMousePosition = params.pointer.DOM;
             })
             .on("dragging", function (_params) {})
             .on("dragEnd", function (/** @type {{ event: { srcEvent: { ctrlKey: any; altKey: any; }; }; pointer: { DOM: any; }; nodes: string | any[]; }} */ params) {
+                //self.network.setOptions({ physics: { enabled: false } });
+                var startNode = self.data.nodes.get(params.nodes[0]);
+
+                //move nodes of same group together
+                if (startNode.group && !params.event.srcEvent.ctrlKey) {
+                    self.movingNodeEndPosition = self.network.getPosition(params.nodes[0]);
+                    var offset = { x: self.movingNodeEndPosition.x - self.movingNodeStartPosition.x, y: self.movingNodeEndPosition.y - self.movingNodeStartPosition.y };
+
+                    var newNodes = [];
+                    self.data.nodes.get().forEach(function (node) {
+                        if (node.group == startNode.group && startNode.id != node.id) {
+                            var position = self.network.getPosition(node.id);
+                            newNodes.push({ id: node.id, x: position.x + offset.x, y: position.y + offset.y, fixed: true, color: node.color });
+                        }
+                    });
+                    self.data.nodes.update(newNodes);
+                }
+
                 if (params.event.srcEvent.ctrlKey && options.dndCtrlFn) {
                     var dropCtrlNodeId = self.network.getNodeAt(params.pointer.DOM);
                     if (!dropCtrlNodeId) {
                         return;
                     }
-                    var startNode = self.data.nodes.get(params.nodes[0]);
+
                     var endNode = self.data.nodes.get(dropCtrlNodeId);
 
                     options.dndCtrlFn(startNode, endNode, params.pointer.DOM);
@@ -236,7 +269,6 @@ const VisjsGraphClass = function (graphDiv, data, options) {
                     }
                 }
             });
-
         if (callback) {
             var intervalIncrement = 0;
             var interval = setInterval(function () {
@@ -292,6 +324,10 @@ const VisjsGraphClass = function (graphDiv, data, options) {
             self.currentContext.options = {};
             self.redraw();
         }
+    };
+
+    self.redraw = function () {
+        self.draw();
     };
 
     self.exportGraph = function () {
@@ -427,6 +463,7 @@ const VisjsGraphClass = function (graphDiv, data, options) {
                             node.size = size;
                             node.font = { size: fontSize };
                             self.labelsVisible = true;
+                            //node.fixed = false;
                         } else {
                             node.label = null;
                             node.size = size;
@@ -435,7 +472,13 @@ const VisjsGraphClass = function (graphDiv, data, options) {
 
                         //nodes.push(node);
                     }
+                    if (node.x || node.y) {
+                        var currentPositions = self.network.getPositions(node.id);
+                        node.x = currentPositions[node.id].x;
+                        node.y = currentPositions[node.id].y;
+                    }
                 });
+
                 self.data.nodes.update(nodes);
             }
             self.currentScale = scale;
@@ -464,9 +507,9 @@ const VisjsGraphClass = function (graphDiv, data, options) {
         var csv = self.toCsv();
         common.copyTextToClipboard(csv, function (/** @type {any} */ err, /** @type {any} */ _result) {
             if (err) {
-                MainController.UI.message(err);
+                UI.message(err);
             }
-            MainController.UI.message("csv copied in system clipboard");
+            UI.message("csv copied in system clipboard");
         });
     };
 
@@ -574,8 +617,22 @@ const VisjsGraphClass = function (graphDiv, data, options) {
         var sourceNodeEdges = self.network.getConnectedEdges(sourceNodeId);
         sourceNodeEdges.forEach(function (edgeId) {
             var edge = self.data.edges.get(edgeId);
-            if (edge.to == targetNodeId || edge.from == targetNodeId) {
+            if (!targetNodeId || edge.to == targetNodeId) {
                 connectedEdges.push(edge);
+            }
+        });
+        return connectedEdges;
+    };
+
+    self.getFromNodeEdgesAndToNodes = function (sourceNodeId, bothDirections) {
+        var connectedEdges = [];
+        var sourceNodeEdges = self.network.getConnectedEdges(sourceNodeId);
+        sourceNodeEdges.forEach(function (edgeId) {
+            var edge = self.data.edges.get(edgeId);
+            var fromNode = self.data.nodes.get(edge.from);
+            if (bothDirections || edge.from == sourceNodeId) {
+                var toNode = self.data.nodes.get(edge.to);
+                connectedEdges.push({ edge: edge, fromNode: fromNode, toNode: toNode });
             }
         });
         return connectedEdges;
@@ -732,6 +789,48 @@ const VisjsGraphClass = function (graphDiv, data, options) {
         });
         self.data.nodes.update(newNodes);
     };
+
+    self.toSVG_graphviz = function () {
+        var nodes = self.data.nodes.get();
+        var edges = self.data.edges.get();
+
+        var nodesMap = {};
+        nodes.forEach(function (node) {
+            nodesMap[node.id] = node;
+        });
+
+        var str = "digraph G {\n";
+
+        edges.forEach(function (edge) {
+            str += nodesMap[edge.from].label + "->" + nodesMap[edge.to].label + ";\n";
+        });
+        str += "}";
+
+        var payload = {
+            dotStr: str,
+            format: "svg",
+            output: "text",
+        };
+        const params = new URLSearchParams(payload);
+        Axiom_editor.message("getting Class axioms");
+        $.ajax({
+            type: "GET",
+            url: Config.apiUrl + "/graphvis?" + params.toString(),
+            dataType: "text",
+
+            success: function (data, _textStatus, _jqXHR) {
+                var svg = JSON.parse(data).result;
+                //  return callback(null,data.result)
+                //  callback(null, data);
+            },
+            error(err) {
+                callback(err.responseText);
+            },
+        });
+
+        return;
+    };
+
     self.toSVG = function () {
         SVGexport.toSVG(self.network);
         self.redraw();
@@ -743,12 +842,12 @@ const VisjsGraphClass = function (graphDiv, data, options) {
             edges: self.data.edges.get(),
         };
         var xmlStr = GraphMlExport.VisjsDataToGraphMl(visjsData);
-        common.copyTextToClipboard(xmlStr);
+
+        download(xmlStr, "SLSwhiteboard.graphml", "graphml");
+        // common.copyTextToClipboard(xmlStr);
     };
 
-    self.searchNode = function (/** @type {any} */ id, /** @type {string | number | string[] | undefined} */ word) {
-        /*   if (word === null && !id)
-    return;*/
+    self.searchNode = function (id, word) {
         if (!word || word == "") {
             word = $("#visjsGraph_searchInput").val();
             if (word == "") {
@@ -850,7 +949,7 @@ const VisjsGraphClass = function (graphDiv, data, options) {
             dataType: "json",
             success: function (_result, _textStatus, _jqXHR) {
                 $("#visjsGraph_savedGraphsSelect").append($("<option></option>").attr("value", fileName).text(fileName));
-                MainController.UI.message("graph saved");
+                UI.message("graph saved");
             },
             error(err) {
                 return alert(err);
@@ -896,10 +995,10 @@ const VisjsGraphClass = function (graphDiv, data, options) {
                 data.nodes.forEach(function (node) {
                     if (!existingNodes[node.id]) {
                         existingNodes[node.id] = 1;
-                        if (node.fixed && positions[node.id]) {
+                        if (positions[node.id]) {
                             node.x = positions[node.id].x;
                             node.y = positions[node.id].y;
-                            node.fixed = { x: true, y: true };
+                            //node.fixed = { x: false, y: false };
                         }
                         visjsData.nodes.push(node);
                     }
@@ -925,26 +1024,35 @@ const VisjsGraphClass = function (graphDiv, data, options) {
                     var context = JSON.parse(JSON.stringify(data.context).replace(/self./g, "Lineage_whiteboard."));
                     //  var context = data.context
 
-                    for (var key in context.options) {
+                    /*     for (var key in context.options) {
                         if (key.indexOf("Fn") > 0) {
                             context.options[key] = eval(key + "=" + context.options[key]);
                         }
-                    }
+                    }*/
                     if (context.callback) {
                         callback = context.callback;
                     }
-                    if (self.isGraphNotEmpty()) {
+                    if (self.data.nodes || self.isGraphNotEmpty()) {
                         self.data.edges.add(visjsData.edges);
                         self.data.nodes.add(visjsData.nodes);
+                        self.network.fit();
                     } else {
-                        self.draw(context.divId, visjsData, context.options, callback);
+                        // self.draw(context.divId, visjsData, context.options, callback);
+                        self.draw(function () {
+                            if (callback) return callback();
+                            self.network.fit();
+                        });
                     }
+
                     self.message("");
                 }
             },
             error(err) {
                 if (callback) {
                     return callback(err);
+                }
+                if (err.responseJSON == "file does not exist") {
+                    return;
                 }
                 return alert(err);
             },
@@ -982,55 +1090,62 @@ const VisjsGraphClass = function (graphDiv, data, options) {
         });
     };
 
+    self.decorateNodes = function (nodeIds, attrsMap) {
+        if (nodeIds && !Array.isArray(nodeIds)) {
+            nodeIds = [nodeIds];
+        }
+        var newIds = [];
+        self.data.nodes.getIds().forEach(function (nodeId) {
+            if (!nodeIds || nodeIds.indexOf(nodeId) > -1) {
+                var obj = { id: nodeId };
+                for (var attrName in attrsMap) {
+                    obj[attrName] = attrsMap[attrName];
+                }
+                newIds.push(obj);
+            }
+        });
+        self.data.nodes.update(newIds);
+    };
+
     self.showGraphConfig = function () {
+        $("#graphDisplay_theme").remove();
+        //$("#visjsConfigureDiv").parent().css("left", "20%");
+        $("#visjsConfigureDiv").prepend(
+            "<div id='graphDisplay_theme' class='div.vis-configuration.vis-config-item '>theme" +
+                "<select onchange='Lineage_sources.setTheme($(this).val())' >" +
+                "<option>white</option>" +
+                "<option>dark</option>" +
+                "</select></div>"
+        );
+        // these are all options in full.
+        var options = {
+            configure: {
+                enabled: true,
+                filter: "physics,layout,manipulation,renderer",
+
+                container: document.getElementById("visjsConfigureDiv"),
+                showButton: true,
+            },
+        };
+        self.network.setOptions(options);
         $("#visjsConfigureDiv").dialog({
             //   autoOpen: false,
             height: 700,
             width: 550,
             modal: false,
             title: "Graph parameters",
-            position: { my: "left top", at: "right top" },
-            close: function (event, ui) {
-                window.scrollTo(0, 0);
-            },
-            drag: function (event, ui) {
-                $("#visjsConfigureDiv").parent().css("transform", "unset");
-            },
-            open(event, ui) {
-                $("#visjsConfigureDiv").parent().css("transform", "translate(-50%,-50%)");
-                $("#visjsConfigureDiv").parent().css("top", "50%");
-                $("#visjsConfigureDiv").parent().css("left", "50%");
-            },
-        });
-
-        //    $('#graphConfigDiv').dialog("open")
-
+            //position: { my: "left top", at: "right top" },
+        }); /*
         setTimeout(function () {
-            // these are all options in full.
-            var options = {
-                configure: {
-                    enabled: true,
-                    filter: "physics,layout,manipulation,renderer",
+           
 
-                    container: document.getElementById("visjsConfigureDiv"),
-                    showButton: true,
-                },
-            };
-
-            self.network.setOptions(options);
+           
 
             setTimeout(function () {
-                $("#graphDisplay_theme").remove();
-                //$("#visjsConfigureDiv").parent().css("left", "20%");
-                $("#visjsConfigureDiv").prepend(
-                    "<div id='graphDisplay_theme' class='div.vis-configuration.vis-config-item '>theme" +
-                        "<select onchange='Lineage_sources.setTheme($(this).val())' >" +
-                        "<option>white</option>" +
-                        "<option>dark</option>" +
-                        "</select></div>"
-                );
+               
             }, 500);
-        }, 500);
+        }, 500);*/
     };
 };
 export default VisjsGraphClass;
+window.VisjsGraphClass = VisjsGraphClass;

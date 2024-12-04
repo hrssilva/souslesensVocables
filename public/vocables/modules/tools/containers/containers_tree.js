@@ -1,5 +1,4 @@
 import Lineage_whiteboard from "../lineage/lineage_whiteboard.js";
-import Lineage_styles from "../lineage/lineage_styles.js";
 import common from "../../shared/common.js";
 import JstreeWidget from "../../uiWidgets/jstreeWidget.js";
 import Containers_query from "./containers_query.js";
@@ -12,10 +11,11 @@ var Containers_tree = (function () {
     var self = {};
     self.jstreeDivId = "lineage_containers_containersJstree";
 
-    self.search = function (jstreeDivId, options, callback) {
+    self.search = function (jstreeDivId, source, options, callback) {
         if (jstreeDivId) {
             self.jstreeDivId = jstreeDivId;
         }
+
         if (!options) {
             options = {};
         }
@@ -24,18 +24,22 @@ var Containers_tree = (function () {
         }
 
         var term = $("#Lineage_containers_searchInput").val();
-        var source = Lineage_sources.activeSource;
+        if (source) self.currentSource = source;
+        else {
+            self.currentSource = Lineage_sources.activeSource;
+        }
 
         var filter = "";
         if (term) {
-            Containers_tree.drawContainerAndAncestorsJsTree(source, term, {}, function (err, result) {
+            Containers_tree.drawContainerAndAncestorsJsTree(self.currentSource, term, {}, function (err, result) {
                 if (err) {
                     return alert(err.responseText);
                 }
             });
         } else {
-            Containers_query.getTopContainer(source, options, function (err, result) {
-                self.drawTree(self.jstreeDivId, source, "#", result.results.bindings, options);
+            Containers_query.getTopContainer(self.currentSource, options, function (err, result) {
+                self.clickedContainers = {};
+                self.drawTree(self.jstreeDivId, self.currentSource, "#", result.results.bindings, options);
             });
         }
     };
@@ -48,14 +52,20 @@ var Containers_tree = (function () {
         // set rootnodes
         data.forEach(function (item) {
             var id = item.member.value;
+            var jstreeId = common.getRandomHexaId(5);
             var label = item.memberLabel ? item.memberLabel.value : Sparql_common.getLabelFromURI(item.member.value);
-            var jstreeId = "_" + common.getRandomHexaId(5);
+            var jstreeId = "_" + common.getRandomHexaId(8);
 
             var parent;
             if (rootNode) {
                 parent = rootNode;
             } else {
-                parent = item.parent.value;
+                if (self.idsMap[item.parent.value]) parent = self.idsMap[item.parent.value];
+                else {
+                    parent = "_" + common.getRandomHexaId(8);
+                    self.idsMap[item.parent.value] = parent;
+                }
+                // parent = item.parent.value;
             }
             if (!self.idsMap[id]) {
                 self.idsMap[id] = jstreeId;
@@ -65,7 +75,7 @@ var Containers_tree = (function () {
                 existingNodes[jstreeId] = 1;
             }
             var node = {
-                id: self.idsMap[id],
+                id: jstreeId,
                 text: label,
                 parent: parent,
                 type: "Container",
@@ -119,7 +129,7 @@ var Containers_tree = (function () {
         });
     };
 
-    self.graphResources = function (source, containerData, options, callback) {
+    self.graphResourcesXXXX = function (source, containerData, options, callback) {
         if (!options) {
             options = {};
         }
@@ -134,7 +144,7 @@ var Containers_tree = (function () {
                 function (callbackSeries) {
                     //  options.descendants = true;
                     // options.leaves = true;
-                    MainController.UI.message("searching...");
+                    UI.message("searching...");
                     Containers_query.getContainerDescendants(source, containerData.id, options, function (err, result) {
                         if (err) {
                             return callbackSeries(err);
@@ -145,7 +155,7 @@ var Containers_tree = (function () {
                         }
                         return callbackSeries();
                     });
-                    MainController.UI.message("drawing graph...");
+                    UI.message("drawing graph...");
                 },
 
                 //get containersStyles
@@ -174,10 +184,10 @@ var Containers_tree = (function () {
                             id: containerData.id,
                             label: containerData.label,
                             shadow: self.nodeShadow,
-                            shape: Lineage_containers.containerStyle.shape,
+                            shape: Containers_graph.containerStyle.shape,
                             size: size,
                             font: type == "container" ? { color: "#70309f" } : null,
-                            color: Lineage_containers.containerStyle.color,
+                            color: Containers_graph.containerStyle.color,
                             data: {
                                 type: type,
                                 source: source,
@@ -195,10 +205,10 @@ var Containers_tree = (function () {
                                 id: item.parent.value,
                                 label: item.parentLabel.value,
                                 shadow: self.nodeShadow,
-                                shape: type == "container" ? Lineage_containers.containerStyle.shape : shape,
+                                shape: type == "container" ? Containers_graph.containerStyle.shape : shape,
                                 size: size,
                                 font: type == "container" ? { color: color2, size: 10 } : null,
-                                color: Lineage_containers.containerStyle.color,
+                                color: Containers_graph.containerStyle.color,
                                 data: {
                                     type: type,
                                     source: source,
@@ -209,11 +219,11 @@ var Containers_tree = (function () {
                         }
 
                         if (!existingNodes[item.member.value]) {
-                            var color = Lineage_containers.containerStyle.color;
-                            var shape = Lineage_containers.containerStyle.shape;
+                            var color = Containers_graph.containerStyle.color;
+                            var shape = Containers_graph.containerStyle.shape;
                             var type = "container";
                             if (item.memberTypes.value.indexOf("Bag") < 0) {
-                                color = Lineage_whiteboard.getSourceColor(Lineage_sources.activeSource);
+                                color = Lineage_whiteboard.getSourceColor(self.currentSource);
                                 if (item.memberTypes.value.indexOf("Individual") > -1) {
                                     type = "individual";
                                     shape = "triangle";
@@ -350,7 +360,7 @@ var Containers_tree = (function () {
                     Lineage_whiteboard.lineageVisjsGraph.network.fit();
                     $("#waitImg").css("display", "none");
                     if (objectProperties.length > 0) {
-                        source = Lineage_sources.activeSource;
+                        source = self.currentSource;
                         var options = {
                             filter: Sparql_common.setFilter("prop", objectProperties),
                         };
@@ -361,7 +371,7 @@ var Containers_tree = (function () {
                 },
             ],
             function (err) {
-                MainController.UI.message("", true);
+                UI.message("", true);
                 if (err) {
                     return alert(err.responseText);
                     if (callback) {
@@ -382,27 +392,50 @@ var Containers_tree = (function () {
         if (obj.event.button != 2) {
             self.listContainerResources(self.currentContainer);
         }
+        if (obj.event.ctrlKey) {
+            NodeInfosWidget.showNodeInfos(self.currentContainer.data.source, self.currentContainer.data.source, "mainDialogDiv");
+        }
     };
 
     self.menuActions = {};
 
     self.listContainerResources = function (container) {
         var source = container.data.source;
-        Containers_query.getContainerDescendants(source, container.data.id, {}, function (err, result) {
+        // if container clicked don't click again on because no restrictions on container and class URIs (same class can be drawed n times in arborescence) anymore
+        if (self.clickedContainers[container.id]) {
+            return;
+        }
+        self.clickedContainers[container.id] = 1;
+
+        Containers_query.getContainerDescendants(source, container.data.id, { depth: 1, leaves: true }, function (err, result) {
             if (err) {
                 return alert(err.responsetext);
             }
 
+            if (result.length == 0) {
+                return UI.message("no result", true);
+            }
             var jstreeData = [];
 
             var existingNodes = {};
+            var descendantsURI = {};
+            var parent = container.id;
             result.results.bindings.forEach(function (item) {
-                var id = item.descendant.value;
-                var label = item.descendantLabel ? item.descendantLabel.value : Sparql_common.getLabelFromURI(item.descendant.value);
+                var id = item.member.value;
+                if (descendantsURI[id]) {
+                    return;
+                } else {
+                    descendantsURI[id] = 1;
+                }
+                var label = item.memberLabel ? item.memberLabel.value : Sparql_common.getLabelFromURI(item.member.value);
                 var jstreeId = "_" + common.getRandomHexaId(5);
 
-                var parent = self.idsMap[item.descendantParent.value];
+                //var parent = self.idsMap[item.parent.value];
 
+                var type = "Container";
+                if (item.memberTypes.value == "http://www.w3.org/2002/07/owl#Class") {
+                    type = "Class";
+                }
                 if (!self.idsMap[id]) {
                     self.idsMap[id] = jstreeId;
                 }
@@ -411,12 +444,12 @@ var Containers_tree = (function () {
                     existingNodes[jstreeId] = 1;
                 }
                 var node = {
-                    id: self.idsMap[id],
+                    id: jstreeId,
                     text: label,
                     parent: parent,
-                    type: "Container",
+                    type: type,
                     data: {
-                        type: "Container",
+                        type: type,
                         source: source,
                         id: id,
                         label: label,
@@ -426,7 +459,7 @@ var Containers_tree = (function () {
                 };
                 jstreeData.push(node);
             });
-            var parent = self.idsMap[container.data.id];
+            //var parent = self.idsMap[container.data.id];
             JstreeWidget.addNodesToJstree(self.jstreeDivId, parent, jstreeData);
         });
     };
@@ -442,6 +475,9 @@ var Containers_tree = (function () {
                 return callback(err);
             }
 
+            if (result.length == 0) {
+                return UI.message("no result", true);
+            }
             //identify top Node
             var childrenMap = {};
             result.forEach(function (item) {
@@ -524,7 +560,7 @@ var Containers_tree = (function () {
                 $("#" + self.jstreeDivId)
                     .jstree()
                     .open_all();
-                self.menuActions.bindMoveNode(jstreeDiv);
+                self.menuActions.bindMoveNode(self.jstreeDivId);
             });
         });
     };
@@ -553,14 +589,14 @@ var Containers_tree = (function () {
         items["NodeInfos"] = {
             label: "Node infos",
             action: function (_e) {
-                NodeInfosWidget.showNodeInfos(Lineage_sources.activeSource, self.currentContainer, "mainDialogDiv");
+                NodeInfosWidget.showNodeInfos(self.currentSource, self.currentContainer, "mainDialogDiv");
             },
         };
         items["GraphNode"] = {
             label: "Graph node",
             action: function (_e) {
-                if (self.currentContainer.data.type == "container") {
-                    Containers_graph.graphResources(Lineage_sources.activeSource, self.currentContainer.data, { onlyOneLevel: true });
+                if (self.currentContainer.data.type == "Container") {
+                    Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { onlyOneLevel: true });
                 } else {
                     Lineage_whiteboard.drawNodesAndParents(self.currentContainer, 0);
                 }
@@ -570,7 +606,7 @@ var Containers_tree = (function () {
             label: "Open node",
             action: function (_e) {
                 // $("#lineage_containers_containersJstree").jstree().open_all(self.currentContainer.id);
-                Containers_tree.menuActions.listContainerResources(Lineage_sources.activeSource, self.currentContainer, { onlyOneLevel: true, leaves: true });
+                Containers_tree.menuActions.listContainerResources(self.currentSource, self.currentContainer, { onlyOneLevel: true, leaves: true });
             },
         };
         items.copyNodes = {
@@ -579,40 +615,41 @@ var Containers_tree = (function () {
                 // pb avec source
                 Lineage_whiteboard.copyNode(e);
                 var selectedNodes = $("#lineage_containers_containersJstree").jstree().get_selected(true);
-                Containers_tree.menuActions.copyNodeToClipboard(selectedNodes);
+                // Containers_tree.menuActions.copyNodeToClipboard(selectedNodes);
+                Lineage_common.copyNodeToClipboard(selectedNodes);
             },
         };
         items["AddGraphNode"] = {
             label: "Add selected node to container",
             action: function (_e) {
                 var graphNodeData = Lineage_whiteboard.currentGraphNode.data;
-                Containers_tree.menuActions.addResourcesToContainer(Lineage_sources.activeSource, self.currentContainer, graphNodeData);
+                Containers_tree.menuActions.addResourcesToContainer(self.currentSource, self.currentContainer, graphNodeData);
             },
         };
         items["PasteNodesInContainer"] = {
             label: "Paste nodes in container",
             action: function (_e) {
-                Containers_tree.menuActions.pasteNodesInContainer(Lineage_sources.activeSource, self.currentContainer);
+                Containers_tree.menuActions.pasteNodesInContainer(self.currentSource, self.currentContainer);
             },
         };
 
         items["DeleteContainer"] = {
             label: "Delete container",
             action: function (_e) {
-                Containers_tree.menuActions.deleteContainer(Lineage_sources.activeSource, self.currentContainer);
+                Containers_tree.menuActions.deleteContainer(self.currentSource, self.currentContainer);
             },
         };
 
         items["GraphContainerDescendant"] = {
             label: "Graph  descendants",
             action: function (_e) {
-                Containers_graph.graphResources(Lineage_sources.activeSource, self.currentContainer.data, { descendants: true });
+                Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { descendants: true });
             },
         };
         items["GraphContainerDescendantAndLeaves"] = {
             label: "Graph  descendants + leaves",
             action: function (_e) {
-                Containers_graph.graphResources(Lineage_sources.activeSource, self.currentContainer.data, { leaves: true });
+                Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { leaves: true });
             },
         };
 
@@ -621,7 +658,7 @@ var Containers_tree = (function () {
 
     self.menuActions.addContainer = function (source) {
         if (!source) {
-            source = Lineage_sources.activeSource;
+            source = self.currentSource;
         }
 
         var newContainerLabel = prompt("enter new container label)");
@@ -670,7 +707,7 @@ var Containers_tree = (function () {
 
             if (!$("#lineage_containers_containersJstree").jstree) {
                 // initialize jstree
-                self.search(function (err, result) {
+                self.search(self.jstreeDivId, self.currentSource, null, function (err, result) {
                     $("#lineage_containers_containersJstree")
                         .jstree()
                         .create_node(parent, newNode, "first", function (err, result) {
@@ -700,10 +737,11 @@ var Containers_tree = (function () {
      * @param drawMembershipEdge add the edge (and the node) on the vizGraph
      */
     self.menuActions.addResourcesToContainer = function (source, container, nodesData, drawMembershipEdge, callback) {
-        if (!(container.data.type.includes("http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag") || container.data.type == "container")) {
+        // can also copy nodes coming from copy container
+        if (false && !(container.data.type.includes("http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag") || container.data.type == "container")) {
             return alert("can only add resources to containers");
         }
-        // self.currentContainer=null;
+
         if (!Array.isArray(nodesData)) {
             nodesData = [nodesData];
         }
@@ -736,11 +774,11 @@ var Containers_tree = (function () {
                 }
                 return alert(err.responseText);
             }
-            MainController.UI.message("nodes added to container " + container.label);
+            UI.message("nodes added to container " + container.label);
             var jstreeData = [];
             nodesData.forEach(function (nodeData) {
                 jstreeData.push({
-                    id: nodeData.id + "_" + common.getRandomHexaId(5),
+                    id: nodeData.id + "_" + common.getRandomHexaId(8),
                     text: nodeData.label,
                     parent: container.id,
                     type: "class",
@@ -797,7 +835,7 @@ var Containers_tree = (function () {
         common.pasteTextFromClipboard(function (text) {
             // debugger
             if (!text) {
-                return MainController.UI.message("no node copied");
+                return UI.message("no node copied");
             }
             try {
                 var nodes = JSON.parse(text);
@@ -808,7 +846,7 @@ var Containers_tree = (function () {
                     }
                 });
 
-                self.addResourcesToContainer(source, container, nodesData);
+                self.menuActions.addResourcesToContainer(source, container, nodesData);
             } catch (e) {
                 console.log("wrong clipboard content");
             }
@@ -837,7 +875,7 @@ var Containers_tree = (function () {
     };
 
     self.menuActions.writeMovedNodeNewParent = function (movedNodeInfos) {
-        var graphUri = Config.sources[Lineage_sources.activeSource].graphUri;
+        var graphUri = Config.sources[self.currentSource].graphUri;
         var query =
             "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>" +
             "with <" +
@@ -853,13 +891,24 @@ var Containers_tree = (function () {
             movedNodeInfos.nodeId +
             ">}";
 
-        var url = Config.sources[Lineage_sources.activeSource].sparql_server.url + "?format=json&query=";
+        var url = Config.sources[self.currentSource].sparql_server.url + "?format=json&query=";
 
-        Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: Lineage_sources.activeSource }, function (err, result) {
+        Sparql_proxy.querySPARQL_GET_proxy(url, query, "", { source: self.currentSource }, function (err, result) {
             if (err) {
                 return callback(err);
             }
         });
+    };
+    self.pasteNodeIntoContainer = function (source, container) {
+        try {
+            common.pasteTextFromClipboard(function (str) {
+                if (!str) throw "xx";
+                var obj = JSON.parse(str);
+                self.menuActions.addResourcesToContainer(source, container, obj.data, true, function (er, result) {});
+            });
+        } catch (e) {
+            alert("invalid clipboard content");
+        }
     };
 
     return self;

@@ -1,30 +1,29 @@
 import Sparql_common from "../sparqlProxies/sparql_common.js";
-import KGquery from "../tools/KGquery/KGquery.js";
-import SparqlQuery_bot from "./sparqlQuery_bot.js";
 import _botEngine from "./_botEngine.js";
 import Lineage_sources from "../tools/lineage/lineage_sources.js";
-//import AxiomsEditor from "../tools/lineage/axiomsEditor.js";
 import Lineage_whiteboard from "../tools/lineage/lineage_whiteboard.js";
 import CommonBotFunctions from "./_commonBotFunctions.js";
 import Lineage_createRelation from "../tools/lineage/lineage_createRelation.js";
 import common from "../shared/common.js";
 import Sparql_generic from "../sparqlProxies/sparql_generic.js";
 import OntologyModels from "../shared/ontologyModels.js";
+import Lineage_createResource from "../tools/lineage/lineage_createResource.js";
 
 var CreateResource_bot = (function () {
     var self = {};
     self.title = "Create Resource";
 
     self.start = function (workflow, _params, callback) {
+        _botEngine.startParams = _botEngine.fillStartParams(arguments);
         self.callback = callback;
         if (!workflow) workflow = self.workflow;
         _botEngine.init(CreateResource_bot, workflow, null, function () {
-            self.source = Lineage_sources.activeSource;
-            self.params = { source: self.source, resourceType: "", resourceLabel: "", currentVocab: "" };
+            self.params = { source: self.source || Lineage_sources.activeSource, resourceType: "", resourceLabel: "", currentVocab: "" };
             if (_params)
                 for (var key in _params) {
                     self.params[key] = _params[key];
                 }
+            self.source = self.params.source || Lineage_sources.activeSource;
             _botEngine.nextStep();
         });
     };
@@ -38,7 +37,7 @@ var CreateResource_bot = (function () {
     self.workflow_saveResource = {
         saveResourceFn: {
             _OR: {
-                Edit: { editResourceFn: self.workflow_end },
+                Edit: { editResourceFn: {} },
                 Draw: { drawResourceFn: self.workflow_end },
             },
         },
@@ -96,8 +95,8 @@ var CreateResource_bot = (function () {
         promptResourceLabelFn: function () {
             _botEngine.promptValue("resource label ", "resourceLabel");
             /*  self.params.resourceLabel = prompt("resource label ");
-            BotEngine.writeCompletedHtml(self.params.resourceLabel);
-            BotEngine.nextStep();*/
+            _botEngine.writeCompletedHtml(self.params.resourceLabel);
+            _botEngine.nextStep();*/
         },
 
         listSuperClassesFn: function () {
@@ -146,7 +145,8 @@ var CreateResource_bot = (function () {
 
         editResourceFn: function () {
             NodeInfosWidget.showNodeInfos(self.params.source, self.params.resourceId, "mainDialogDiv");
-            _botEngine.nextStep();
+            _botEngine.end();
+            //  _botEngine.nextStep();
         },
         drawResourceFn: function () {
             var nodeData = {
@@ -229,7 +229,7 @@ var CreateResource_bot = (function () {
                     if (self.callback) {
                         return self.callback();
                     }
-                    BotEngine.nextStep();
+                    _botEngine.nextStep();
                 });
             });
         },

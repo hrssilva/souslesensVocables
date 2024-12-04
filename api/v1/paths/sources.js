@@ -1,11 +1,10 @@
 const path = require("path");
 
-const { configPath, configProfilesPath } = require("../../../model/config");
-const { sourceModel, SourceModel } = require("../../../model/sources");
+const { sourceModel } = require("../../../model/sources");
 const { userModel } = require("../../../model/users");
-const { responseSchema } = require("./utils");
+const { responseSchema, successfullyFetched, successfullyCreated, fixBooleanInObject } = require("./utils.js");
 const userManager = require(path.resolve("bin/user."));
-const { successfullyFetched, successfullyCreated, fixBooleanInObject } = require("./utils.js");
+
 module.exports = function () {
     let operations = {
         GET,
@@ -18,10 +17,16 @@ module.exports = function () {
             const userInfo = await userManager.getUser(req.user);
             let localSourceModel = sourceModel;
 
-            const userSources = await localSourceModel.getUserSources(userInfo.user);
+            let userSources;
+            if (req.query.ownedOnly) {
+                userSources = await localSourceModel.getOwnedSources(userInfo.user);
+            } else {
+                userSources = await localSourceModel.getUserSources(userInfo.user);
+            }
+
             res.status(200).json(successfullyFetched(userSources));
         } catch (err) {
-            next(err);
+            res.status(500).json({ message: err });
         }
     }
     GET.apiDoc = {
@@ -39,7 +44,6 @@ module.exports = function () {
             },
         ],
     };
-
     ///// POST api/v1/sources
     async function POST(req, res, next) {
         try {

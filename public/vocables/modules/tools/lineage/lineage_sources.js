@@ -7,13 +7,14 @@ import SearchUtil from "../../search/searchUtil.js";
 import Lineage_combine from "./lineage_combine.js";
 import Lineage_selection from "./lineage_selection.js";
 import Sparql_OWL from "../../sparqlProxies/sparql_OWL.js";
-import Lineage_3D from "./lineage_3d.js";
+
 import authentication from "../../shared/authentification.js";
 import PromptedSelectWidget from "../../uiWidgets/promptedSelectWidget.js";
 import SourceSelectorWidget from "../../uiWidgets/sourceSelectorWidget.js";
 import MainController from "../../shared/mainController.js";
 import SearchWidget from "../../uiWidgets/searchWidget.js";
 import Authentification from "../../shared/authentification.js";
+import UI from "../../../modules/shared/UI.js";
 
 var Lineage_sources = (function () {
     var self = {};
@@ -33,20 +34,14 @@ var Lineage_sources = (function () {
                 self.menuActions.closeSource(source);
             }
         }
-        $("#LineagePopup").dialog({
+        /*  $("#LineagePopup").dialog({
             autoOpen: false,
             height: 800,
             width: 1000,
             modal: false,
-            //  position: { my: "left top", at: "left bottom", of: "#leftPanelDiv" },
-        });
-        $("#QueryDialog").dialog({
-            autoOpen: false,
-            height: 800,
-            width: 700,
-            modal: false,
-            // position: { my: "left top", at: "left bottom", of: "#leftPanelDiv" },
-        });
+
+        });*/
+
         self.activeSource = null;
         self.loadedSources = {};
         self.sourceDivsMap = {};
@@ -91,14 +86,14 @@ var Lineage_sources = (function () {
             self.setCurrentSource(source);
             $("#sourcesSelectionDialogdiv").dialog("close");
             $("#lineage_allActions").css("visibility", "visible");
-            MainController.UI.showHideRightPanel("show");
+            UI.showHideRightPanel("show");
         };
 
         var validateButtonFn = function () {
             var sources = SourceSelectorWidget.getCheckedSources();
             self.loadSources(sources);
         };
-        MainController.UI.showHideRightPanel("hide");
+        UI.showHideRightPanel("hide");
         SourceSelectorWidget.initWidget(["OWL"], "mainDialogDiv", true, selectTreeNodeFn, validateButtonFn, options);
 
         return;
@@ -139,7 +134,7 @@ var Lineage_sources = (function () {
                 }
                 self.setCurrentSource(firstSource);
                 $("#sourcesSelectionDialogdiv").dialog("close");
-                MainController.UI.showHideRightPanel();
+                UI.showHideRightPanel();
                 $("#lineage_allActions").css("visibility", "visible");
 
                 if (callback) {
@@ -189,7 +184,7 @@ var Lineage_sources = (function () {
         if (!self.loadedSources[source]) {
             self.initSource(source, function (err, sourceDivId) {
                 if (err) {
-                    return MainController.UI.message(err);
+                    return UI.message(err);
                 }
 
                 highlightSourceDiv(source);
@@ -204,6 +199,9 @@ var Lineage_sources = (function () {
             highlightSourceDiv(source);
             self.whiteboard_setGraphOpacity(source);
             self.setAllWhiteBoardSources(true);
+            if (MainController.currentTool == "Weaver") {
+                Weaver.loadTopClasses();
+            }
         }
 
         $("#LineageNodesJsTreeDiv").empty();
@@ -243,10 +241,10 @@ var Lineage_sources = (function () {
     self.showHideLineageLeftPanels = function () {
         $("#lineage_allActions").css("visibility", "visible");
         if (!Config.currentTopLevelOntology) {
-            $("#lineage_legendWrapper").css("display", "block");
+            $("#lineage_legendWrapperSection").css("display", "block");
             return;
         } else {
-            $("#lineage_legendWrapper").css("display", "flex");
+            $("#lineage_legendWrapperSection").css("display", "flex");
         }
     };
 
@@ -254,18 +252,21 @@ var Lineage_sources = (function () {
         if (!Lineage_whiteboard.lineageVisjsGraph.network) {
             return;
         }
-        if (hide) {
-            Lineage_whiteboard.lineageVisjsGraph.network.disableEditMode();
-            $(".vis-edit-mode").css("display", "none");
-        }
+
+        Lineage_whiteboard.lineageVisjsGraph.network.disableEditMode();
+        $(".vis-edit-mode").css("display", "none");
+
         var isNodeEditable = Lineage_sources.isSourceEditableForUser(source);
         if (isNodeEditable) {
-            Lineage_whiteboard.lineageVisjsGraph.network.enableEditMode();
-            $(".vis-edit-mode").css("display", "block");
+            $("#Lineage_graphEditionButtons").css("display", "block");
+
+            $("#lineage_createResourceBtn").show();
         } else {
-            Lineage_whiteboard.lineageVisjsGraph.network.disableEditMode();
-            $(".vis-edit-mode").css("display", "none");
+            $("#Lineage_graphEditionButtons").css("display", "none");
+            $("#lineage_createResourceBtn").hide();
         }
+        $("#Title1").text($(".Lineage_selectedSourceDiv").text());
+        //Lineage_whiteboard.resetCurrentTab();
     };
 
     self.whiteboard_setGraphOpacity = function (source) {
@@ -355,7 +356,7 @@ var Lineage_sources = (function () {
                 if (drawTopConcepts) {
                     Lineage_whiteboard.drawTopConcepts(source, {}, null, function (err) {
                         if (err) {
-                            return MainController.UI.message(err);
+                            return UI.message(err);
                         }
                     });
                 }
@@ -371,14 +372,21 @@ var Lineage_sources = (function () {
                 return alert(err.responseText);
             }
             if (indexedSources.indexOf(source) < 0) {
-                MainController.UI.message("indexing source " + source);
+                UI.message("indexing source " + source);
                 $("#waitImg").css("display", "block");
-                SearchUtil.generateElasticIndex(source, { indexProperties: 1, indexNamedIndividuals: 1 }, function (err, _result) {
-                    if (err) {
-                        return MainController.UI.message(err, true);
+                SearchUtil.generateElasticIndex(
+                    source,
+                    {
+                        indexProperties: 1,
+                        indexNamedIndividuals: 1,
+                    },
+                    function (err, _result) {
+                        if (err) {
+                            return UI.message(err, true);
+                        }
+                        UI.message("ALL DONE", true);
                     }
-                    MainController.UI.message("ALL DONE", true);
-                });
+                );
             }
         });
     };
@@ -391,8 +399,10 @@ var Lineage_sources = (function () {
         if (self.loadedSources[sourceLabel]) {
             return callback();
         }
-
-        OntologyModels.registerSourcesModel(sourceLabel, function (err, result) {
+        if (!Lineage_whiteboard.decorationData[sourceLabel]) {
+            Lineage_whiteboard.loadDecorationData(sourceLabel);
+        }
+        OntologyModels.registerSourcesModel(sourceLabel, null, function (err, result) {
             if (err) {
                 return callback(err);
             }
@@ -425,19 +435,72 @@ sourceDivId +
             return callback();
         });
     };
+    self.registerSourceWithoutDisplayingImports = function (sourceLabel, callback) {
+        if (!callback) {
+            callback = function () {};
+        }
+
+        if (Lineage_sources.loadedSources[sourceLabel]) {
+            return callback();
+        }
+
+        OntologyModels.registerSourcesModel(sourceLabel, null, function (err, result) {
+            if (err) {
+                return callback(err);
+            }
+            if (sourceLabel == MainController.currentSource) {
+                var sourceDivId = "source_" + common.getRandomHexaId(5);
+                Lineage_sources.loadedSources[sourceLabel] = { sourceDivId: sourceDivId };
+                Lineage_sources.sourceDivsMap[sourceDivId] = sourceLabel;
+                var html =
+                    "<div  id='" +
+                    sourceDivId +
+                    "' style='color: " +
+                    Lineage_whiteboard.getSourceColor(sourceLabel) +
+                    ";display:inline-flex;align-items:end;'" +
+                    " class='Lineage_sourceLabelDiv'  " +
+                    ">" +
+                    sourceLabel +
+                    "&nbsp;" +
+                    /*   "<i class='lineage_sources_menuIcon' onclick='Lineage_sources.showSourceDivPopupMenu(\"" +
+    sourceDivId +
+    "\")'>[-]</i>";*/
+                    "<button class='arrow-icon slsv-invisible-button'  style=' width: 20px;height:20px;}' onclick='Lineage_sources.showSourceDivPopupMenu(\"" +
+                    sourceDivId +
+                    "\")'/> </button></div>";
+                $("#lineage_drawnSources").append(html);
+                $("#lineage_drawnSources").find(".arrow-icon").hide();
+                /*
+                $("#" + sourceDivId).bind("click", function (e) {
+                    var sourceDivId = $(this).attr("id");
+                    var source = self.sourceDivsMap[sourceDivId];
+                    Lineage_sources.setCurrentSource(source);
+                });
+                */
+                return callback();
+            } else {
+                return callback();
+            }
+        });
+    };
     self.showSourceDivPopupMenu = function (sourceDivId) {
         event.stopPropagation();
-        var source = Lineage_sources.sourceDivsMap[sourceDivId];
+        let source = Lineage_sources.sourceDivsMap[sourceDivId];
         Lineage_sources.setCurrentSource(source);
-        var html =
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.setSourceOpacity();"> Opacity</span>' +
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.closeSource();"> Close</span>' +
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.hideSource();"> Hide </span>' +
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.showSource();"> Show </span>' +
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.groupSource();"> Group </span>' +
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.ungroupSource();"> ungroup </span>' +
-            ' <span  class="popupMenuItem" onclick="Lineage_sources.menuActions.exportOWL();"> export OWL </span>';
-
+        let html =
+            '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.setSourceOpacity();">Opacity</span>' +
+            '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.closeSource();">Close</span>' +
+            '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.hideSource();">Hide</span>' +
+            '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.showSource();">Show</span>' +
+            '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.groupSource();">Group</span>' +
+            '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.ungroupSource();">Ungroup</span>' +
+            '<span  class="popupMenuItem" onclick="Lineage_sources.menuActions.copyGraphUri();"> copy graph URI </span>';
+        if (source !== "_defaultSource") {
+            if (self.isSourceOwnedByUser(source)) {
+                html += '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.editSource();">Edit</span>';
+            }
+            html += '<span class="popupMenuItem" onclick="Lineage_sources.menuActions.downloadGraph();">Download</span>';
+        }
         PopupMenuWidget.initAndShow(html, "popupMenuWidgetDiv");
     };
 
@@ -676,6 +739,13 @@ sourceDivId +
             }
             Lineage_whiteboard.lineageVisjsGraph.data.nodes.remove(source);
         },
+        copyGraphUri: function (source) {
+            if (!source) {
+                source = Lineage_sources.activeSource;
+            }
+            var graphUri = Config.sources[source].graphUri;
+            common.copyTextToClipboard(graphUri);
+        },
         exportOWL: function (source) {
             if (!source) {
                 source = Lineage_sources.activeSource;
@@ -684,28 +754,27 @@ sourceDivId +
                 if (err) {
                     return console.log(err);
                 }
-
-                common.copyTextToClipboard(result);
-            });
-
-            return;
-
-            var payload = {
-                graphUri: Config.sources[source].graphUri,
-            };
-            $.ajax({
-                type: "GET",
-                url: Config.apiUrl + "/graphStore/graph",
-                data: payload,
-                dataType: "json",
-                success: function (data, _textStatus, _jqXHR) {
-                    common.copyTextToClipboard(data);
-                },
-                error: function (err) {
-                    alert(err.responseText);
-                },
             });
         },
+        editSource: function () {
+            window.EditSourceDialog.open(Lineage_sources.activeSource);
+        },
+        downloadGraph: function () {
+            window.DownloadGraphModal.open(Lineage_sources.activeSource);
+        },
+    };
+
+    self.isSourceOwnedByUser = function (sourceName) {
+        const source = Config.sources[sourceName];
+        if (!source) {
+            return false;
+        }
+
+        if (authentication.currentUser.login == source.owner) {
+            return true;
+        }
+
+        return false;
     };
 
     self.isSourceEditableForUser = function (source) {
@@ -781,36 +850,45 @@ Lineage_whiteboard.lineageVisjsGraph.network.options.edges.font = { color: self.
         }
     };
     self.getSourcesClasses = function (source, callback) {
-        Sparql_OWL.getDictionary(self.activeSource, { selectGraph: true, lang: Config.default_lang, type: "owl:Class" }, null, function (err, result) {
-            if (err) {
-                callback(err);
-            }
+        Sparql_OWL.getDictionary(
+            self.activeSource,
+            {
+                selectGraph: true,
+                lang: Config.default_lang,
+                type: "owl:Class",
+            },
+            null,
+            function (err, result) {
+                if (err) {
+                    callback(err);
+                }
 
-            var sourceObjects = [];
-            var TopLevelOntologyObjects = [];
-            result.forEach(function (item) {
-                if (item.label) {
-                    var prefix = "";
-                    if (Config.currentTopLevelOntology && item.g.value.indexOf(Config.topLevelOntologies[Config.currentTopLevelOntology].uriPattern) > -1) {
-                        prefix = "_" + Config.topLevelOntologies[Config.currentTopLevelOntology].prefix + ":";
+                var sourceObjects = [];
+                var TopLevelOntologyObjects = [];
+                result.forEach(function (item) {
+                    if (item.label) {
+                        var prefix = "";
+                        if (Config.currentTopLevelOntology && item.g.value.indexOf(Config.topLevelOntologies[Config.currentTopLevelOntology].uriPattern) > -1) {
+                            prefix = "_" + Config.topLevelOntologies[Config.currentTopLevelOntology].prefix + ":";
+                        }
+                        sourceObjects.push({ label: prefix + item.label.value, id: item.id.value, type: "Class" });
                     }
-                    sourceObjects.push({ label: prefix + item.label.value, id: item.id.value, type: "Class" });
-                }
-            });
-            sourceObjects.sort(function (a, b) {
-                if (!a.label || !b.label) {
+                });
+                sourceObjects.sort(function (a, b) {
+                    if (!a.label || !b.label) {
+                        return 0;
+                    }
+                    if (a.label > b.label) {
+                        return 1;
+                    }
+                    if (a.label < b.label) {
+                        return -1;
+                    }
                     return 0;
-                }
-                if (a.label > b.label) {
-                    return 1;
-                }
-                if (a.label < b.label) {
-                    return -1;
-                }
-                return 0;
-            });
-            callback(null, sourceObjects);
-        });
+                });
+                callback(null, sourceObjects);
+            }
+        );
     };
 
     self.test3D = function () {

@@ -169,7 +169,7 @@ var util = {
         return /^-?[0-9]+$/.test("" + value);
     },
     isFloat: function(value) {
-        return /^-?[0-9]+[.,]+[0-9]?$/.test("" + value);
+        return /^-?[0-9]+[.,]?[0-9]+$/.test("" + value);
     },
 
     cleanFieldsForNeo: function(obj) {
@@ -230,13 +230,15 @@ var util = {
             return str;
         }
         str = str.trim();
-        if (str.indexOf("http://") == 0) {
+        if (str.indexOf("http://") == 0 || str.indexOf("https://") == 0 ) {
             return str;
         }
         if (!str || !str.replace) {
             return null;
         }
+        
         str = str.trim();
+       
         str = str.replace(/\\/gm, "_");
         str = str.replace(/\n/gm, "\\\\n");
 
@@ -257,7 +259,7 @@ var util = {
             str = str.replace(/\)/gm, "_");
 
             str = str.replace(/[^a-zA-Z0-9-_]/g, "");
-
+            //str = str.replace(/-/g, "_");
 
         }
 
@@ -553,7 +555,7 @@ var util = {
         }
 
         var date = new Date(Date.UTC(year, month, day));
-        return util.dateToRDFString(date);
+        return date.toISOString();
         // return date.toISOString()
 
 
@@ -566,7 +568,7 @@ var util = {
         var array=isoStringdate.match(regex)
         if(!array)
             return null;
-        var str=array[1]+"."+array[2]+"."+array[3]
+        var str=array[1]+"-"+array[2]+"-"+array[3]
 
         if(array.length>4){
             str+=" "+array[4]
@@ -599,6 +601,17 @@ var util = {
             return [output.groups.scheme, output.groups.token];
         }
     }
+
+      ,  getLabelFromURI: function (id) {
+            const p = id.lastIndexOf("#");
+            if (p > -1) {
+                return id.substring(p + 1);
+            } else {
+                const p = id.lastIndexOf("/");
+                return id.substring(p + 1);
+            }
+
+    },
 };
 
 module.exports = util;

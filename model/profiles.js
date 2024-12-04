@@ -1,7 +1,7 @@
 const fs = require("fs");
-const path = require("path");
 const { Lock } = require("async-await-mutex-lock");
-const { configProfilesPath, config, configPlugins } = require("./config");
+const { configProfilesPath, readMainConfig } = require("./config");
+const { toolModel } = require("./tools");
 
 /**
  * @typedef {import("./UserTypes").UserAccount} UserAccount
@@ -12,17 +12,12 @@ const lock = new Lock();
 
 class ProfileModel {
     /**
+     * @param {import("./tools").ToolModel} toolModel
      * @param {string} configProfilesPath - path of the profiles.json file
      */
-    constructor(configProfilesPath) {
+    constructor(toolModel, configProfilesPath) {
+        this._toolModel = toolModel;
         this.configProfilesPath = configProfilesPath;
-        this.plugins = new Array();
-        try {
-            this.plugins = fs.readdirSync(path.join(process.cwd(), "/plugins"));
-        } catch {
-            console.warn("No plugins directory");
-        }
-        this.pluginsConfig = JSON.parse(fs.readFileSync(configPlugins).toString());
     }
 
     /**
@@ -51,6 +46,7 @@ class ProfileModel {
      * @returns {Promise<Record<string, Profile>>} a collection of profiles
      */
     _getAdminProfiles = async (profiles) => {
+        const config = readMainConfig();
         const adminProfile = {
             name: "admin",
             _type: "profile",
@@ -58,8 +54,7 @@ class ProfileModel {
             allowedSourceSchemas: ["OWL", "SKOS"],
             defaultSourceAccessControl: "readwrite",
             sourcesAccessControl: {},
-            allowedTools: "ALL",
-            forbiddenTools: [],
+            allowedTools: config.tools_available,
             theme: config.theme.defaultTheme,
         };
 
@@ -93,40 +88,20 @@ class ProfileModel {
     };
 
     /**
-     * @param {string} toolName - the name of a tool or a plugin
-     */
-    _toolToJSON = (toolName) => {
-        if (this.plugins.includes(toolName)) {
-            return {
-                name: toolName,
-                type: "plugin",
-                config: this.pluginsConfig[toolName],
-            };
-        } else {
-            return {
-                name: toolName,
-                type: "tool",
-            };
-        }
-    };
-
-    /**
      * @param {UserAccount} user -  a user account
      * @returns {Promise<Array<{name: string, type: string}> | undefined>} a list of tools' name
      */
     getUserTools = async (user) => {
         try {
-            const userProfiles = await this.getUserProfiles(user);
-            const allTools = new Set(config.tools_available);
-            const allowedToolsOrAll = new Set(Object.values(userProfiles).flatMap((v) => v.allowedTools));
-            const forbiddenTools = new Set(Object.values(userProfiles).flatMap((v) => v.forbiddenTools));
-            const allowedTools = allowedToolsOrAll.has("ALL") ? allTools : allowedToolsOrAll;
-            const userTools = new Set([...allowedTools].filter((x) => !forbiddenTools.has(x)));
-
+            const config = readMainConfig();
+            const availableToolsNames = new Set(config.tools_available);
             if (user.login === "admin" || user?.groups.includes("admin")) {
-                return [...allTools].map(this._toolToJSON);
+                return this._toolModel.allTools.filter((tool) => availableToolsNames.has(tool.name));
             }
-            return [...userTools].map(this._toolToJSON);
+            const userProfiles = await this.getUserProfiles(user);
+            const allowedToolsOrAll = new Set(Object.values(userProfiles).flatMap((v) => v.allowedTools));
+            const allowedTools = allowedToolsOrAll.has("ALL") ? availableToolsNames : allowedToolsOrAll;
+            return this._toolModel.allTools.filter((tool) => allowedTools.has(tool.name));
         } catch (error) {
             console.log(error);
         }
@@ -227,6 +202,7 @@ class ProfileModel {
      * @returns {string} the theme currently defined for this profile
      */
     getThemeFromProfile = async (profileName) => {
+        const config = readMainConfig();
         try {
             const profiles = await this._read();
 
@@ -244,6 +220,6 @@ class ProfileModel {
     };
 }
 
-const profileModel = new ProfileModel(configProfilesPath);
+const profileModel = new ProfileModel(toolModel, configProfilesPath);
 
 module.exports = { ProfileModel, profileModel };

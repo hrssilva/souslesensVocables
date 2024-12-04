@@ -1,5 +1,4 @@
 import _botEngine from "./_botEngine.js";
-import KGcreator from "../tools/KGcreator/KGcreator.js";
 import OntologyModels from "../shared/ontologyModels.js";
 
 var CommonBotFunctions = (function () {
@@ -29,7 +28,7 @@ var CommonBotFunctions = (function () {
         async.eachSeries(
             sources,
             function (source, callbackEach) {
-                OntologyModels.registerSourcesModel(source, function (err, result) {
+                OntologyModels.registerSourcesModel(source, null, function (err, result) {
                     callbackEach(err);
                 });
             },
@@ -62,7 +61,7 @@ var CommonBotFunctions = (function () {
     };
 
     self.listVocabClasses = function (vocab, varToFill, includeOwlThing, classes, callback) {
-        OntologyModels.registerSourcesModel(vocab, function (err, result) {
+        OntologyModels.registerSourcesModel(vocab, null, function (err, result) {
             if (err) {
                 return alert(err.responseText);
             }
@@ -72,7 +71,7 @@ var CommonBotFunctions = (function () {
 
             for (var key in Config.ontologiesVocabularyModels[vocab].classes) {
                 var classId = Config.ontologiesVocabularyModels[vocab].classes[key];
-                classes.push({ id: classId.id, label: classId.label });
+                classes.push({ id: classId.id, label: classId.label, source: vocab });
             }
 
             self.sortList(classes);
@@ -87,15 +86,18 @@ var CommonBotFunctions = (function () {
     };
 
     self.listVocabPropertiesFn = function (vocab, varToFill, props, callback) {
-        OntologyModels.registerSourcesModel(vocab, function (err, result) {
+        OntologyModels.registerSourcesModel(vocab, null, function (err, result) {
             if (!props) {
                 props = [];
             }
             for (var key in Config.ontologiesVocabularyModels[vocab].properties) {
                 var prop = Config.ontologiesVocabularyModels[vocab].properties[key];
-                props.push({ id: prop.id, label: prop.label });
+                props.push({ id: prop.id, label: prop.label, source: vocab });
             }
             if (props.length == 0) {
+                if (callback) {
+                    return callback(null, props);
+                }
                 return _botEngine.previousStep("no values found, try another option");
             }
 
@@ -118,12 +120,12 @@ var CommonBotFunctions = (function () {
         async.eachSeries(
             vocabs,
             function (vocab, callbackEach) {
-                OntologyModels.registerSourcesModel(vocab, function (err, result) {
+                OntologyModels.registerSourcesModel(vocab, null, function (err, result) {
                     var props2 = Config.ontologiesVocabularyModels[vocab].nonObjectProperties;
                     for (var key in props2) {
                         var prop = props2[key];
                         if (!domain || !prop.domain || domain == prop.domain || prop.domain == "http://www.w3.org/2000/01/rdf-schema#Resource") {
-                            props.push({ id: prop.id, label: vocab + ":" + prop.label, domain: prop.domain, range: prop.range });
+                            props.push({ id: prop.id, label: vocab + ":" + prop.label, domain: prop.domain, range: prop.range, source: vocab });
                         }
                     }
                     callbackEach();
@@ -131,6 +133,9 @@ var CommonBotFunctions = (function () {
             },
             function (err) {
                 if (props.length == 0) {
+                    if (callback) {
+                        return callback(null, props);
+                    }
                     return _botEngine.previousStep("no values found, try another option");
                 }
                 self.sortList(props);
@@ -177,6 +182,28 @@ var CommonBotFunctions = (function () {
             },
             function (err) {
                 return callback(err, allProps);
+            }
+        );
+    };
+    self.listSourceAllObjectPropertiesConstraints = function (source, varToFill, callback) {
+        var sources = self.getSourceAndImports(source);
+        var allConstraints = {};
+        async.eachSeries(
+            sources,
+            function (source, callbackEach) {
+                var constraints = Config.ontologiesVocabularyModels[vocab].constraints;
+                if (err) {
+                    return callbackEach(err);
+                }
+                for (var prop in constraints) {
+                    allConstraints[prop] = constraints[prop];
+                }
+
+                callbackEach();
+            },
+
+            function (err) {
+                return callback(err, allConstraints);
             }
         );
     };

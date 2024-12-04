@@ -3,10 +3,10 @@ type Profile = {
     _type: string;
     id: string;
     allowedSourceSchemas: string[];
-    allowedTools: string | string[];
-    forbiddenTools: string[];
+    allowedTools: string[];
     defaultSourceAccessControl: string;
     sourcesAccessControl: {};
+    theme: string;
 };
 
 export { Profile };

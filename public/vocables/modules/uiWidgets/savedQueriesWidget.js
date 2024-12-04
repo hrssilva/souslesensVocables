@@ -27,10 +27,11 @@ var SavedQueriesWidget = (function () {
         self.saveQueryFn = saveQueryFn;
         self.loadQueryFn = loadQueryFn;
         self.slsvSource = slsvSource;
-        if (targetDiv.indexOf("Dialog") > -1) {
-            $("#" + targetDiv).dialog("open");
-        }
-        $("#" + targetDiv).load("snippets/savedQueriesWidget.html", function () {
+
+        $("#" + targetDiv).load("./modules/uiWidgets/html/savedQueriesWidget.html", function () {
+            if (targetDiv.indexOf("Dialog") > -1) {
+                $("#" + targetDiv).dialog("open");
+            }
             if (slsvSource) {
                 self.list(CRUDsource, slsvSource, scope);
             }
@@ -86,7 +87,7 @@ var SavedQueriesWidget = (function () {
         });
     };
 
-    self.loadItem = function (uri, options) {
+    self.loadItem = function (uri, options, callback) {
         var filter = "FILTER (?s =<" + uri + ">) ";
         var options = {
             filter: filter,
@@ -102,7 +103,9 @@ var SavedQueriesWidget = (function () {
                 var predicate = triple.p.value;
                 if (predicate.indexOf(self.contentPredicate) > -1) {
                     var content = JSON.parse(atob(triple.o.value));
-
+                    if (callback) {
+                        return callback(null, content);
+                    }
                     return self.loadQueryFn(null, content);
                 }
             });

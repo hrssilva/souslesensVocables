@@ -1,11 +1,7 @@
-const HttpProxy = require("../../../../bin/httpProxy.");
-const ConfigManager = require("../../../../bin/configManager.");
-const GraphStore = require("../../../../bin/graphStore.");
-const Util = require("../../../../bin/util.");
-const fs = require("fs");
 const { processResponse } = require("../utils");
 const request = require("request");
 const async = require("async");
+const ConfigManager = require("../../../../bin/configManager.");
 
 //https://jena.apache.org/documentation/inference/
 
@@ -15,26 +11,37 @@ module.exports = function () {
     };
 
     function GET(req, res, next) {
-
-        var jowlConfigUrl="https://sls.kg-alliance.org/jowl/manchester/manchester2triples"
-
-        var payload={
-            input:req.query.manchesterContent,
-            graphName:req.query.graphUri
+        const jowlServerConfig = ConfigManager.config.jowlServer;
+        if (!jowlServerConfig.enabled) {
+            res.status(500).json({ message: "Jowl Server is disable"});
         }
-                    var options = {
-                        method: "POST",
-                        json: payload,
-                        headers: {
-                            "content-type": "application/json",
-                        },
-                        url: jowlConfigUrl,
-                    };
-                    request(options, function (error, response, body) {
-                        return processResponse(res, error, body);
-                    });
-                }
 
+        let jowlConfigUrl = jowlServerConfig.url;
+        if (!jowlConfigUrl.endsWith("/")) {
+            jowlConfigUrl += "/";
+        }
+        jowlConfigUrl += "axioms/manchester2triples";
+
+        const payload = {
+            input: req.query.manchesterContent,
+            graphName: req.query.graphUri,
+            "classUri": req.query.classUri,
+            "axiomType":  req.query.axiomType,
+            "saveTriples": (req.query.saveTriples=="true") ? true : false,
+            "checkConsistency": (req.query.checkConsistency=="true") ? true : false,
+        }
+        const options = {
+            method: "POST",
+            json: payload,
+            headers: {
+                "content-type": "application/json",
+            },
+            url: jowlConfigUrl,
+        };
+        request(options, function (error, response, body) {
+            return processResponse(res, error, body);
+        });
+    }
 
     GET.apiDoc = {
         security: [{ restrictLoggedUser: [] }],
@@ -59,7 +66,28 @@ module.exports = function () {
 
 
             {
-                name: "options",
+                name: "classUri",
+                description: "JSON ",
+                in: "query",
+                type: "string",
+                required: false,
+            },
+            {
+                name: "axiomType",
+                description: "JSON ",
+                in: "query",
+                type: "string",
+                required: false,
+            },
+            {
+                name: "saveTriples",
+                description: "JSON ",
+                in: "query",
+                type: "string",
+                required: false,
+            },
+            {
+                name: "checkConsistency",
                 description: "JSON ",
                 in: "query",
                 type: "string",

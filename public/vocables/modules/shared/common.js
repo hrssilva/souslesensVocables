@@ -7,6 +7,7 @@
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+import Sparql_common from "../sparqlProxies/sparql_common.js";
 
 var common = (function () {
     var self = {};
@@ -272,6 +273,20 @@ var common = (function () {
             });
             return c;
         },
+        toMap: function (array, key) {
+            var map = {};
+            array.forEach(function (item) {
+                if (item[key]) map[item[key]] = item;
+            });
+            return map;
+        },
+        insertFirstArray: function (array, first) {
+            let index = array.indexOf(first);
+            if (index > -1) {
+                array.splice(index, 1);
+                array.unshift(first);
+            }
+        },
     };
 
     self.concatArraysWithoutDuplicate = function (array, addedArray, key) {
@@ -463,7 +478,7 @@ str = str.replace(/%2F/gm, "/");*/
                         return alert("graph copied in clipboard");
                     }
                 } catch (err) {
-                    MainController.UI.message("graph copy failed");
+                    UI.message("graph copy failed");
                     if (callback) {
                         return callback(err);
                     }
@@ -489,7 +504,7 @@ str = str.replace(/%2F/gm, "/");*/
                             return alert("graph copied in clipboard");
                         }
                     } else {
-                        MainController.UI.message("graph copy failed");
+                        UI.message("graph copy failed");
                         if (callback) {
                             return callback(err);
                         }
@@ -505,7 +520,7 @@ if (callback) {
 return callback(null, "graph copied in clipboard");
 } else return alert("graph copied in clipboard");
 } catch (err) {
-MainController.UI.message("graph copy failed");
+UI.message("graph copy failed");
 if (callback) return callback(err);
 }*/
         }
@@ -644,7 +659,14 @@ if (callback) return callback(err);
             }
             return str;
         });
-
+    self.ISODateStrToRDFString = function (date) {
+        if (date) {
+            date = date.replace(/-/g, ".");
+            date = date.replace("T", " ");
+            date = date.replace("Z", "");
+        }
+        return date;
+    };
     // var dateTime='2000-01-15T00:00:00'
 
     self.dateToRDFString = function (date, time) {
@@ -906,8 +928,110 @@ if (callback) return callback(err);
 
     self.countStringsInString = (string, char) => {
         const array = string.match(new RegExp(char, "g"));
-        if (!array) return 0;
+        if (!array) {
+            return 0;
+        }
         return array.length;
+    };
+
+    self.ISODateStrToRDFString = function (isoStringdate) {
+        // isoString 2022-12-31T230000.000Z
+        //  internal virtuoso date YYYY.MM.DD hh:mm.ss
+        //   var regex = /(\d{4})-(\d{2})-(\d{2})T(\d{2})(\d{2})(\d{2})/;
+        var regex = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/; //escape msec
+
+        var array = isoStringdate.match(regex);
+        if (!array) {
+            return null;
+        }
+        var str = array[1] + "-" + array[2] + "-" + array[3];
+        if (array.length > 4) {
+            str += " " + array[4];
+        }
+        if (array.length > 5) {
+            str += ":" + array[5];
+        }
+        if (array.length > 6) {
+            str += ":" + array[6];
+        }
+        return str;
+    };
+    self.RDFStringToISODateStr = function (RDFString) {
+        // isoString 2022-12-31T230000.000Z
+        //  internal virtuoso date YYYY.MM.DD hh:mm.ss
+        var regex = /(\d{4}).(\d{2}).(\d{2}) (\d{2}):(\d{2}):(\d{2})/;
+        var array = RDFString.match(regex);
+        if (!array) {
+            return null;
+        }
+        var str = array[1] + "-" + array[2] + "-" + array[3];
+        if (array.length > 4) {
+            str += "T" + array[4];
+        }
+        if (array.length > 5) {
+            str += ":" + array[5];
+        }
+        if (array.length > 6) {
+            str += ":" + array[6] + "Z";
+        }
+        return str;
+    };
+
+    self.getSimpleDateStrFromDate = function (date) {
+        var day = date.getDate();
+        var month = date.getMonth() + 1;
+        var year = date.getFullYear();
+        if (day < 10) day = "0" + day;
+        if (month < 10) month = "0" + month;
+        return year + "-" + month + "-" + day;
+    };
+    self.storeLocally = function (stringToStore, localStorageVar, satckSize) {
+        var Varcontent = JSON.parse(localStorage.getItem(localStorageVar));
+        if (!Varcontent) {
+            Varcontent = [];
+            Varcontent.push(stringToStore);
+            localStorage.setItem(localStorageVar, JSON.stringify(Varcontent));
+        }
+        if (Varcontent && !Varcontent.includes(stringToStore)) {
+            if (Varcontent.length >= satckSize) {
+                Varcontent.shift();
+            }
+            Varcontent.push(stringToStore);
+
+            localStorage.setItem(localStorageVar, JSON.stringify(Varcontent));
+        }
+    };
+    self.getVocabularyFromURI = function (uri) {
+        var result = null;
+        uri = uri.replace("https:", "http:");
+        Object.keys(Config.ontologiesVocabularyModels).forEach(function (vocabulary) {
+            var graphURI = Config.ontologiesVocabularyModels[vocabulary].graphUri.replace("https:", "http:");
+
+            var spliting = uri.split(graphURI);
+            if (spliting.length > 1) {
+                result = [vocabulary, spliting[1].replace(/^\W/, "")];
+            }
+        });
+        return result;
+    };
+
+    self.getpointCoordinatesAtAngle = function (x, y, angle, distance) {
+        var result = {};
+
+        result.x = Math.round(Math.cos((angle * Math.PI) / 180) * distance + x);
+        result.y = Math.round(Math.sin((angle * Math.PI) / 180) * distance + y);
+
+        return result;
+    };
+    self.getRestrictionCardinalityLabel = function (type, value) {
+        var str = "";
+        if (type && type.indexOf("ardinality") > -1 && value) {
+            var typeStr = Sparql_common.getLabelFromURI(type).toLowerCase().replace("cardinality", "");
+            var valueStr = value.split("^")[0];
+            str = typeStr + " " + valueStr;
+        }
+
+        return str;
     };
 
     return self;

@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 # Configure and install Java
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
-RUN apk add --update --no-cache openjdk11
+RUN apk add --update --no-cache openjdk11 git
 
 # Install npm packages
 WORKDIR /app
@@ -22,4 +22,4 @@ ENV USER_PASSWORD="admin"
 ENV DEFAULT_SPARQL_URL="http://localhost:8890/sparql"
 
 # Entrypoint
-CMD sh /app/entrypoint.sh
+CMD ["sh", "/app/entrypoint.sh"]

@@ -1,4 +1,3 @@
-version: "3"
 services:
     vocables:
         restart: unless-stopped
@@ -11,8 +10,7 @@ services:
         volumes:
             - "${DATA_ROOT_DIR:-/tmp}/souslesens/vocables/config:/app/config"
             - "${DATA_ROOT_DIR:-/tmp}/souslesens/vocables/logs:/app/logs"
-            - "${DATA_ROOT_DIR:-/tmp}/souslesens/vocables/data/CSV:/app/data/CSV"
-            - "${DATA_ROOT_DIR:-/tmp}/souslesens/vocables/data/mappings:/app/data/mappings"
+            - "${DATA_ROOT_DIR:-/tmp}/souslesens/vocables/data:/app/data"
             - "${DATA_ROOT_DIR:-/tmp}/slsv-plugins:/app/plugins:ro"
 
         environment:
@@ -35,7 +33,7 @@ services:
             - backend
 
     virtuoso:
-        image: askomics/virtuoso:7.2.7
+        image: askomics/virtuoso:7.2.14
         ports:
             - ${VIRTUOSO_LISTEN_PORT:-8890}:8890
         environment:

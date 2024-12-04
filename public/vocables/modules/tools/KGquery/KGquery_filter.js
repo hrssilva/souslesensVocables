@@ -97,6 +97,7 @@ var KGquery_filter = (function () {
         };
         JstreeWidget.loadJsTree(null, jstreeData, jstreeOptions, function () {
             JstreeWidget.openNodeDescendants(null, "root");
+
             if (queryNonObjectProperties.length < KGquery.maxOptionalPredicatesInQuery) {
                 JstreeWidget.checkAll();
             } else {
@@ -137,7 +138,6 @@ var KGquery_filter = (function () {
             if (confirm("many properties have been selected. Query may take time or abort, Continue anyway?")) {
                 //  return callback(null, queryNonObjectProperties);
             } else {
-                $("#smallDialogDiv").dialog("open");
                 return callback("query aborted");
             }
         }
@@ -165,7 +165,7 @@ var KGquery_filter = (function () {
             var str = optionalStr + " {?" + data.varName + " " + propertyStr + " ?" + data.varName + "_" + data.property.label + ".}\n";
             optionalPredicatesSparql = addToStringIfNotExists(str, optionalPredicatesSparql);
         });
-
+        KGquery.currentSelectedPredicates = selectedPropertyNodes;
         return callback(null, optionalPredicatesSparql);
     };
 
@@ -187,7 +187,7 @@ var KGquery_filter = (function () {
         var str = "";
         for (var key in groupByPredicates) {
             var obj = groupByPredicates[key];
-            str += " ?" + obj.classLabel + " <" + obj.prop.id + "> ?" + obj.label + ". ";
+            str += " ?" + obj.classLabel + " <" + obj.prop.id + "> ?" + obj.label + ". \n";
         }
 
         return str;

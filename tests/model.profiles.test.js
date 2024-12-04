@@ -1,6 +1,10 @@
 const fs = require("fs");
-const { ProfileModel } = require("../model/profiles");
 const path = require("path");
+const { ProfileModel } = require("../model/profiles");
+const { ToolModel } = require("../model/tools");
+const { config } = require("../model/config");
+
+const TOOL_MODEL = new ToolModel(path.join(__dirname, "data/plugins"));
 
 describe("ProfileModel", () => {
     /**
@@ -8,14 +12,17 @@ describe("ProfileModel", () => {
      */
 
     let profileModel;
+    /**
+     * @type {Record<string, import("../model/ProfileTypes").Profile>}
+     */
     let profilesFromFiles;
     beforeAll(async () => {
-        profileModel = new ProfileModel(path.join(__dirname, "data/config/profiles.json"));
+        profileModel = new ProfileModel(TOOL_MODEL, path.join(__dirname, "data/config/profiles.json"));
         profilesFromFiles = await fs.promises.readFile(path.join(__dirname, "data/config/profiles.json")).then((data) => JSON.parse(data.toString()));
     });
 
     test("Can create instance", async () => {
-        new ProfileModel(path.join(__dirname, "data/config/profiles.json"));
+        new ProfileModel(TOOL_MODEL, path.join(__dirname, "data/config/profiles.json"));
     });
 
     test("Can get all profiles if user is admin", async () => {
@@ -32,9 +39,8 @@ describe("ProfileModel", () => {
                 allowedSourceSchemas: ["OWL", "SKOS"],
                 defaultSourceAccessControl: "readwrite",
                 sourcesAccessControl: {},
-                allowedTools: "ALL",
-                forbiddenTools: [],
-                theme: "Sea Breeze",
+                allowedTools: config.tools_available,
+                theme: config.theme.defaultTheme,
             },
         };
         expect(profiles).toStrictEqual(expectedResult);

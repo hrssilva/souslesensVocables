@@ -1,55 +1,61 @@
+import { useState, useReducer, ChangeEvent, Dispatch } from "react";
 import {
-    Alert,
-    Button,
-    Checkbox,
-    Chip,
-    FormControl,
-    FormControlLabel,
-    InputLabel,
-    MenuItem,
-    Modal,
-    Select,
-    TextField,
     Box,
     CircularProgress,
-    Table,
-    TableBody,
-    TableCell,
-    Paper,
+    Alert,
+    Stack,
+    TextField,
     TableContainer,
+    Paper,
+    Table,
     TableHead,
     TableRow,
-    Stack,
-    InputAdornment,
-    IconButton,
+    TableCell,
+    TableSortLabel,
+    TableBody,
+    Chip,
+    Button,
+    Modal,
+    FormControl,
+    InputLabel,
     OutlinedInput,
+    Select,
+    MenuItem,
+    Checkbox,
+    FormControlLabel,
+    SelectChangeEvent,
 } from "@mui/material";
 
-import TableSortLabel from "@mui/material/TableSortLabel";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-
-import { useModel } from "../Admin";
-import * as React from "react";
+import CsvDownloader from "react-csv-downloader";
 import { SRD } from "srd";
-import { identity, style } from "../Utils";
-import { newUser, deleteUser, putUsersBis, User } from "../User";
 import { ulid } from "ulid";
+
+import { Msg, useModel } from "../Admin";
+import { cleanUpText, identity, style } from "../Utils";
+import { newUser, deleteUser, putUsersBis, User } from "../User";
 import { ButtonWithConfirmation } from "./ButtonWithConfirmation";
 import { PasswordField } from "./PasswordField";
-import Autocomplete from "@mui/material/Autocomplete";
-import CsvDownloader from "react-csv-downloader";
+import { writeLog } from "../Log";
 
 const UsersTable = () => {
     const { model, updateModel } = useModel();
-    const [filteringChars, setFilteringChars] = React.useState("");
-    const [orderBy, setOrderBy] = React.useState<keyof User>("login");
-    const [order, setOrder] = React.useState<Order>("asc");
+    const [filteringChars, setFilteringChars] = useState("");
+    const [orderBy, setOrderBy] = useState<keyof User>("login");
+    const [order, setOrder] = useState<Order>("asc");
     type Order = "asc" | "desc";
+
+    const me = SRD.withDefault("", model.me);
+
     function handleRequestSort(property: keyof User) {
         const isAsc = orderBy === property && order === "asc";
         setOrder(isAsc ? "desc" : "asc");
         setOrderBy(property);
     }
+
+    const handleDeleteUser = (user: User, updateModel: Dispatch<Msg>) => {
+        void deleteUser(user, updateModel);
+        void writeLog(me, "ConfigEditor", "delete", user.login);
+    };
 
     const renderUsers = SRD.match(
         {
@@ -66,8 +72,8 @@ const UsersTable = () => {
             ),
             success: (gotUsers: User[]) => {
                 const sortedUsers: User[] = gotUsers.slice().sort((a: User, b: User) => {
-                    let left: string = "";
-                    let right: string = "";
+                    let left = "";
+                    let right = "";
 
                     if (a[orderBy] instanceof Array) {
                         left = a[orderBy].toString();
@@ -79,25 +85,25 @@ const UsersTable = () => {
 
                     return order === "asc" ? left.localeCompare(right) : right.localeCompare(left);
                 });
-                const datas = gotUsers.map((user) => {
+                const csvData = gotUsers.map((user) => {
                     const { groups, _type, password, ...restOfProperties } = user;
                     const data = {
                         ...restOfProperties,
+                        maxNumberCreatedSource: restOfProperties.maxNumberCreatedSource.toString(),
+                        allowSourceCreation: restOfProperties.allowSourceCreation ? "1" : "0",
                         profiles: groups.join(";"),
                     };
 
                     return data;
                 });
                 return (
-                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ mx: 12, my: 4 }} useFlexGap>
-                        <Autocomplete
-                            disablePortal
+                    <Stack direction="column" spacing={{ xs: 2 }} sx={{ m: 4 }} useFlexGap>
+                        <TextField
+                            label="Search Users by login"
                             id="search-users"
-                            options={gotUsers.map((user) => user.login)}
-                            onInputChange={(event, newInputValue) => {
-                                setFilteringChars(newInputValue);
+                            onChange={(event) => {
+                                setFilteringChars(event.target.value);
                             }}
-                            renderInput={(params) => <TextField {...params} label="Search Users by login" />}
                         />
                         <TableContainer sx={{ height: "400px" }} component={Paper}>
                             <Table stickyHeader>
@@ -118,12 +124,14 @@ const UsersTable = () => {
                                                 Profiles
                                             </TableSortLabel>
                                         </TableCell>
-                                        <TableCell align="center" style={{ fontWeight: "bold" }}>Actions</TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold" }}>
+                                            Actions
+                                        </TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody sx={{ width: "100%", overflow: "visible" }}>
                                     {sortedUsers
-                                        .filter((user) => user.login.includes(filteringChars))
+                                        .filter((user) => cleanUpText(user.login).includes(cleanUpText(filteringChars)))
                                         .map((user) => {
                                             return (
                                                 <TableRow key={user.id}>
@@ -131,13 +139,15 @@ const UsersTable = () => {
                                                     <TableCell>{user.login}</TableCell>
                                                     <TableCell>
                                                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                                                            {user.groups.map((group) => <Chip label={group} size="small" />)}
+                                                            {user.groups.map((group) => (
+                                                                <Chip key={group} label={group} size="small" />
+                                                            ))}
                                                         </Stack>
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                                                            <UserForm id={`edit-button-${user.id}`} maybeuser={user} />
-                                                            <ButtonWithConfirmation label="Delete" msg={() => deleteUser(user, updateModel)} />
+                                                            <UserForm id={`edit-button-${user.id}`} maybeuser={user} me={me} />
+                                                            <ButtonWithConfirmation label="Delete" msg={() => handleDeleteUser(user, updateModel)} />
                                                         </Stack>
                                                     </TableCell>
                                                 </TableRow>
@@ -147,10 +157,10 @@ const UsersTable = () => {
                             </Table>
                         </TableContainer>
                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
-                            <CsvDownloader separator="&#9;" filename="users" extension=".tsv" datas={datas as Datas}>
+                            <CsvDownloader separator="&#9;" filename="users" extension=".tsv" datas={csvData}>
                                 <Button variant="outlined">Download CSV</Button>
                             </CsvDownloader>
-                            <UserForm id={`create-button`} create={true} />
+                            <UserForm id={`create-button`} create={true} me={me} />
                         </Stack>
                     </Stack>
                 );
@@ -174,7 +184,10 @@ const enum Mode {
     Edition,
 }
 
-type Msg_ = { type: Type.UserClickedModal; payload: boolean } | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string } } | { type: Type.ResetUser; payload: Mode };
+export type Msg_ =
+    | { type: Type.UserClickedModal; payload: boolean }
+    | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string | string[] | boolean | number } }
+    | { type: Type.ResetUser; payload: Mode };
 
 const updateUser = (userEditionState: UserEditionState, msg: Msg_): UserEditionState => {
     //console.log(Type[msg.type], msg.payload)
@@ -182,7 +195,7 @@ const updateUser = (userEditionState: UserEditionState, msg: Msg_): UserEditionS
     const unwrappedUsers = SRD.unwrap([], identity, model.users);
     const getUnmodifiedUsers = unwrappedUsers.reduce((acc, value) => (userEditionState.userForm.id === value.id ? value : acc), newUser(ulid()));
     const resetSourceForm = msg.payload ? userEditionState.userForm : getUnmodifiedUsers;
-    const fieldToUpdate: any = msg.type === Type.UserUpdatedField ? msg.payload.fieldname : null;
+    const fieldToUpdate = msg.type === Type.UserUpdatedField ? msg.payload.fieldname : "";
     switch (msg.type) {
         case Type.UserClickedModal:
             return { ...userEditionState, modal: msg.payload };
@@ -201,35 +214,27 @@ const updateUser = (userEditionState: UserEditionState, msg: Msg_): UserEditionS
 };
 
 type UserFormProps = {
+    me: string;
     maybeuser?: User;
     create?: boolean;
     id: string;
 };
 
-const UserForm = ({ maybeuser: maybeUser, create = false, id }: UserFormProps) => {
+const UserForm = ({ maybeuser: maybeUser, create = false, id, me = "" }: UserFormProps) => {
     const user = maybeUser ? maybeUser : newUser(ulid());
     const { model, updateModel } = useModel();
     const unwrappedProfiles = SRD.unwrap([], identity, model.profiles);
 
-    const [userModel, update] = React.useReducer(updateUser, { modal: false, userForm: user });
-    const [displayPassword, setDisplayPassword] = React.useState(false);
-
-    const handleClickShowPassword = () => {
-        setDisplayPassword(!displayPassword);
-    };
-
-    const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
+    const [userModel, update] = useReducer(updateUser, { modal: false, userForm: user });
 
     const handleOpen = () => update({ type: Type.UserClickedModal, payload: true });
     const handleClose = () => update({ type: Type.UserClickedModal, payload: false });
-    const handleFieldUpdate = (fieldname: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-        let value = event.target.value;
+    const handleFieldUpdate = (fieldname: string) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string | string[]>) => {
+        let value: string | string[] | boolean | number = event.target.value;
         if (fieldname === "allowSourceCreation") {
             value = event.target.value === "true" ? false : true;
         }
-        if (fieldname === "maxNumberCreatedSource") {
+        if (fieldname === "maxNumberCreatedSource" && !Array.isArray(event.target.value)) {
             value = parseInt(event.target.value);
             if (value < 0 || isNaN(value)) {
                 value = 0;
@@ -237,15 +242,25 @@ const UserForm = ({ maybeuser: maybeUser, create = false, id }: UserFormProps) =
         }
         update({ type: Type.UserUpdatedField, payload: { fieldname: fieldname, newValue: value } });
     };
-    const saveSources = () => {
-        if (create) {
-            void putUsersBis(userModel.userForm, Mode.Creation, updateModel, update);
-        } else {
-            void putUsersBis(userModel.userForm, Mode.Edition, updateModel, update);
-        }
+    const saveUser = () => {
+        void putUsersBis(userModel.userForm, create ? Mode.Creation : Mode.Edition, updateModel, update);
+        const mode = create ? "create" : "edit";
+        void writeLog(me, "ConfigEditor", mode, userModel.userForm.login);
     };
 
-    const config = SRD.unwrap({ auth: "json", tools_available: [] }, identity, model.config);
+    const config = SRD.unwrap(
+        {
+            auth: "json",
+            tools_available: [],
+            defaultGroups: [],
+            theme: {
+                defaultTheme: "",
+                selector: false,
+            },
+        },
+        identity,
+        model.config
+    );
     const createEditButton = (
         <Button id={id} color="primary" variant="contained" onClick={handleOpen}>
             {create ? "Create User" : "Edit"}
@@ -316,7 +331,7 @@ const UserForm = ({ maybeuser: maybeUser, create = false, id }: UserFormProps) =
                             />
                         </FormControl>
 
-                        <Button id="btn-save-user" color="primary" variant="contained" onClick={saveSources}>
+                        <Button id="btn-save-user" color="primary" variant="contained" onClick={saveUser}>
                             Save User
                         </Button>
                     </Stack>
@@ -326,4 +341,4 @@ const UserForm = ({ maybeuser: maybeUser, create = false, id }: UserFormProps) =
     );
 };
 
-export { UsersTable, Msg_, Type, Mode };
+export { UsersTable, Type, Mode };
