@@ -5,7 +5,7 @@ module.exports = function () {
         POST,
     };
 
-    async function POST(req, res, next) {
+    async function POST(req, res, _next) {
         const indices = req.body.indices;
         const uris = req.body.uris;
 
@@ -37,6 +37,7 @@ module.exports = function () {
             },
         ],
         responses: { 200: { description: "results", schema: { type: "object" } } },
+        tags: ["ElasticSearch"],
     };
     return operations;
 };

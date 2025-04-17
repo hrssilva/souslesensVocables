@@ -50,7 +50,7 @@ var CreateResource_bot = (function () {
                 // "owl:ObjectProperty": { promptResourceLabelFn: { listVocabsFn: { listObjectPropertiesfn: self.workflow_saveResource } } },
 
                 "owl:NamedIndividual": { promptResourceLabelFn: { listVocabsFn: { listClassTypesFn: self.workflow_saveResource } } },
-                DatatypeProperty: self.workFlowDatatypeProperty,
+                DatatypeProperty: { promptDatatypePropertyLabelFn: { listDatatypePropertyDomainFn: { listDatatypePropertyRangeFn: { createDataTypePropertyFn: {} } } } },
                 ImportClass: { listVocabsFn: { listSuperClassesFn: self.workflow_saveResource } },
                 ImportSource: { listImportsFn: { saveImportSource: self.workflow_end } },
             },
@@ -82,8 +82,8 @@ var CreateResource_bot = (function () {
                 { id: "owl:NamedIndividual", label: "Individual" },
                 // { id: "owl:ObjectProperty", label: "ObjectProperty" },
                 { id: "DatatypeProperty", label: "DatatypeProperty" },
-                { id: "ImportClass", label: "Import Class" },
-                { id: "ImportSource", label: "Add import source " },
+                //   { id: "ImportClass", label: "Import Class" },
+                //  { id: "ImportSource", label: "Add import source " },
             ];
             _botEngine.showList(choices, "resourceType");
         },
@@ -95,7 +95,7 @@ var CreateResource_bot = (function () {
         promptResourceLabelFn: function () {
             _botEngine.promptValue("resource label ", "resourceLabel");
             /*  self.params.resourceLabel = prompt("resource label ");
-            _botEngine.writeCompletedHtml(self.params.resourceLabel);
+            _botEngine.insertBotMessage(self.params.resourceLabel);
             _botEngine.nextStep();*/
         },
 

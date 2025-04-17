@@ -12,7 +12,7 @@ module.exports = function () {
     };
 
     ///// GET api/v1/sources
-    async function GET(req, res, next) {
+    async function GET(req, res, _next) {
         try {
             const userInfo = await userManager.getUser(req.user);
             let localSourceModel = sourceModel;
@@ -30,7 +30,7 @@ module.exports = function () {
         }
     }
     GET.apiDoc = {
-        summary: "Returns all sources",
+        summary: "Returns all user accessible sources",
         security: [{ restrictLoggedUser: [] }],
         operationId: "getSources",
         responses: responseSchema("Sources", "GET"),
@@ -43,6 +43,7 @@ module.exports = function () {
                 required: false,
             },
         ],
+        tags: ["Sources"],
     };
     ///// POST api/v1/sources
     async function POST(req, res, next) {
@@ -73,7 +74,7 @@ module.exports = function () {
                         value.published = false;
                     }
                     await sourceModel.addSource(value);
-                })
+                }),
             );
             const sources = await sourceModel.getAllSources();
             res.status(200).json(successfullyCreated(sources));
@@ -87,6 +88,7 @@ module.exports = function () {
         operationId: "updateSources",
         parameters: [],
         responses: responseSchema("Sources", "POST"),
+        tags: ["Sources"],
     };
 
     return operations;

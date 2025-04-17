@@ -8,6 +8,8 @@ import Export from "../../shared/export.js";
 import Sparql_common from "../../sparqlProxies/sparql_common.js";
 import SparqlQueryUI from "../sparqlQueryUI.js";
 import SourceSelectorWidget from "../../uiWidgets/sourceSelectorWidget.js";
+import OntologyModels from "../../shared/ontologyModels.js";
+import UIcontroller from "../mappingModeler/uiController.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var Admin = (function () {
@@ -84,10 +86,17 @@ $("#sourceDivControlPanelDiv").html(html);*/
                     return callbackEach();
                 }
                 $("#waitImg").css("display", "block");
-                SearchUtil.generateElasticIndex(source, { indexProperties: 1, indexNamedIndividuals: 1 }, function (err, _result) {
-                    UI.message("DONE " + source, true);
-                    callbackEach(err);
-                });
+                SearchUtil.generateElasticIndex(
+                    source,
+                    {
+                        indexProperties: 1,
+                        indexNamedIndividuals: 1,
+                    },
+                    function (err, _result) {
+                        UI.message("DONE " + source, true);
+                        callbackEach(err);
+                    },
+                );
             },
             function (err) {
                 if (err) {
@@ -95,7 +104,7 @@ $("#sourceDivControlPanelDiv").html(html);*/
                 }
                 UI.message("ALL DONE", true);
                 $("#sourceSelector_jstreeDiv").jstree(true).uncheck_all();
-            }
+            },
         );
     };
 
@@ -229,7 +238,7 @@ $("#sourceDivControlPanelDiv").html(html);*/
         if (propId && inversePropId) {
             Sparql_OWL.generateInverseRestrictions(source, propId, inversePropId, function (err, result) {
                 if (err) {
-                    return alert(err);
+                    return alert(err.responseText || err);
                 }
                 UI.message(result + " restrictions created");
             });
@@ -238,29 +247,22 @@ $("#sourceDivControlPanelDiv").html(html);*/
         }
     };
 
-    self.clearOntologyModelCache = function () {
-        var sources = SourceSelectorWidget.getCheckedSources();
-        var source;
-        if (sources.length == 0) {
-            if (!confirm("clear all ontologyModel cache")) return;
-            else source = null;
-        } else source = sources[0];
-        const params = new URLSearchParams({
-            source: source,
-        });
+    self.clearOntologyModelCache = function (source) {
+        if (!source) {
+            var sources = SourceSelectorWidget.getCheckedSources();
 
-        var x = params.toString();
-        $.ajax({
-            type: "DELETE",
-            url: Config.apiUrl + "/ontologyModels?" + params.toString(),
-            dataType: "json",
+            if (sources.length == 0) {
+                return alert("select a source");
+            } else {
+                source = sources[0];
+            }
+        }
+        OntologyModels.clearOntologyModelCache(source, function (err, result) {
+            if (err) {
+                return alert(err.responseText || err);
+            }
 
-            success: function (data, _textStatus, _jqXHR) {
-                return UI.message("DONE");
-            },
-            error: function (err) {
-                return alert(err);
-            },
+            UI.message("DONE");
         });
     };
 
@@ -323,7 +325,7 @@ $("#sourceDivControlPanelDiv").html(html);*/
                     return UI.message(err, true);
                 }
                 return UI.message("DONE", true);
-            }
+            },
         );
     };
 
@@ -419,7 +421,9 @@ $("#sourceDivControlPanelDiv").html(html);*/
         const payload = { graphUri: graphUri };
 
         Sparql_OWL.clearGraph(graphUri, function (err, result) {
-            if (err) return alert(err);
+            if (err) {
+                return alert(err);
+            }
             return UI.message("graph source " + source + " cleared ", true);
         });
     };

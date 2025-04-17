@@ -30,7 +30,7 @@ module.exports = function () {
                     })
                     .filter(([svc, _health]) => {
                         return enabledServices.includes(svc) ? true : false;
-                    })
+                    }),
             );
             const globalHealth = Object.values(health)
                 .map((health) => health)
@@ -67,6 +67,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["Misc"],
     };
 
     return operations;

@@ -1,80 +1,45 @@
 const { userModel } = require("../../../model/users");
-const { sortObjectByKey, responseSchema, successfullyUpdated, successfullyCreated, successfullyFetched } = require("./utils");
+const { sortObjectByKey, responseSchema, successfullyFetched } = require("./utils");
+const { profileModel } = require("../../../model/profiles");
+const userManager = require("../../../bin/user.");
 
 module.exports = function () {
     let operations = {
         GET,
-        POST,
-        PUT,
     };
 
+    /**
+     * Filter user by his profiles
+     *
+     * @param {users} users - the all users to filter
+     * @param {profiles} the group to filter
+     * @returns {users} - user objects with matched profiles
+     */
+    filterUserByGroup = (users, profiles) => {
+        const userProfiles = Object.fromEntries(Object.entries(users).filter(([_key, value]) => value.groups.some((g) => profiles.includes(g))));
+        return Object.entries(userProfiles).map(([key, value]) => ({ [key]: { login: value.login, profiles: value.groups } }));
+    };
     ///// GET api/v1/users
     async function GET(req, res, next) {
         try {
-            const users = await userModel.getUserAccounts();
+            const userInfo = await userManager.getUser(req.user);
+            const userProfiles = await profileModel.getUserProfiles(userInfo.user);
+            const sharedProfiles = Object.values(userProfiles).filter((profile) => profile.isShared);
+            const allUsers = await userModel.getUserAccounts();
+            const profileNames = await [...new Set(sharedProfiles.map((item) => item.name))];
+            const users = await this.filterUserByGroup(allUsers, profileNames);
             res.status(200).json(successfullyFetched(sortObjectByKey(users)));
         } catch (error) {
             next(error);
         }
     }
     GET.apiDoc = {
-        summary: "Return a list of all User Accounts",
-        security: [{ restrictAdmin: [] }],
-        operationId: "getAllUsers",
+        summary: "Return a list of all User Accounts in the same profiles",
+        security: [{ restrictLoggedUser: [] }],
+        operationId: "getAllUsersWithProfiles",
         parameters: [],
         responses: responseSchema("Users", "GET"),
-    };
-
-    ///// PUT api/v1/users
-    async function PUT(req, res, next) {
-        try {
-            await Promise.all(
-                Object.entries(req.body).map(async function ([_key, value]) {
-                    await userModel.updateUserAccount(value);
-                })
-            );
-            const users = await userModel.getUserAccounts();
-            res.status(200).json(successfullyUpdated(users));
-        } catch (error) {
-            next(error);
-        }
-    }
-    PUT.apiDoc = {
-        summary: "Update a User Account",
-        security: [{ restrictAdmin: [] }],
-        operationId: "updateUsers",
-        parameters: [],
-        responses: responseSchema("Users", "PUT"),
-    };
-
-    ///// POST api/v1/users
-    async function POST(req, res, next) {
-        try {
-            await Promise.all(
-                Object.entries(req.body).map(async function ([_key, value]) {
-                    await userModel.addUserAccount(value); // XXX what about password ?
-                })
-            );
-            const users = await userModel.getUserAccounts();
-            res.status(200).json(successfullyCreated(users));
-        } catch (error) {
-            next(error);
-        }
-    }
-    POST.apiDoc = {
-        summary: "Create a new user",
-        security: [{ restrictAdmin: [] }],
-        operationId: "createUser",
-        parameters: [
-            // {
-            //     in: 'body',
-            //     name: "user",
-            //     type: 'object',
-            //     required: true
-            // }
-        ],
-
-        responses: responseSchema("Users", "POST"),
+        tags: ["Users"],
     };
 
     return operations;

@@ -79,7 +79,7 @@ var KGcreator = (function () {
                     self.currentSlsvSource = MainController.currentSource;
                     UI.openTab("lineage-tab", "KGcreator_source_tab", KGcreator.initLinkTab, "#MapButton");
                     self.initSource();
-                    UI.resetWindowHeight();
+                    UI.resetWindowSize();
                     $("#KGcreator_dialogDiv").dialog({
                         autoOpen: false,
                     });
@@ -462,9 +462,9 @@ var KGcreator = (function () {
                 }
                 JstreeWidget.loadJsTree(jstreeDivId, jstreeData, options);
                 if (callback) {
-                    return callback(err);
+                    return callback(err, self.currentConfig);
                 }
-            }
+            },
         );
     };
 
@@ -596,7 +596,7 @@ var KGcreator = (function () {
                         if (callback) {
                             callback();
                         }
-                    }
+                    },
                 );
             });
         });
@@ -699,7 +699,7 @@ var KGcreator = (function () {
                 if (callback) {
                     return callback(null, jstreeData);
                 }
-            }
+            },
         );
     };
 

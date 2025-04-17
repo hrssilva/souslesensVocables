@@ -17,6 +17,12 @@ var Sparql_common = (function () {
     var self = {};
     self.withoutImports = false;
 
+    self.basicPrefixes = {
+        rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+        rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        owl: "http://www.w3.org/2002/07/owl#",
+    };
+
     var checkClosingBrackets = function (str) {
         var c1 = (str.match(/\(/g) || []).length;
         var c2 = (str.match(/\)/g) || []).length;
@@ -505,6 +511,9 @@ var Sparql_common = (function () {
         if (!withoutImports || self.includeImports) {
             if (imports) {
                 imports.forEach(function (source2) {
+                    if (options.excludeImports && options.excludeImports.indexOf(source2) > -1) {
+                        return;
+                    }
                     if (!Config.sources[source2]) {
                         return; // console.error(source2 + "not found");
                     }
@@ -701,6 +710,7 @@ var Sparql_common = (function () {
         var str0 = query.substring(0, query.toLowerCase().indexOf("select"));
         // var regex = /^[^@].*<([^>]*)/gm;
         var regex = /[^@].*<([^>]*)/gm;
+        var regex = /<([^>]*)>/gm;
         var array = [];
         var urisMap = {};
         while ((array = regex.exec(strWhere)) != null) {
@@ -732,6 +742,22 @@ var Sparql_common = (function () {
         strWhere = strWhere.replace(/[<>]/gm, "");
         query = prefixStr + query.substring(0, whereIndex) + strWhere;
 
+        return query;
+    };
+
+    self.addBasicVocabulariesPrefixes = function (query) {
+        var whereIndex = query.toLowerCase().indexOf("where");
+        var prefixesStr = query.substring(0, whereIndex);
+        var whereStr = query.substring(whereIndex);
+
+        for (var prefix in self.basicPrefixes) {
+            if (prefixesStr.indexOf(self.basicPrefixes[prefix]) < 0) {
+                var newPrefix = "PREFIX " + prefix + ": <" + self.basicPrefixes[prefix] + ">\n";
+                prefixesStr = newPrefix + prefixesStr;
+            }
+        }
+
+        query = prefixesStr + whereStr;
         return query;
     };
 

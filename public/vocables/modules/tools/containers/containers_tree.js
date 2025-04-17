@@ -6,6 +6,7 @@ import Sparql_proxy from "../../sparqlProxies/sparql_proxy.js";
 import Sparql_common from "../../sparqlProxies/sparql_common.js";
 import Sparql_generic from "../../sparqlProxies/sparql_generic.js";
 import Containers_graph from "./containers_graph.js";
+import Lineage_sources from "../lineage/lineage_sources.js";
 
 var Containers_tree = (function () {
     var self = {};
@@ -382,7 +383,7 @@ var Containers_tree = (function () {
                     return callback(null, visjsData);
                 }
                 return;
-            }
+            },
         );
     };
 
@@ -433,8 +434,11 @@ var Containers_tree = (function () {
                 //var parent = self.idsMap[item.parent.value];
 
                 var type = "Container";
-                if (item.memberTypes.value == "http://www.w3.org/2002/07/owl#Class") {
+                if (item.memberTypes.value.indexOf("http://www.w3.org/2002/07/owl#Class") > -1) {
                     type = "Class";
+                }
+                if (item.memberTypes.value.indexOf("http://www.w3.org/2002/07/owl#NamedIndividual") > -1) {
+                    type = "Individual";
                 }
                 if (!self.idsMap[id]) {
                     self.idsMap[id] = jstreeId;
@@ -470,6 +474,7 @@ var Containers_tree = (function () {
         }
         var filter = Sparql_common.setFilter("child", null, term);
         options.filter = filter;
+        options.keepAncestor = true;
         Containers_query.getContainersAscendants(source, null, options, function (err, result) {
             if (err) {
                 return callback(err);
@@ -602,12 +607,33 @@ var Containers_tree = (function () {
                 }
             },
         };
-        items["Open node"] = {
-            label: "Open node",
+        items["GraphContainerDescendantAndLeaves"] = {
+            label: "Graph  all descendants",
             action: function (_e) {
-                // $("#lineage_containers_containersJstree").jstree().open_all(self.currentContainer.id);
-                Containers_tree.menuActions.listContainerResources(self.currentSource, self.currentContainer, { onlyOneLevel: true, leaves: true });
+                Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { leaves: true });
             },
+        };
+
+        items["GraphParentContainers"] = {
+            label: "Graph  parent container",
+            action: function (_e) {
+                var rootContainer = null;
+                if (self.currentContainer.parent == "#") rootContainer = self.currentContainer.data.id;
+                else rootContainer = self.currentContainer.parents[self.currentContainer.parents.length];
+                var filter = " ?root rdfs:member+ ?ancestorChild  filter (?root=<" + rootContainer + ")"; //" ?container rdf:type <" + type + ">. ";
+                Containers_graph.graphParentContainers(Lineage_sources.activeSource, null, { filter: filter });
+            },
+        };
+        /* items["GraphContainerDescendant"] = {
+            label: "Graph  descendants",
+            action: function (_e) {
+                Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { descendants: true });
+            },
+        };*/
+
+        items["----"] = {
+            label: "-----------------------",
+            action: function (_e) {},
         };
         items.copyNodes = {
             label: "Copy Node(s)",
@@ -623,7 +649,10 @@ var Containers_tree = (function () {
             label: "Add selected node to container",
             action: function (_e) {
                 var graphNodeData = Lineage_whiteboard.currentGraphNode.data;
-                Containers_tree.menuActions.addResourcesToContainer(self.currentSource, self.currentContainer, graphNodeData);
+                Containers_tree.menuActions.addResourcesToContainer(self.currentSource, self.currentContainer, graphNodeData, false, function (err, result) {
+                    if (err) return alert(err.responseText || err);
+                    Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { leaves: true });
+                });
             },
         };
         items["PasteNodesInContainer"] = {
@@ -637,19 +666,6 @@ var Containers_tree = (function () {
             label: "Delete container",
             action: function (_e) {
                 Containers_tree.menuActions.deleteContainer(self.currentSource, self.currentContainer);
-            },
-        };
-
-        items["GraphContainerDescendant"] = {
-            label: "Graph  descendants",
-            action: function (_e) {
-                Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { descendants: true });
-            },
-        };
-        items["GraphContainerDescendantAndLeaves"] = {
-            label: "Graph  descendants + leaves",
-            action: function (_e) {
-                Containers_graph.graphResources(self.currentSource, self.currentContainer.data, { leaves: true });
             },
         };
 
@@ -825,7 +841,7 @@ var Containers_tree = (function () {
             if (callback) {
                 return callback(null);
                 if (jstreeData) {
-                    callback(jstreeData);
+                    callback(null, jstreeData);
                 }
             }
         });

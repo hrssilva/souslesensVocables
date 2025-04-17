@@ -83,7 +83,8 @@ module.exports = function () {
                 }
 
                 // move file to this dir
-                fs.renameSync(tmpPath, filePathToUpload);
+                const blob = fs.readFileSync(tmpPath);
+                fs.writeFileSync(filePathToUpload, blob);
 
                 // Load file into triplestore
                 const slsUrlForTriplestore = config.souslesensUrlForVirtuoso ? config.souslesensUrlForVirtuoso : config.souslesensUrl;
@@ -153,6 +154,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["RDF"],
     };
 
     GET.apiDoc = {
@@ -191,6 +193,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["RDF"],
     };
 
     return operations;

@@ -62,12 +62,15 @@ var GraphMlExport = (function () {
             ' xmlns:yed="http://www.yworks.com/xml/yed/3"\n' +
             ' xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd">';
 
-        xml += '  <key for="node" id="d1" yfiles.type="nodegraphics"/>' + ' <graph edgedefault="directed" id="G">';
+        xml += '  <key for="node" id="d1" yfiles.type="nodegraphics"/>\n<key id="d2" for="edge" yfiles.type="edgegraphics"/>\n' + ' <graph edgedefault="directed" id="G">';
 
         visjsData.nodes.forEach(function (node) {
             if (!node.label) {
                 node.label = "?";
             }
+            node.label = node.label.replace("&", "&amp;");
+
+            var color = common.RGBtoHexColor(node.color.background || node.color);
             xml +=
                 ' \n<node id="' +
                 node.id +
@@ -80,7 +83,7 @@ var GraphMlExport = (function () {
                 ".0" +
                 '" x="0.0" y="0.0"/> <!-- position and size -->\n' +
                 '          <y:Fill color="' +
-                node.color +
+                color +
                 '" transparent="false"/>            <!-- fill color -->\n' +
                 '          <y:BorderStyle color="#000000" type="line" width="1.0"/> <!-- border -->\n' +
                 "          <y:NodeLabel>" +
@@ -92,14 +95,16 @@ var GraphMlExport = (function () {
         });
 
         visjsData.edges.forEach(function (edge) {
+            if (!edge.label) edge.label = "";
+            edge.label = edge.label.replace("&", "&amp;");
             xml +=
                 '     <edge source="' +
                 edge.from +
                 '" target="' +
                 edge.to +
                 '">\n' +
-                ' <data key="d8"/>\n' +
-                '      <data key="d9">\n' +
+                //' <data key="d8"/>\n' +
+                '      <data key="d2">\n' +
                 "        <y:PolyLineEdge>\n" +
                 '          <y:Path sx="-55.0" sy="0.0" tx="47.5" ty="0.0"/>\n' +
                 '          <y:LineStyle color="#000000" type="line" width="1.0"/>\n' +

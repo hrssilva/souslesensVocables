@@ -1,3 +1,9 @@
+docs/_build
+docs/docs/_build
+docs/docs/devdoc/codedoc/jsdoc.md
+
+
+
 plugins/*
 plugins.available/*
 !plugins
@@ -7,6 +13,7 @@ core
 cypress/screenshots/
 cypress/videos/
 
+out
 
 # Logs
 logs/*.log*
@@ -158,3 +165,4 @@ mainapp/static/assets
 /scripts/personalScripts/
 /plugins/Lifex_cost/
 /plugins/
+/public/tutorials/

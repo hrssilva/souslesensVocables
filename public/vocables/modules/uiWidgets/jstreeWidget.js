@@ -2,37 +2,6 @@ var JstreeWidget = (function () {
     var self = {};
 
     self.types = {
-        /*
-        deprecated
-        tool: {
-            icon: "../icons/tool.png",
-        },
-       
-        "owl:Restriction": {
-            icon: "../icons/restriction.png",
-        },
-        concept: {
-            icon: "../icons/concept.png",
-        },
-        collection: {
-            icon: "../icons/collection.png",
-        },
-        importedClass: {
-            li_attr: { style: "color:#ccc" },
-            icon: "../icons/externalObject.png",
-        },
-        importedProperty: {
-            li_attr: { style: "color:#ccc" },
-            icon: "../icons/externalObject.png",
-        },
-        importedRestriction: {
-            li_attr: { style: "color:#ccc" },
-            icon: "../icons/externalObject.png",
-        },
-        */
-
-        // Web semantic objects
-        //Thesaurus
         Thesaurus: {
             icon: "../icons/thesaurus.png",
         },
@@ -209,6 +178,9 @@ var JstreeWidget = (function () {
                 if (!options.doNotAdjustDimensions) {
                     JstreeWidget.setTreeParentDivDimensions(jstreeDiv);
                 }
+                if (options.check_all) {
+                    self.checkAll();
+                }
                 if (callback) {
                     if (jstreeData) {
                         callback(jstreeData);
@@ -306,13 +278,17 @@ var JstreeWidget = (function () {
             .empty();
     };
     self.empty = function (jstreeDiv) {
-        $("#" + jstreeDiv)
-            .jstree(true)
-            .delete_node(
-                $("#" + jstreeDiv)
-                    .jstree(true)
-                    .get_node("#").children
-            );
+        try {
+            $("#" + jstreeDiv)
+                .jstree(true)
+                .delete_node(
+                    $("#" + jstreeDiv)
+                        .jstree(true)
+                        .get_node("#").children,
+                );
+        } catch (e) {
+            console.log(e);
+        }
     };
     self.addNodesToJstree = function (jstreeDiv, parentNodeId_, jstreeData, options, callback) {
         if (!jstreeDiv) {
@@ -737,10 +713,11 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
             .search(value);
         $("#jstreeWidget_searchInput").val("");
     };
-    self.updateJstree = function (divId, newData) {
+    self.updateJstree = function (divId, newData, options) {
         if (!Array.isArray(newData)) {
             return;
         }
+        if (!options) options = {};
         var newData2 = JSON.parse(JSON.stringify(newData));
         var keyToKeep = ["data", "text", "id", "parent"];
         newData2.forEach(function (item) {
@@ -754,7 +731,18 @@ $("#" + jstreeDiv).jstree(true).delete_node(item)
             return item.id != "#";
         });
         $("#" + divId).jstree(true).settings.core.data = newData2;
-
+        // deselect nodes clicked to not trigger events with refresh
+        $("#" + divId)
+            .jstree(true)
+            .deselect_all();
+        if (options.openAll) {
+            $("#" + divId).on("refresh.jstree", function () {
+                $("#" + divId)
+                    .jstree(true)
+                    .open_all();
+                $("#" + divId).off("refresh.jstree");
+            });
+        }
         $("#" + divId)
             .jstree(true)
             .refresh();

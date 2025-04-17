@@ -1,52 +1,28 @@
 const { profileModel } = require("../../../model/profiles");
-const { resourceFetched, responseSchema, resourceCreated } = require("./utils");
+const { resourceFetched, responseSchema } = require("./utils");
 const userManager = require("../../../bin/user.");
 
 module.exports = function () {
     let operations = {
         GET,
-        POST,
     };
 
     ///// GET api/v1/profiles
-    async function GET(req, res, next) {
+    async function GET(req, res, _next) {
         try {
             const userInfo = await userManager.getUser(req.user);
             const profiles = await profileModel.getUserProfiles(userInfo.user);
             resourceFetched(res, profiles);
         } catch (error) {
-            next(error);
+            res.status(500).json({ message: error.toString() });
         }
     }
     GET.apiDoc = {
-        summary: "Returns all profiles",
+        summary: "Returns all profiles of current user",
         security: [{ restrictLoggedUser: [] }],
-        operationId: "getProfiles",
+        operationId: "getProfilesCurrentUser",
         responses: responseSchema("Profiles", "GET"),
+        tags: ["Profiles"],
     };
-
-    ///// POST api/v1/profiles
-    async function POST(req, res, next) {
-        try {
-            const newProfile = req.body;
-            await Promise.all(
-                Object.entries(newProfile).map(async ([_k, profile]) => {
-                    await profileModel.addProfile(profile);
-                })
-            );
-            const profiles = await profileModel.getAllProfiles();
-            resourceCreated(res, profiles);
-        } catch (err) {
-            next(err);
-        }
-    }
-    POST.apiDoc = {
-        summary: "Create a new profile",
-        security: [{ restrictAdmin: [] }],
-        operationId: "createProfile",
-        parameters: [],
-        responses: responseSchema("Profiles", "POST"),
-    };
-
     return operations;
 };

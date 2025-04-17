@@ -1,7 +1,6 @@
 const path = require("path");
 const fsSync = require("fs");
 const fs = require("fs/promises");
-const UploadGraph= require("./jowl/uploadGraph")
 
 module.exports = function () {
     let operations = {
@@ -10,7 +9,6 @@ module.exports = function () {
 
     async function POST(req, res, next) {
         try {
-
             const outputPath = path.join("data/CSV", req.body.path);
             for (const file of Object.values(req.files)) {
                 const filePath = path.join(outputPath, file.name);
@@ -20,7 +18,7 @@ module.exports = function () {
                 if (!fsSync.existsSync(outputPath)) {
                     await fs.mkdir(outputPath);
                 }
-                console.log(filePath)
+                console.log(filePath);
                 await file.mv(filePath);
                 return res.status(201).json({ done: true });
             }
@@ -28,7 +26,6 @@ module.exports = function () {
             next(err);
             return res.status(500).json({ done: false });
         }
-
     }
     POST.apiDoc = {
         summary: "Upload files",
@@ -57,6 +54,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["Data"],
     };
 
     return operations;

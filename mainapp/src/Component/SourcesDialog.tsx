@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 
 import {
     Accordion,
@@ -19,7 +19,7 @@ import {
     Stack,
     TextField,
 } from "@mui/material";
-import { Assignment, CheckBox, CheckBoxOutlineBlank, ExpandMore, MiscellaneousServices, RuleFolder, Storage } from "@mui/icons-material";
+import { Assignment, CheckBox, CheckBoxOutlineBlank, Close, Done, ExpandMore, MiscellaneousServices, RuleFolder, Storage } from "@mui/icons-material";
 
 import { ulid } from "ulid";
 import { z } from "zod";
@@ -28,6 +28,7 @@ import { defaultSource, ServerSource, ServerSourceSchema, sourceHelp } from "../
 import { getUsers, User } from "../User";
 import { HeadersList } from "./HeadersList";
 import { HelpTooltip } from "./HelpModal";
+import { UploadGraphModal } from "./UploadGraphModal";
 
 type SourcesDialogProps = {
     edit: boolean;
@@ -57,6 +58,8 @@ export const SourcesDialog = ({ edit, me, onClose, onSubmit, open, selectedSourc
     const [sourcesNames, setSourcesNames] = useState<string[]>([]);
     const [sourcesPrefixes, setSourcesPrefixes] = useState<string[]>([]);
     const [users, setUsers] = useState<User[]>([]);
+    const [uploadGraphModal, setUploadGraphModal] = useState(false);
+    const [sourceName, setSourceName] = useState("");
 
     const handleField = (key: string, value: string | string[] | Record<string, string> | boolean | null) => {
         if (key.startsWith("predicates")) {
@@ -70,12 +73,16 @@ export const SourcesDialog = ({ edit, me, onClose, onSubmit, open, selectedSourc
         }
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (event: MouseEvent<HTMLButtonElement>, submit = false) => {
         event.preventDefault();
 
         const parsedForm = handleValidation(source);
         if (parsedForm.success) {
             onSubmit(source);
+            setSourceName(source.name);
+            if (submit) {
+                setUploadGraphModal(true);
+            }
         }
     };
 
@@ -89,10 +96,19 @@ export const SourcesDialog = ({ edit, me, onClose, onSubmit, open, selectedSourc
                 });
             }
             if (sourcesPrefixes.includes(value.prefix)) {
+                if (!edit || value.prefix !== source.prefix) {
+                    context.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: "This prefix is already used by another source",
+                        path: ["prefix"],
+                    });
+                }
+            }
+            if (value.baseUri && !value.baseUri.endsWith("/") && !value.baseUri.endsWith("#")) {
                 context.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "This prefix is already used by another source",
-                    path: ["prefix"],
+                    message: "Base URI must end with '/' or '#'",
+                    path: ["baseUri"],
                 });
             }
             if (value.group.trim().length < 3) {
@@ -102,7 +118,6 @@ export const SourcesDialog = ({ edit, me, onClose, onSubmit, open, selectedSourc
                     path: ["group"],
                 });
             }
-
             if (value.group.startsWith("/")) {
                 context.addIssue({
                     code: z.ZodIssueCode.custom,
@@ -110,7 +125,6 @@ export const SourcesDialog = ({ edit, me, onClose, onSubmit, open, selectedSourc
                     path: ["group"],
                 });
             }
-
             if (value.published && value.group.trim() === "PRIVATE") {
                 context.addIssue({
                     code: z.ZodIssueCode.custom,
@@ -153,371 +167,387 @@ export const SourcesDialog = ({ edit, me, onClose, onSubmit, open, selectedSourc
             setSourcesPrefixes(sources.map((s) => s.prefix));
             void getUsers().then((availableUsers) => setUsers(availableUsers));
 
-            if (edit) {
-                setSource(selectedSource as ServerSource);
+            if (selectedSource) {
+                setSource(selectedSource);
             }
         }
-    }, [open]);
+    }, [open, me, selectedSource, sources]);
 
     const icon = <CheckBoxOutlineBlank fontSize="small" />;
     const checkedIcon = <CheckBox fontSize="small" />;
 
     return (
-        <Dialog
-            aria-labelledby="sources-dialog-title"
-            aria-describedby="sources-dialog-description"
-            fullWidth
-            maxWidth="md"
-            open={open}
-            onClose={onClose}
-            PaperProps={{ component: "form", onSubmit: handleSubmit }}
-        >
-            <DialogTitle id="sources-dialog-title">{edit ? `Edit ${source.name}` : "New Source"}</DialogTitle>
-            <DialogContent>
-                <Stack spacing={2} sx={{ pt: 1, maxHeight: "75%" }}>
-                    {edit || (
+        <>
+            <Dialog aria-labelledby="sources-dialog-title" aria-describedby="sources-dialog-description" fullWidth maxWidth="md" open={open} onClose={onClose} PaperProps={{ component: "form" }}>
+                <DialogTitle id="sources-dialog-title">{edit ? `Edit ${source.name}` : "New Source"}</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ pt: 1, maxHeight: "75%" }}>
+                        {edit || (
+                            <TextField
+                                autoFocus
+                                error={errors.name !== undefined}
+                                fullWidth
+                                helperText={errors.name}
+                                id="name"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <HelpTooltip title={sourceHelp.name} />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                label="Name"
+                                name="name"
+                                onChange={(event) => handleField("name", event.target.value)}
+                                required
+                                value={source.name}
+                            />
+                        )}
                         <TextField
-                            autoFocus
-                            error={errors.name !== undefined}
                             fullWidth
-                            helperText={errors.name}
-                            id="name"
+                            error={errors.graphUri !== undefined}
+                            helperText={errors.graphUri}
+                            id="graphUri"
                             InputProps={{
                                 endAdornment: (
                                     <InputAdornment position="end">
-                                        <HelpTooltip title={sourceHelp.name} />
+                                        <HelpTooltip title={sourceHelp.graphUri} />
                                     </InputAdornment>
                                 ),
                             }}
-                            label="Name"
-                            name="name"
-                            onChange={(event) => handleField("name", event.target.value)}
+                            label="Graph URI"
+                            name="graphUri"
+                            onChange={(event) => handleField("graphUri", event.target.value)}
                             required
-                            value={source.name}
+                            value={source.graphUri}
                         />
-                    )}
-                    <TextField
-                        fullWidth
-                        error={errors.graphUri !== undefined}
-                        helperText={errors.graphUri}
-                        id="graphUri"
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <HelpTooltip title={sourceHelp.graphUri} />
-                                </InputAdornment>
-                            ),
-                        }}
-                        label="Graph URI"
-                        name="graphUri"
-                        onChange={(event) => handleField("graphUri", event.target.value)}
-                        required
-                        value={source.graphUri}
-                    />
-                    <TextField
-                        fullWidth
-                        error={errors.prefix !== undefined}
-                        helperText={errors.prefix}
-                        id="prefix"
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <HelpTooltip title={sourceHelp.prefix} />
-                                </InputAdornment>
-                            ),
-                        }}
-                        label="Prefix"
-                        name="prefix"
-                        onChange={(event) => handleField("prefix", event.target.value)}
-                        required
-                        value={source.prefix}
-                    />
-                    <Autocomplete
-                        autoSelect
-                        disableCloseOnSelect
-                        freeSolo
-                        id="group"
-                        onChange={(_e, value) => handleField("group", value)}
-                        options={groups}
-                        renderInput={(params) => <TextField error={errors.group !== undefined} helperText={errors.group} {...params} label="Group" required />}
-                        value={source.group}
-                    />
-                    <Autocomplete
-                        disableCloseOnSelect
-                        freeSolo
-                        id="imports"
-                        limitTags={5}
-                        multiple
-                        onChange={(_e, value) => handleField("imports", value)}
-                        options={sourcesNames}
-                        renderInput={(params) => <TextField error={errors.imports !== undefined} helperText={errors.imports} {...params} label="Import Sources" />}
-                        renderOption={(props, option, { selected }) => {
-                            return (
-                                <li {...props}>
-                                    <Checkbox checked={selected} checkedIcon={checkedIcon} icon={icon} key={`check-${option}`} style={{ marginRight: 2 }} />
-                                    {option}
-                                </li>
-                            );
-                        }}
-                        renderTags={(tagValue, getTagProps) =>
-                            tagValue.map((option, index) => {
-                                const { key, ...rest } = getTagProps({ index });
-                                return <Chip key={key} label={option} {...rest} />;
-                            })
-                        }
-                        value={source.imports}
-                    />
-                    <div>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-sparql-content" id="source-sparql-header">
-                                <Stack direction="row" spacing={1} useFlexGap>
-                                    <Storage />
-                                    {"Sparql Server"}
-                                </Stack>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Stack spacing={2} useFlexGap>
+                        <Stack direction="row" spacing={1} useFlexGap>
+                            <TextField
+                                error={errors.prefix !== undefined}
+                                helperText={errors.prefix}
+                                id="prefix"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <HelpTooltip title={sourceHelp.prefix} />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                label="Prefix"
+                                name="prefix"
+                                onChange={(event) => handleField("prefix", event.target.value)}
+                                required
+                                value={source.prefix}
+                            />
+                            <TextField
+                                fullWidth
+                                error={errors.baseUri !== undefined}
+                                helperText={errors.baseUri}
+                                id="baseUri"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <HelpTooltip title={sourceHelp.baseUri} />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                label="Base URI"
+                                name="baseUri"
+                                onChange={(event) => handleField("baseUri", event.target.value)}
+                                required
+                                value={source.baseUri}
+                            />
+                        </Stack>
+                        <Autocomplete
+                            freeSolo
+                            id="group"
+                            onChange={(_e, value) => handleField("group", value)}
+                            onInputChange={(_e, value) => handleField("group", value)}
+                            options={groups}
+                            renderInput={(params) => <TextField error={errors.group !== undefined} helperText={errors.group} {...params} label="Group" required />}
+                            value={source.group}
+                        />
+                        <Autocomplete
+                            disableCloseOnSelect
+                            freeSolo
+                            id="imports"
+                            limitTags={5}
+                            multiple
+                            onChange={(_e, value) => handleField("imports", value)}
+                            options={sourcesNames}
+                            renderInput={(params) => <TextField error={errors.imports !== undefined} helperText={errors.imports} {...params} label="Import Sources" />}
+                            renderOption={(props, option, { selected }) => {
+                                return (
+                                    <li {...props}>
+                                        <Checkbox checked={selected} checkedIcon={checkedIcon} icon={icon} key={`check-${option}`} style={{ marginRight: 2 }} />
+                                        {option}
+                                    </li>
+                                );
+                            }}
+                            renderTags={(tagValue, getTagProps) =>
+                                tagValue.map((option, index) => {
+                                    const { key, ...rest } = getTagProps({ index });
+                                    return <Chip key={key} label={option} {...rest} />;
+                                })
+                            }
+                            value={source.imports}
+                        />
+                        <div>
+                            <Accordion>
+                                <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-sparql-content" id="source-sparql-header">
                                     <Stack direction="row" spacing={1} useFlexGap>
-                                        <TextField
-                                            fullWidth
-                                            id="url"
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <HelpTooltip title={sourceHelp.sparql_server.url} />
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            label="URL"
-                                            name="url"
-                                            onChange={(event) => handleField("sparql_server.url", event.target.value)}
-                                            value={source.sparql_server.url}
-                                        />
-                                        <TextField
-                                            id="method"
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <HelpTooltip title={sourceHelp.sparql_server.method} />
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            label="HTTP Method"
-                                            name="method"
-                                            onChange={(event) => handleField("sparql_server.method", event.target.value)}
-                                            select
-                                            sx={{ width: 1 / 4 }}
-                                            value={source.sparql_server.method ? source.sparql_server.method.toUpperCase() : "POST"}
-                                        >
-                                            <MenuItem key="GET" value="GET">
-                                                GET
-                                            </MenuItem>
-                                            <MenuItem key="POST" value="POST">
-                                                POST
-                                            </MenuItem>
-                                        </TextField>
+                                        <Storage />
+                                        {"Sparql Server"}
                                     </Stack>
-                                    <HeadersList headers={source.sparql_server.headers} onSubmit={(headers: Record<string, string>) => handleField("sparql_server.headers", headers)} />
-                                </Stack>
-                            </AccordionDetails>
-                        </Accordion>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-lineage-content" id="source-lineage-header">
-                                <Stack direction="row" spacing={1} useFlexGap>
-                                    <Assignment />
-                                    {"Lineage Predicates"}
-                                </Stack>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Stack spacing={2} useFlexGap>
-                                    <Autocomplete
-                                        disableCloseOnSelect
-                                        freeSolo
-                                        id="taxonomyPredicates"
-                                        limitTags={2}
-                                        multiple
-                                        onChange={(_e, value) => handleField("taxonomyPredicates", value)}
-                                        options={predicates}
-                                        renderInput={(params) => (
-                                            <TextField error={errors.taxonomyPredicates !== undefined} helperText={errors.taxonomyPredicates} {...params} label="Taxonomy Predicates" />
-                                        )}
-                                        renderOption={(props, option, { selected }) => {
-                                            return (
-                                                <li {...props}>
-                                                    <Checkbox checked={selected} checkedIcon={checkedIcon} icon={icon} key={`check-${option}`} style={{ marginRight: 2 }} />
-                                                    {option}
-                                                </li>
-                                            );
-                                        }}
-                                        renderTags={(tagValue, getTagProps) =>
-                                            tagValue.map((option, index) => {
-                                                const { key, ...rest } = getTagProps({ index });
-                                                return <Chip key={key} label={option} {...rest} />;
-                                            })
-                                        }
-                                        value={source.taxonomyPredicates}
-                                    />
-                                    <TextField
-                                        id="topClassFilter"
-                                        InputProps={{
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <HelpTooltip title={sourceHelp.topClassFilter} />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                        label="Top Class Filters"
-                                        multiline
-                                        onChange={(event) => handleField("topClassFilter", event.target.value)}
-                                        rows={4}
-                                        value={source.topClassFilter}
-                                    />
-                                </Stack>
-                            </AccordionDetails>
-                        </Accordion>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-permissions-content" id="source-permissions-header">
-                                <Stack direction="row" spacing={1} useFlexGap>
-                                    <RuleFolder />
-                                    {"Permissions"}
-                                </Stack>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Stack spacing={2} useFlexGap>
-                                    <TextField
-                                        error={errors.owner !== undefined}
-                                        fullWidth
-                                        helperText={errors.owner}
-                                        id="owner"
-                                        InputProps={{
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <HelpTooltip title={sourceHelp.owner} />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                        label="Owner"
-                                        name="owner"
-                                        onChange={(event) => handleField("owner", event.target.value)}
-                                        select
-                                        value={source.owner}
-                                    >
-                                        {users.map((user: User) => (
-                                            <MenuItem key={user.id} value={user.login}>
-                                                {user.login}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                    <FormGroup>
-                                        {Object.entries(permissionLabels).map(([key, label]) => (
-                                            <FormControlLabel
-                                                control={
-                                                    <Checkbox
-                                                        checked={source[key as keyof ServerSource] as boolean}
-                                                        key={`check-${key}`}
-                                                        onChange={(event) => handleField(key, event.target.checked)}
-                                                    />
-                                                }
-                                                key={key}
-                                                label={label}
-                                            />
-                                        ))}
-                                    </FormGroup>
-                                </Stack>
-                            </AccordionDetails>
-                        </Accordion>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-others-content" id="source-others-header">
-                                <Stack direction="row" spacing={1} useFlexGap>
-                                    <MiscellaneousServices />
-                                    {"Others Parameters"}
-                                </Stack>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Stack spacing={2} useFlexGap>
-                                    <TextField
-                                        error={errors.controller !== undefined}
-                                        fullWidth
-                                        helperText={errors.controller}
-                                        id="controller"
-                                        InputProps={{
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <HelpTooltip title={sourceHelp.controller} />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                        label="Controller"
-                                        name="controller"
-                                        onChange={(event) => handleField("controller", event.target.value)}
-                                        select
-                                        value={source.controller}
-                                    >
-                                        {["Sparql_OWL", "Sparql_SKOS", "Sparql_INDIVIDUALS"].map((element) => (
-                                            <MenuItem key={element} value={element}>
-                                                {element}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                    <TextField
-                                        error={errors.schemaType !== undefined}
-                                        fullWidth
-                                        helperText={errors.schemaType}
-                                        id="schemaType"
-                                        InputProps={{
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <HelpTooltip title={sourceHelp.schemaType} />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                        label="Schema Type"
-                                        name="schemaType"
-                                        onChange={(event) => handleField("schemaType", event.target.value)}
-                                        select
-                                        value={source.schemaType}
-                                    >
-                                        {schemaTypes.map((element) => (
-                                            <MenuItem key={element} value={element}>
-                                                {element}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                    {source.schemaType === "SKOS" && (
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Stack spacing={2} useFlexGap>
                                         <Stack direction="row" spacing={1} useFlexGap>
                                             <TextField
                                                 fullWidth
-                                                id="broaderPredicate"
-                                                label="Broader Predicate"
-                                                name="broaderPredicate"
-                                                onChange={(event) => handleField("predicates.broaderPredicate", event.target.value)}
-                                                value={source.predicates.broaderPredicate}
+                                                id="url"
+                                                InputProps={{
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">
+                                                            <HelpTooltip title={sourceHelp.sparql_server.url} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                                label="URL"
+                                                name="url"
+                                                onChange={(event) => handleField("sparql_server.url", event.target.value)}
+                                                value={source.sparql_server.url}
                                             />
                                             <TextField
-                                                fullWidth
-                                                id="lang"
-                                                label="Lang"
-                                                name="lang"
-                                                onChange={(event) => handleField("predicates.lang", event.target.value)}
+                                                id="method"
+                                                InputProps={{
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">
+                                                            <HelpTooltip title={sourceHelp.sparql_server.method} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                                label="HTTP Method"
+                                                name="method"
+                                                onChange={(event) => handleField("sparql_server.method", event.target.value)}
+                                                select
                                                 sx={{ width: 1 / 4 }}
-                                                value={source.predicates.lang}
-                                            />
+                                                value={source.sparql_server.method ? source.sparql_server.method.toUpperCase() : "POST"}
+                                            >
+                                                <MenuItem key="GET" value="GET">
+                                                    GET
+                                                </MenuItem>
+                                                <MenuItem key="POST" value="POST">
+                                                    POST
+                                                </MenuItem>
+                                            </TextField>
                                         </Stack>
-                                    )}
-                                </Stack>
-                            </AccordionDetails>
-                        </Accordion>
-                    </div>
-                </Stack>
-            </DialogContent>
-            <DialogActions>
-                <Button autoFocus onClick={onClose}>
-                    Cancel
-                </Button>
-                <Button color="primary" type="submit">
-                    Submit
-                </Button>
-            </DialogActions>
-        </Dialog>
+                                        <HeadersList headers={source.sparql_server.headers} onSubmit={(headers: Record<string, string>) => handleField("sparql_server.headers", headers)} />
+                                    </Stack>
+                                </AccordionDetails>
+                            </Accordion>
+                            <Accordion>
+                                <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-lineage-content" id="source-lineage-header">
+                                    <Stack direction="row" spacing={1} useFlexGap>
+                                        <Assignment />
+                                        {"Lineage Predicates"}
+                                    </Stack>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Stack spacing={2} useFlexGap>
+                                        <Autocomplete
+                                            disableCloseOnSelect
+                                            freeSolo
+                                            id="taxonomyPredicates"
+                                            limitTags={2}
+                                            multiple
+                                            onChange={(_e, value) => handleField("taxonomyPredicates", value)}
+                                            options={predicates}
+                                            renderInput={(params) => (
+                                                <TextField error={errors.taxonomyPredicates !== undefined} helperText={errors.taxonomyPredicates} {...params} label="Taxonomy Predicates" />
+                                            )}
+                                            renderOption={(props, option, { selected }) => {
+                                                return (
+                                                    <li {...props}>
+                                                        <Checkbox checked={selected} checkedIcon={checkedIcon} icon={icon} key={`check-${option}`} style={{ marginRight: 2 }} />
+                                                        {option}
+                                                    </li>
+                                                );
+                                            }}
+                                            renderTags={(tagValue, getTagProps) =>
+                                                tagValue.map((option, index) => {
+                                                    const { key, ...rest } = getTagProps({ index });
+                                                    return <Chip key={key} label={option} {...rest} />;
+                                                })
+                                            }
+                                            value={source.taxonomyPredicates}
+                                        />
+                                        <TextField
+                                            id="topClassFilter"
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <HelpTooltip title={sourceHelp.topClassFilter} />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            label="Top Class Filters"
+                                            multiline
+                                            onChange={(event) => handleField("topClassFilter", event.target.value)}
+                                            rows={4}
+                                            value={source.topClassFilter}
+                                        />
+                                    </Stack>
+                                </AccordionDetails>
+                            </Accordion>
+                            <Accordion>
+                                <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-permissions-content" id="source-permissions-header">
+                                    <Stack direction="row" spacing={1} useFlexGap>
+                                        <RuleFolder />
+                                        {"Permissions"}
+                                    </Stack>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Stack spacing={2} useFlexGap>
+                                        <TextField
+                                            error={errors.owner !== undefined}
+                                            fullWidth
+                                            helperText={errors.owner}
+                                            id="owner"
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <HelpTooltip title={sourceHelp.owner} />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            label="Owner"
+                                            name="owner"
+                                            onChange={(event) => handleField("owner", event.target.value)}
+                                            select
+                                            value={source.owner}
+                                        >
+                                            {users.map((user: User) => (
+                                                <MenuItem key={user.id} value={user.login}>
+                                                    {user.login}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <FormGroup>
+                                            {Object.entries(permissionLabels).map(([key, label]) => (
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={source[key as keyof ServerSource] as boolean}
+                                                            key={`check-${key}`}
+                                                            onChange={(event) => handleField(key, event.target.checked)}
+                                                        />
+                                                    }
+                                                    key={key}
+                                                    label={label}
+                                                />
+                                            ))}
+                                        </FormGroup>
+                                    </Stack>
+                                </AccordionDetails>
+                            </Accordion>
+                            <Accordion>
+                                <AccordionSummary expandIcon={<ExpandMore />} aria-controls="source-others-content" id="source-others-header">
+                                    <Stack direction="row" spacing={1} useFlexGap>
+                                        <MiscellaneousServices />
+                                        {"Others Parameters"}
+                                    </Stack>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Stack spacing={2} useFlexGap>
+                                        <TextField
+                                            error={errors.controller !== undefined}
+                                            fullWidth
+                                            helperText={errors.controller}
+                                            id="controller"
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <HelpTooltip title={sourceHelp.controller} />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            label="Controller"
+                                            name="controller"
+                                            onChange={(event) => handleField("controller", event.target.value)}
+                                            select
+                                            value={source.controller}
+                                        >
+                                            {["Sparql_OWL", "Sparql_SKOS", "Sparql_INDIVIDUALS"].map((element) => (
+                                                <MenuItem key={element} value={element}>
+                                                    {element}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <TextField
+                                            error={errors.schemaType !== undefined}
+                                            fullWidth
+                                            helperText={errors.schemaType}
+                                            id="schemaType"
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <HelpTooltip title={sourceHelp.schemaType} />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            label="Schema Type"
+                                            name="schemaType"
+                                            onChange={(event) => handleField("schemaType", event.target.value)}
+                                            select
+                                            value={source.schemaType}
+                                        >
+                                            {schemaTypes.map((element) => (
+                                                <MenuItem key={element} value={element}>
+                                                    {element}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                        {source.schemaType === "SKOS" && (
+                                            <Stack direction="row" spacing={1} useFlexGap>
+                                                <TextField
+                                                    fullWidth
+                                                    id="broaderPredicate"
+                                                    label="Broader Predicate"
+                                                    name="broaderPredicate"
+                                                    onChange={(event) => handleField("predicates.broaderPredicate", event.target.value)}
+                                                    value={source.predicates.broaderPredicate}
+                                                />
+                                                <TextField
+                                                    fullWidth
+                                                    id="lang"
+                                                    label="Lang"
+                                                    name="lang"
+                                                    onChange={(event) => handleField("predicates.lang", event.target.value)}
+                                                    sx={{ width: 1 / 4 }}
+                                                    value={source.predicates.lang}
+                                                />
+                                            </Stack>
+                                        )}
+                                    </Stack>
+                                </AccordionDetails>
+                            </Accordion>
+                        </div>
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button color="error" autoFocus onClick={onClose} startIcon={<Close />} variant="outlined">
+                        Cancel
+                    </Button>
+                    <Button color="primary" onClick={(e) => handleSubmit(e)} startIcon={<Done />} variant="contained">
+                        Submit
+                    </Button>
+                    <Button color="primary" onClick={(e) => handleSubmit(e, true)} startIcon={<Done />} variant="contained">
+                        Submit and upload graph
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            {uploadGraphModal && source ? <UploadGraphModal indexAfterSuccess={true} open={true} onClose={() => setUploadGraphModal(false)} sourceName={sourceName} /> : null}{" "}
+        </>
     );
 };

@@ -7,9 +7,33 @@ import Sparql_OWL from "../../sparqlProxies/sparql_OWL.js";
 import Lineage_sources from "./lineage_sources.js";
 import CreateRestriction_bot from "../../bots/createRestriction_bot.js";
 
+/**
+ * @module Lineage_createRelation
+ * @description Module for creating and managing relationships between ontology nodes.
+ * Provides functionality for:
+ * - Creating new relationships between nodes in the ontology
+ * - Managing relationship types and properties
+ * - Validating relationship constraints
+ * - Supporting different types of ontological relationships
+ * - Managing relationship metadata and restrictions
+ * - Integrating with the ontology model system
+ */
+
 var Lineage_createRelation = (function () {
     var self = {};
 
+    /**
+     * Displays a dialog to create a relation between two ontology nodes.
+     * The dialog allows the user to select a relation type from a predefined list of properties.
+     * @function
+     * @name showAddEdgeFromGraphDialog
+     * @memberof Lineage_createRelation
+     * @param {Object} edgeData - Data of the edge containing source and target nodes.
+     * @param {string} edgeData.from - The ID of the source node.
+     * @param {string} edgeData.to - The ID of the target node.
+     * @param {Function} callback - Callback function executed after the relation is created.
+     * @returns {void}
+     */
     self.showAddEdgeFromGraphDialog = function (edgeData, callback) {
         self.callbackFn = callback;
         $("#smallDialogDiv").dialog("option", "title", "Create relation in source " + Lineage_sources.activeSource);
@@ -41,7 +65,7 @@ var Lineage_createRelation = (function () {
                         "</b><br><span onclick='Lineage_createRelation.showNodeInfos(\"start\")'>" +
                         self.sourceNode.label +
                         "</span> -><span onclick='Lineage_createRelation.showNodeInfos(\"end\")'> " +
-                        self.targetNode.label
+                        self.targetNode.label,
                 ) + "</span>";
             }
 
@@ -299,11 +323,20 @@ var Lineage_createRelation = (function () {
                     } else {
                         return; //callback(null);
                     }
-                }
+                },
             );
         });
     };
 
+    /**
+     * Generates the context menu for the property selection tree in the relation creation dialog.
+     * This menu allows refining an existing property by creating a sub-property and viewing node information.
+     * @function
+     * @name getContextMenu
+     * @memberof Lineage_createRelation
+     * @param {Object} options - Configuration options for the context menu.
+     * @returns {Object} Context menu items with their respective actions.
+     */
     self.getContextMenu = function (options) {
         var items = {
             refineProperty: {
@@ -335,47 +368,22 @@ var Lineage_createRelation = (function () {
                         var propId = newProp.id;
                         //  var ontology = self.currentPropertiesTreeNode.parents[self.currentPropertiesTreeNode.parents.length - 2];
                         var ontology = self.currentPropertiesTreeNode.data.source;
-                        var x = Config.ontologiesVocabularyModels[ontology].constraints;
-                        var superpropConstraints = JSON.parse(
-                            //  JSON.stringify(Config.ontologiesVocabularyModels[Config.currentTopLevelOntology]["constraints"][self.currentPropertiesTreeNode.data.id])
-                            JSON.stringify(Config.ontologiesVocabularyModels[ontology]["constraints"][self.currentPropertiesTreeNode.data.id])
-                        );
-                        superpropConstraints.source = Lineage_sources.activeSource;
-                        superpropConstraints.label = subPropertyLabel;
-                        superpropConstraints.parent = self.currentPropertiesTreeNode.data.id;
-                        superpropConstraints.superProp = self.currentPropertiesTreeNode.data.id;
-                        var propertiesToAdd = {};
-                        propertiesToAdd[propId] = newProp;
-                        var constraintsToAdd = {};
-                        constraintsToAdd[propId] = superpropConstraints;
-                        OntologyModels.updateModel(
-                            Lineage_sources.activeSource,
+                        var jstreeData = [
                             {
-                                properties: propertiesToAdd,
-                                constraints: constraintsToAdd,
+                                id: result.uri,
+                                text: subPropertyLabel,
+                                parent: self.currentPropertiesTreeNode.data.id,
+                                data: {
+                                    id: result.uri,
+                                    label: subPropertyLabel,
+                                    source: Lineage_sources.activeSource,
+                                },
                             },
-                            null,
-                            function (err, result2) {
-                                if (err) {
-                                    return alert(err.responsetext);
-                                }
+                        ];
 
-                                var jstreeData = [
-                                    {
-                                        id: result.uri,
-                                        text: subPropertyLabel,
-                                        parent: self.currentPropertiesTreeNode.data.id,
-                                        data: {
-                                            id: result.uri,
-                                            label: subPropertyLabel,
-                                            source: Lineage_sources.activeSource,
-                                        },
-                                    },
-                                ];
-
-                                JstreeWidget.addNodesToJstree("lineageAddEdgeDialog_authorizedPredicatesTreeDiv", self.currentPropertiesTreeNode.data.id, jstreeData, options);
-                            }
-                        );
+                        JstreeWidget.addNodesToJstree("lineageAddEdgeDialog_authorizedPredicatesTreeDiv", self.currentPropertiesTreeNode.data.id, jstreeData, options);
+                        //}
+                        //);
                     });
                 },
             },
@@ -392,7 +400,21 @@ var Lineage_createRelation = (function () {
         return items;
     };
 
+    /**
+     * Executes the addition of an edge from the graph. Currently not implemented.
+     * @function
+     * @name execAddEdgeFromGraph
+     * @memberof Lineage_createRelation
+     */
     self.execAddEdgeFromGraph = function () {};
+
+    /**
+     * Adds generic predicates to the predicates tree in the relation creation dialog.
+     * This function extracts generic properties from the current top-level ontology and adds them to the tree.
+     * @function
+     * @name addGenericPredicatesToPredicatesTree
+     * @memberof Lineage_createRelation
+     */
     self.addGenericPredicatesToPredicatesTree = function () {
         var jstreeData = [];
         Lineage_upperOntologies.objectPropertiesMap[Config.currentTopLevelOntology].forEach(function (item) {
@@ -415,6 +437,14 @@ var Lineage_createRelation = (function () {
         JstreeWidget.addNodesToJstree("lineageAddEdgeDialog_authorizedPredicatesTreeDiv", "#", jstreeData, { positionLast: 1 });
     };
 
+    /**
+     * Displays node information based on the given role ('start' or 'end').
+     * The function retrieves the corresponding node data and opens the node information widget.
+     * @function
+     * @name showNodeInfos
+     * @memberof Lineage_createRelation
+     * @param {string} role - The role of the node ('start' or 'end').
+     */
     self.showNodeInfos = function (role) {
         var node = null;
 
@@ -431,6 +461,17 @@ var Lineage_createRelation = (function () {
             NodeInfosWidget.showNodeInfos(nodeData.source, node, "mainDialogDiv");
         }
     };
+
+    /**
+     * Handles the selection of a property from the authorized predicates tree.
+     * This function determines where the relation should be stored, whether as a restriction or predicate,
+     * and adds it to the visualization graph.
+     * @function
+     * @name OnSelectAuthorizedPredicatesTreeDiv
+     * @memberof Lineage_createRelation
+     * @param {Event} event - The event triggered by the selection.
+     * @param {Object} obj - The selected node object containing property data.
+     */
     self.OnSelectAuthorizedPredicatesTreeDiv = function (event, obj) {
         event.stopPropagation();
         self.currentPropertiesTreeNode = obj.node;
@@ -603,10 +644,23 @@ var Lineage_createRelation = (function () {
                     self.callbackFn();
                 }
                 $("#smallDialogDiv").dialog("close");
-            }
+            },
         );
     };
 
+    /**
+     * Creates a new sub-property of an existing property in the ontology.
+     * The new sub-property is assigned a unique URI and its relationship with the super-property is defined.
+     * If required, the function also propagates domain and range constraints from the super-property.
+     * @function
+     * @name createSubProperty
+     * @memberof Lineage_createRelation
+     * @param {string} source - The ontology source in which the sub-property should be created.
+     * @param {string} superPropId - The identifier (URI) of the super-property.
+     * @param {string} subPropertyLabel - The label for the new sub-property.
+     * @param {boolean} writeSuperPropRangeAndDomain - Whether to inherit the range and domain from the super-property.
+     * @param {Function} callback - A callback function that receives an error or the newly created sub-property URI.
+     */
     self.createSubProperty = function (source, superPropId, subPropertyLabel, writeSuperPropRangeAndDomain, callback) {
         var subPropId = common.getURI(subPropertyLabel, source, "fromLabel");
         //  var subPropId = Config.sources[source].graphUri + common.getRandomHexaId(10);
@@ -681,6 +735,8 @@ var Lineage_createRelation = (function () {
                         domainLabel: domainLabel,
                         rangeLabel: rangeLabel,
                         source: source,
+                        label: subPropertyLabel,
+                        superProp: superPropId,
                     },
                 },
             };
@@ -691,6 +747,21 @@ var Lineage_createRelation = (function () {
         });
     };
 
+    /**
+     * Creates a restriction relation between two ontology nodes.
+     * Supports adding constraints, metadata, and updating the ontology model cache.
+     * @function
+     * @name createRestrictionRelation
+     * @memberof Lineage_createRelation
+     * @param {string} inSource - The source ontology where the restriction should be created.
+     * @param {string} type - The type of restriction (e.g., owl:sameAs, owl:equivalentClass).
+     * @param {Object} sourceNode - The source node object with at least an `id` and `label`.
+     * @param {Object} targetNode - The target node object with at least an `id` and `label`.
+     * @param {boolean} addImportToCurrentSource - Whether to add an import statement if the target node is from another source.
+     * @param {boolean} createInverseRelation - Whether to create an inverse relation (only for owl:sameAs and owl:equivalentClass).
+     * @param {Object} options - Additional options such as origin, status, and additional triples.
+     * @param {Function} callback - Callback function that receives an error or the blank node ID of the created restriction.
+     */
     self.createRestrictionRelation = function (inSource, type, sourceNode, targetNode, addImportToCurrentSource, createInverseRelation, options, callback) {
         if (type != "http://www.w3.org/2002/07/owl#sameAs" && type != "http://www.w3.org/2002/07/owl#equivalentClass") {
             createInverseRelation = false;
@@ -801,10 +872,21 @@ var Lineage_createRelation = (function () {
                 if (callback) {
                     return callback(null, blankNodeId);
                 }
-            }
+            },
         );
     };
 
+    /**
+     * Deletes ontology restrictions based on their blank node IDs.
+     * Iterates over a list of restriction nodes and removes them from the ontology.
+     *
+     * @function
+     * @name deleteRestrictionsByUri
+     * @memberof Lineage_createRelation
+     * @param {string} source - The ontology source where the restrictions are stored.
+     * @param {string|string[]} restrictionsNodeIds - A single restriction node ID or an array of IDs to be deleted.
+     * @param {Function} callback - Callback function that receives an error (if any) once the deletions are complete.
+     */
     self.deleteRestrictionsByUri = function (source, restrictionsNodeIds, callback) {
         if (!source) {
             return;
@@ -843,10 +925,21 @@ var Lineage_createRelation = (function () {
                 if (callback) {
                     return callback(err);
                 }
-            }
+            },
         );
     };
 
+    /**
+     * Deletes a restriction from the ontology.
+     * Removes all triples associated with the restriction and updates the ontology model.
+     *
+     * @function
+     * @name deleteRestriction
+     * @memberof Lineage_createRelation
+     * @param {string} inSource - The ontology source from which the restriction should be deleted.
+     * @param {Object} restrictionNode - The node representing the restriction to be deleted.
+     * @param {Function} callback - Callback function to handle completion or errors.
+     */
     self.deleteRestriction = function (inSource, restrictionNode, callback) {
         if (callback || confirm("delete selected restriction")) {
             var inverseRestriction = null;
@@ -883,11 +976,22 @@ var Lineage_createRelation = (function () {
                     if (callback) {
                         return callback(_err);
                     }
-                }
+                },
             );
         }
     };
 
+    /**
+     * Adds an import relationship between two ontology sources.
+     * Ensures that the main source includes the imported source if it isn't already listed.
+     *
+     * @function
+     * @name setNewImport
+     * @memberof Lineage_createRelation
+     * @param {string} mainSourceLabel - The label of the main ontology source.
+     * @param {string} importedSourceLabel - The label of the ontology source to be imported.
+     * @param {Function} callback - Callback function executed upon completion.
+     */
     self.setNewImport = function (mainSourceLabel, importedSourceLabel, callback) {
         if (mainSourceLabel == importedSourceLabel) {
             return callback();
@@ -912,6 +1016,17 @@ var Lineage_createRelation = (function () {
             callback();
         });
     };
+
+    /**
+     * Adds an import relationship to the current ontology source.
+     * Sends a request to the backend to register the imported source.
+     * @function
+     * @name addImportToCurrentSource
+     * @memberof Lineage_createRelation
+     * @param {string} parentSourceLabel - The label of the main ontology source.
+     * @param {string} importedSourceLabel - The label of the ontology source to be imported.
+     * @param {Function} callback - Callback function executed upon completion.
+     */
     self.addImportToCurrentSource = function (parentSourceLabel, importedSourceLabel, callback) {
         var payload = {
             importedSource: importedSourceLabel,
@@ -935,6 +1050,20 @@ var Lineage_createRelation = (function () {
         });
     };
 
+    /**
+     * Generates RDF triples for defining a restriction relation in an ontology.
+     * Creates a blank node representing the restriction and links it to the source and target nodes.
+     *
+     * @function
+     * @name getRestrictionTriples
+     * @memberof Lineage_createRelation
+     * @param {string} sourceNodeId - The ID of the source node in the restriction.
+     * @param {string} targetNodeId - The ID of the target node in the restriction.
+     * @param {string} constraint - The constraint type (e.g., someValuesFrom, allValuesFrom).
+     * @param {Object} cardinality - The cardinality restriction, if applicable.
+     * @param {string} propId - The property ID for the restriction.
+     * @returns {Array<Object>} An array of RDF triples defining the restriction.
+     */
     self.getRestrictionTriples = function (sourceNodeId, targetNodeId, constraint, cardinality, propId) {
         var restrictionsTriples = [];
         var blankNode = "_:b" + common.getRandomHexaId(10);
@@ -978,6 +1107,19 @@ var Lineage_createRelation = (function () {
         return restrictionsTriples;
     };
 
+    /**
+     * Generates metadata RDF triples for ontology elements.
+     * Includes creator, creation date, source, and other optional metadata.
+     *
+     * @function
+     * @name getCommonMetaDataTriples
+     * @memberof Lineage_createRelation
+     * @param {string} subjectUri - The URI of the entity to which metadata is being added.
+     * @param {string} source - The source of the data.
+     * @param {string} status - The status of the entity.
+     * @param {Object} options - Additional metadata properties as key-value pairs.
+     * @returns {Array<Object>} An array of RDF triples representing metadata.
+     */
     self.getCommonMetaDataTriples = function (subjectUri, source, status, options) {
         var metaDataTriples = [];
         if (!options) {

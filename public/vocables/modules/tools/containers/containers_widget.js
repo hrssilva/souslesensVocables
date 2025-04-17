@@ -40,39 +40,49 @@ var Containers_widget = (function () {
         if (!source) {
             source = Lineage_sources.activeSource;
         }
-        self.currentSource = source;
-        Containers_graph.getContainerTypes(source, null, function (err, types) {
-            if (err) {
-                return alert(err.responseText);
-            }
 
+        //  self.currentSource = source;
+
+        var rootNodes = JstreeWidget.getNodeDescendants("lineage_containers_containersJstree", "#", 1);
+
+        $("#smallDialogDiv").dialog("open");
+        $("#smallDialogDiv").dialog("option", "title", "Parent Containers Type");
+        $("#smallDialogDiv").load("./modules/tools/lineage/html/parentContainers.html", function () {
+            rootNodes;
+            var types = [];
             types.splice(0, 0, { id: "all", label: "all" });
-            $("#containerSearchWidget_typesSelect").css("display", "block");
+            rootNodes.forEach(function (item) {
+                types.push({ id: item.id, label: item.text });
+            });
             common.fillSelectOptions("containerSearchWidget_typesSelect", types, true, "label", "id");
-            //  PopupMenuWidget.initAndShow(html)
+            $("#containerSearchWidget_typesSelect").val("all");
+            //$("#containerSearchWidget_typesSelect").hide();
+            //self.execParentContainersSearch();
         });
+        // });
     };
 
     self.execParentContainersSearch = function () {
+        $("#smallDialogDiv").dialog("close");
         var type = $("#containerSearchWidget_typesSelect").val();
         $("#containerSearchWidget_typesSelect").val("");
         var filter = "";
-        if (type != "all") {
+        if (type && type != "all") {
             filter = " ?container rdf:type <" + type + ">. ";
         }
-        Containers_graph.graphParentContainers(self.currentSource, null, { filter: filter });
+        Containers_graph.graphParentContainers(Lineage_sources.activeSource, null, { filter: filter });
     };
     self.search = function () {
         var term = $("#containerWidget_searchInput").val();
         if (term) {
-            Containers_tree.drawContainerAndAncestorsJsTree(KGquery.currentSource, term, {}, function (err, result) {
+            Containers_tree.drawContainerAndAncestorsJsTree(Lineage_sources.activeSource, term, {}, function (err, result) {
                 if (err) {
                     return alert(err.responseText);
                 }
             });
         } else {
-            Containers_query.getTopContainer(KGquery.currentSource, {}, function (err, result) {
-                Containers_tree.drawTree(self.jstreeDivId, KGquery.currentSource, "#", result.results.bindings, {});
+            Containers_query.getTopContainer(Lineage_sources.activeSource, {}, function (err, result) {
+                Containers_tree.drawTree(self.jstreeDivId, Lineage_sources.activeSource, "#", result.results.bindings, {});
             });
         }
     };

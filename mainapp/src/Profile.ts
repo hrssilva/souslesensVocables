@@ -6,7 +6,7 @@ import React from "react";
 import { z } from "zod";
 
 type Response = { message: string; resources: ProfileJson[] };
-const endpoint = "/api/v1/profiles";
+const endpoint = "/api/v1/admin/profiles";
 async function getProfiles(): Promise<Profile[]> {
     const response = await fetch(endpoint);
     const json = (await response.json()) as Response;
@@ -88,6 +88,7 @@ type ProfileJson = {
     allowedSourceSchemas: string[];
     sourcesAccessControl: Record<string, SourceAccessControl>;
     allowedTools: string[];
+    isShared: boolean;
     theme?: string;
 };
 
@@ -99,6 +100,7 @@ const decodeProfile = (key: string, profile: ProfileJson): Profile => {
         allowedSourceSchemas: profile.allowedSourceSchemas,
         sourcesAccessControl: profile.sourcesAccessControl,
         allowedTools: profile.allowedTools,
+        isShared: profile.isShared,
         theme: profile.theme,
     };
 };
@@ -117,6 +119,7 @@ const ProfileSchema = z.object({
         .transform((a) => (a ?? []).flatMap((item) => (item ? item : []))),
     sourcesAccessControl: z.record(SourceAccessControlSchema).default({}),
     allowedTools: z.array(z.string()).default([]),
+    isShared: z.boolean().default(true),
     id: z.string().default(ulid()),
 });
 
@@ -126,7 +129,7 @@ export const ProfileSchemaCreate = ProfileSchema.merge(
             .string()
             .refine((val) => val !== "admin", { message: "Name can't be admin" })
             .refine((val) => val.match(/^[a-z0-9][a-z0-9-_]{1,253}$/i), { message: "Name can only contain alphanum and - or _ chars" }),
-    })
+    }),
 );
 
 export type SourceAccessControl = z.infer<typeof SourceAccessControlSchema>;
@@ -139,6 +142,8 @@ export const defaultProfile = (uuid: string): Profile => {
         allowedSourceSchemas: [],
         sourcesAccessControl: {},
         allowedTools: [],
+        isShared: true,
+        theme: "",
     };
 };
 export { getProfiles, deleteProfile, ProfileSchema };

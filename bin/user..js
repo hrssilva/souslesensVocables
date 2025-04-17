@@ -1,6 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-const { configPath, config } = require("../model/config");
+const { config } = require("../model/config");
 const { userModel } = require("../model/users");
 
 const user = {
@@ -19,21 +17,21 @@ const user = {
         if (config.auth === "disabled") {
             result = {
                 logged: true,
-                user: { login: "admin", id: "admin", source: "disabled", name: "admin", groups: ["admin"], token: "admin", allowSourceCreation: true, maxNumberCreatedSource: 999 },
+                user: { login: "admin", id: 1, source: "disabled", name: "admin", groups: ["admin"], token: "admin", allowSourceCreation: true, maxNumberCreatedSource: 999 },
                 authSource: "json",
                 auth: {},
             };
         } else if (logged) {
-            const findUser = await userModel.findUserAccount(reqUser.login);
+            const [_name, findUser] = await userModel.findUserAccount(reqUser.login);
             if (findUser === undefined) {
                 throw Error("could not find logged user " + reqUser);
             }
             result = {
                 logged: true,
-                user: { login: findUser.login, groups: findUser.groups, token: findUser.token },
+                user: { id: findUser.id, login: findUser.login, groups: findUser.groups, token: findUser.token },
                 authSource: config.auth,
-                allowSourceCreation:findUser.allowSourceCreation,
-                maxNumberCreatedSource:findUser.maxNumberCreatedSource,
+                allowSourceCreation: findUser.allowSourceCreation,
+                maxNumberCreatedSource: findUser.maxNumberCreatedSource,
                 auth: auth,
             };
         } else {

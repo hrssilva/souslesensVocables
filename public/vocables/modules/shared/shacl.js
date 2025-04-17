@@ -1,3 +1,5 @@
+import Sparql_common from "../sparqlProxies/sparql_common.js";
+
 var Shacl = (function () {
     var self = {};
 
@@ -44,19 +46,51 @@ var Shacl = (function () {
 
     self.getShacl = function (sourceClassUri, targetClassUri, shaclProperties) {
         var shacl = "";
-        shacl += sourceClassUri + "\n" + "    a sh:NodeShape ;\n";
-        if (targetClassUri) {
-            shacl += "    sh:self.targetClass  " + self.uriToPrefixedUri(targetClassUri) + ";\n";
+        shacl += sourceClassUri + "Shape" + "\n" + "    a sh:NodeShape ;\n";
+        shacl += "    sh:targetClass  " + Shacl.uriToPrefixedUri(sourceClassUri) + ";\n";
+        shacl += "sh:xone(\n";
+        for (var key in shaclProperties) {
+            shaclProperties[key].forEach(function (property, index) {
+                shacl += "[\n";
+                shacl += "  sh:property [\n" + property + "]";
+                /*  if (targetClassUri) {
+                      shacl += "    sh:class  " + Shacl.uriToPrefixedUri(targetClassUri) + ";\n";
+                  }*/
+                /*  if (index == shaclProperties.length - 1) {
+                    shacl += ".\n";
+                } else {
+                    shacl += ";\n";
+                }*/
+                shacl += "] \n";
+            });
         }
-        shaclProperties.forEach(function (property, index) {
-            shacl += "  sh:property [\n" + property + "]";
-            if (index == shaclProperties.length - 1) {
-                shacl += ".\n";
-            } else {
-                shacl += ";\n";
-            }
-        });
+        shacl += ").\n";
         return shacl;
+    };
+
+    self.getCardinalityProperty = function (restriction) {
+        var property = "";
+        self.shaclCardinalityTypes = {
+            "http://www.w3.org/2002/07/owl#minCardinality": "sh:minCount",
+            "http://www.w3.org/2002/07/owl#maxCardinality": "sh:maxCount",
+        };
+        var count = -1;
+        var cardinalityType = null;
+        if (restriction.cardinalityValue) {
+            count = Sparql_common.getIntFromTypeLiteral(restriction.cardinalityValue);
+        }
+        if (count > -1) {
+            if ((restriction.cardinalityType = "http://www.w3.org/2002/07/owl#cardinality")) {
+                property += "       sh:minCount " + count + " ;\n";
+                property += "      sh:maxCount " + count + " ;\n";
+            } else {
+                var cardinalityType = self.shaclCardinalityTypes[restriction.cardinalityType];
+                if (cardinalityType) {
+                    property += "        " + cardinalityType + " " + count + " ;\n";
+                }
+            }
+        }
+        return property;
     };
 
     return self;

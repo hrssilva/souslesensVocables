@@ -293,7 +293,7 @@ const PluginsConfiguration = ({ me, snack }: DispatcherProps) => {
                 );
             },
         },
-        model.pluginsEnabled
+        model.pluginsEnabled,
     );
 
     return renderPlugins;
@@ -385,7 +385,7 @@ const PluginsRepositoryDialog = ({ onClose, onSubmit, open, edit, selectedReposi
         } else {
             setRepository(emptyRepository);
         }
-    }, [selectedRepository]);
+    }, [selectedRepository, repositories]);
 
     return (
         <Dialog fullWidth maxWidth="md" onClose={onClose} open={open} PaperProps={{ component: "form", onSubmit: handleSubmit }}>
@@ -542,7 +542,7 @@ const PluginsRepositories = (props: DispatcherProps) => {
                 const handleFetchRepository = (repositoryId: string) => {
                     fetchRepository(repositoryId)
                         .then((response) => {
-                            if (response.status == "success") {
+                            if (response.status == 200) {
                                 snack("The repository have been successfully updated", "success");
                             } else {
                                 snack(`An error occurs during fetching: ${response.message as string}`, "error");
@@ -573,6 +573,7 @@ const PluginsRepositories = (props: DispatcherProps) => {
                     <Stack spacing={{ xs: 2 }} useFlexGap>
                         <Stack spacing={{ xs: 2 }} sx={{ height: 400 }} useFlexGap>
                             <TextField
+                                inputProps={{ autoComplete: "off" }}
                                 label="Filter repositories by URL"
                                 id="filter-repositories"
                                 onChange={(event) => {
@@ -668,7 +669,7 @@ const PluginsRepositories = (props: DispatcherProps) => {
                 );
             },
         },
-        model.repositories
+        model.repositories,
     );
 
     return renderRepositories;
@@ -737,13 +738,13 @@ const PluginsForm = () => {
             const response1 = await readRepositories();
             updateModel({ type: "repositories", payload: success(response1) });
         } catch (e) {
-            console.error("Error reading repositories.");
+            console.error("Error reading repositories. ", e);
         }
         try {
             const response2 = await getEnabledPlugins();
             updateModel({ type: "pluginsEnabled", payload: success(response2) });
         } catch (e) {
-            console.error("Error getting enabled plugins.");
+            console.error("Error getting enabled plugins. ", e);
         }
     };
 
@@ -777,7 +778,7 @@ const PluginsForm = () => {
                 </Alert>
             ),
         },
-        model.repositories
+        model.repositories,
     );
 };
 

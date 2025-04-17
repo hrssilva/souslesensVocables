@@ -1,8 +1,5 @@
 const { processResponse } = require("./utils");
 const httpProxy = require("../../../bin/httpProxy.");
-const GraphTraversal = require("../../../bin/graphTraversal.");
-const ExportGraph = require("../../../bin/exportGraph.");
-const SourceIntegrator = require("../../../bin/sourceIntegrator.");
 const ConfigManager = require("../../../bin/configManager.");
 const UserRequestFiltering = require("../../../bin/userRequestFiltering.");
 
@@ -16,6 +13,18 @@ module.exports = function () {
         try {
             if (req.body.POST) {
                 var body = JSON.parse(req.body.body);
+                var query = body.params.query;
+                if (false && (query.indexOf("http://purl.obolibrary.org/obo/vo.owl") > -1 || query.indexOf("http://purl.obolibrary.org/obo") > -1)) {
+                    const Parliament = require("../../../bin/parliamentProxy.js");
+                    try {
+                        Parliament.execPostQuery(query, function (err, result) {
+                            processResponse(res, err, result);
+                        });
+                    } catch (e) {
+                        next(e);
+                    }
+                    return;
+                }
 
                 if (ConfigManager.config && req.body.url.indexOf(ConfigManager.config.sparql_server.url) == 0) {
                     if (ConfigManager.config.sparql_server.user) {
@@ -30,23 +39,20 @@ module.exports = function () {
                             if (err) {
                                 return processResponse(res, err, userSources);
                             }
-                            UserRequestFiltering.filterSparqlRequest(body.params.query, userSources, user, function(parsingError, filteredQuery) {
+                            UserRequestFiltering.filterSparqlRequest(body.params.query, userSources, user, function (parsingError, filteredQuery) {
                                 if (parsingError) {
                                     return processResponse(res, parsingError, null);
                                 }
                                 body.params.query = filteredQuery;
 
-                                httpProxy.post(req.body.url, body.headers, body.params, function(err, result) {
+                                httpProxy.post(req.body.url, body.headers, body.params, function (err, result) {
                                     processResponse(res, err, result);
                                 });
                             });
 
                             return;
-
-                        })
-                    })
-
-
+                        });
+                    });
                 } else {
                     httpProxy.post(req.body.url, body.headers, body.params, function (err, result) {
                         processResponse(res, err, result);
@@ -81,10 +87,11 @@ module.exports = function () {
                 description: "Response provided by the proxied server",
             },
         },
+        tags: ["Sparql"],
     };
 
     function GET(req, res, next) {
-        var options = JSON.parse(req.query.options)
+        var options = JSON.parse(req.query.options);
 
         if (ConfigManager.config && req.query.url.indexOf(ConfigManager.config.sparql_server.url) == 0) {
             if (ConfigManager.config.sparql_server.user) {
@@ -106,18 +113,30 @@ module.exports = function () {
                         req.query.url = filteredQuery;
 
                         try {
-
                             httpProxy.get(req.query.url, options, function (err, result) {
                                 processResponse(res, err, result);
                             });
                         } catch (e) {
                             next(e);
                         }
-                    })
-                })
-            })
-            }
+                    });
+                });
+            });
+        }
     }
+
+    GET.apiDoc = {
+        summary: "Retrieve a request from a different domain",
+        security: [{ restrictLoggedUser: [] }],
+        operationId: "httpProxy",
+        parameters: [],
+        responses: {
+            default: {
+                description: "Response provided by the proxied server",
+            },
+        },
+        tags: ["Sparql"],
+    };
 
     return operations;
 };

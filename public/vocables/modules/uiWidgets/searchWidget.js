@@ -251,8 +251,11 @@ var SearchWidget = (function () {
                         nodeId = source;
                     }
                     var leafId = nodeId + match.id;
+                    if (match.id.indexOf("Branch") > -1) {
+                        console.log("here");
+                    }
                     var type = "Class";
-                    if (match.type != "owl:Class") {
+                    if (match.type.indexOf("Class") == -1) {
                         type = "Individual";
                     }
                     if (!existingNodes[leafId]) {
@@ -431,6 +434,15 @@ var SearchWidget = (function () {
                 NodeInfosAxioms.init(self.currentTreeNode.data.source, self.currentTreeNode, "mainDialogDiv");
             },
         };
+
+        if (false && Lineage_sources.isSourceEditableForUser(Lineage_sources.activeSource)) {
+            items.axioms = {
+                label: "Import Class in source " + Lineage_sources.activeSource,
+                action: function (e) {
+                    alert("to implement"); // Sparql_OWL.copyUriTriplesFromSourceToSource(Lineage_sources.activeSource, self.currentTreeNode.data.source, self.currentTreeNode.data.id, function (err, result) {});
+                },
+            };
+        }
 
         /*  items.descendantsAxioms = {
             label: "Descendants axioms",

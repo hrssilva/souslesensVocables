@@ -36,7 +36,7 @@ var common = (function () {
                 $("<option>", {
                     text: "",
                     value: "",
-                })
+                }),
             );
         }
 
@@ -64,7 +64,7 @@ var common = (function () {
                         text: text,
                         value: value,
                         selected: selected,
-                    })
+                    }),
                 );
             });
         } else {
@@ -74,7 +74,7 @@ var common = (function () {
                     $("<option>", {
                         text: item[textfield] || item,
                         value: item[valueField] || item,
-                    })
+                    }),
                 );
             }
         }
@@ -280,12 +280,148 @@ var common = (function () {
             });
             return map;
         },
-        insertFirstArray: function (array, first) {
+        moveItemToFirst: function (array, first) {
             let index = array.indexOf(first);
             if (index > -1) {
                 array.splice(index, 1);
                 array.unshift(first);
             }
+        },
+        /*
+        fullOuterJoin:function(array1,array2,keys){
+
+            if(!keys || !array1 || !array2 ){
+                return 'parameter is missing'
+            }
+            if (!Array.isArray(keys)) {
+                keys = [keys]; 
+            }
+            if(array1.length==0 || array2.length==0){
+                return 'one dataset is empty'
+            }
+            var  currentKey;
+            var joinMap={};
+            var joinArray=[];
+            array1.forEach(function(item){
+                currentKey=''
+                keys.forEach(function(key){
+                    if(item[key]){
+                        if(item[key]?.value){
+                             currentKey+=item[key].value+'|'
+                        }else{
+                            currentKey+=item[key]+'|'
+                        }
+                        
+                    }
+                });
+                if(currentKey){
+                    joinMap[currentKey]=item;
+                }else{
+                    joinMap[common.getRandomHexaId(8)]=item;
+                }
+                
+                
+            });
+            array2.forEach(function(item){
+                currentKey=''
+                keys.forEach(function(key){
+                    if(item[key]){
+                        if(item[key]?.value){
+                             currentKey+=item[key].value+'|'
+                        }else{
+                            currentKey+=item[key]+'|'
+                        }
+                        
+                    }
+                });
+                if(joinMap[currentKey]){
+                    joinMap[currentKey]={ ...joinMap[currentKey], ...item};
+                }else if(!currentKey){
+                    joinMap[common.getRandomHexaId(8)]=item;
+                }
+                else{
+                    joinMap[currentKey]=item;
+                }
+            })
+
+            return Object.values(joinMap)
+        },*/
+        fullOuterJoin: function (array1, array2, keys) {
+            if (!keys || !array1 || !array2) {
+                return "parameter is missing";
+            }
+            if (!Array.isArray(keys)) {
+                keys = [keys];
+            }
+            if (array1.length === 0 || array2.length === 0) {
+                return "one dataset is empty";
+            }
+
+            let joinMap1 = {},
+                joinMap2 = {},
+                result = [];
+
+            function generateKey(item) {
+                return keys.map((key) => item[key]?.value ?? item[key] ?? "").join("|");
+            }
+
+            // Object Indexation
+            array1.forEach((item) => {
+                let key = generateKey(item);
+                if (!joinMap1[key]) joinMap1[key] = [];
+                joinMap1[key].push(item);
+            });
+
+            array2.forEach((item) => {
+                let key = generateKey(item);
+                if (!joinMap2[key]) joinMap2[key] = [];
+                joinMap2[key].push(item);
+            });
+
+            let allUniqueKeys = new Set([...Object.keys(joinMap1), ...Object.keys(joinMap2)]);
+            // Union of sets
+            allUniqueKeys.forEach((key) => {
+                let group1 = joinMap1[key] || [{}];
+                let group2 = joinMap2[key] || [{}];
+
+                group1.forEach((obj1) => {
+                    group2.forEach((obj2) => {
+                        result.push({ ...obj1, ...obj2 });
+                    });
+                });
+            });
+
+            return result;
+        },
+
+        arrayByCategory: function (array, column) {
+            const groups = array.reduce((acc, item) => {
+                var key = item[column];
+                if (item[column]?.value) {
+                    key = item[column].value;
+                }
+                if (!acc[key]) {
+                    acc[key] = [];
+                }
+                acc[key].push(item);
+                return acc;
+            }, {});
+
+            return Object.values(groups);
+        },
+        removeColumn: function (array, column) {
+            if (array.length === 0) {
+                return " dataset is empty";
+            }
+            if (!column) {
+                return "no column to supress";
+            }
+            array.forEach(function (item) {
+                if (item[column]) {
+                    delete item[column];
+                }
+            });
+            return array;
         },
     };
 
@@ -426,6 +562,9 @@ str = str.replace(/%2F/gm, "/");*/
         return "0".repeat(length - str.length) + str;
     };
 
+    self.getRandomInt = function () {
+        return Math.floor(Math.random() * 100000);
+    };
     self.getItemLabel = function (item, varName, _lang) {
         if (item[varName + "Label"]) {
             return item[varName + "Label"].value;
@@ -492,7 +631,7 @@ str = str.replace(/%2F/gm, "/");*/
                 textArea.style.left = "-999999px";
                 textArea.style.top = "-999999px";
                 document.body.appendChild(textArea);
-                textArea.focus();
+                textArea.trigger("focus");
                 textArea.select();
                 return new Promise((res, rej) => {
                     // here the magic happens
@@ -551,7 +690,7 @@ if (callback) return callback(err);
 
         // textArea.value = text;
         // document.body.appendChild(textArea);
-        // textArea.focus();
+        // textArea .trigger( "focus" );
         // textArea.select();
 
         // try {
@@ -579,7 +718,7 @@ if (callback) return callback(err);
                 textArea.style.left = "-999999px";
                 textArea.style.top = "-999999px";
                 document.body.appendChild(textArea);
-                textArea.focus();
+                textArea.trigger("focus");
                 try {
                     var successful = document.execCommand("paste");
                     var text = textArea.value;
@@ -712,7 +851,7 @@ if (callback) return callback(err);
         return /-?[0-9]+[.,]+[0-9]?/.test("" + value);
     };
     self.palette = [
-        "#8f52a0",
+        "#d0aeea",
         "#00ae8d",
         "#799b79",
         "#fbb27b",
@@ -737,7 +876,7 @@ if (callback) return callback(err);
     ];
 
     self.paletteIntense = [
-        "#8f52a0",
+        "#e0c5e8",
         "#00ae8d",
         "#799b79",
         "#fbb27b",
@@ -762,7 +901,7 @@ if (callback) return callback(err);
     ];
 
     self.paletteIntense = [
-        "#8f52a0",
+        "#ead5ef",
         "#00ae8d",
         "#799b79",
         "#fbb27b",
@@ -846,6 +985,23 @@ if (callback) return callback(err);
         return hex;
     };
 
+    self.RGBtoHexColor = function (color) {
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+        }
+
+        var rgbColor = /\((\d+),(\d+),(\d+)/.exec(color);
+        if (rgbColor) {
+            var r = rgbColor[1];
+            var g = rgbColor[2];
+            var b = rgbColor[3];
+            var hexColor = rgbToHex(r, g, b);
+            return hexColor;
+        } else {
+            return color;
+        }
+    };
+
     self.getResourceColor = function (resourceType, resourceId, palette) {
         if (!palette) {
             palette = "paletteIntense";
@@ -889,9 +1045,6 @@ if (callback) return callback(err);
 
         StackTrace.get().then(callback).catch(errback);
         return;
-        console.debug();
-        var xx = console.trace();
-        var stack = new Error().stack;
     };
 
     self.getUrlParamsMap = function () {
@@ -912,6 +1065,7 @@ if (callback) return callback(err);
             source = Lineage_sources.activeSource;
         }
         let graphUri = Config.sources[source].graphUri;
+
         if (!uriType || uriType == "fromLabel") {
             uri = graphUri + common.formatStringForTriple(label, true);
         } else if (uriType == "randomHexaNumber") {

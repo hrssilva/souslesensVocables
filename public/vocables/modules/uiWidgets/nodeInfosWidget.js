@@ -128,19 +128,15 @@ var NodeInfosWidget = (function () {
                             $(".nodeInfosWidget_tabDiv").removeClass("nodesInfos-selectedTab");
 
                             setTimeout(function () {
-                                /*if (NodeInfosAxioms.nodeInfosAxiomsLoaded) {
-                                    //reset nodeInfos
-
-                                    self.showNodeInfos(Lineage_sources.activeSource, NodeInfosAxioms.nodeBeforeNodeInfos, "mainDialogDiv", null, null);
-                                }*/
-
                                 $("[aria-selected='true']").addClass("nodesInfos-selectedTab");
                                 if (ui.newPanel.selector == "#nodeInfosWidget_AxiomsTabDiv") {
                                     var source = self.currentSource;
                                     // source = Lineage_sources.mainSource;
                                     NodeInfosAxioms.init(source, self.currentNode, "nodeInfosWidget_AxiomsTabDiv");
                                 }
-                                0;
+                                if (ui.newPanel.selector == "#nodeInfosWidget_relationsDiv") {
+                                    $("#nodeInfosWidget_relationsDiv").load("modules/uiWidgets/html/nodeRelationsWidget.html", function () {});
+                                }
                             }, 100);
                         },
                     });
@@ -163,13 +159,14 @@ var NodeInfosWidget = (function () {
         async.series(
             [
                 function (callbackSeries) {
-                    if (self.currentNode) {
+                    if (false && self.currentNode) {
                         return callbackSeries();
                     }
                     Sparql_generic.getNodeParents(sourceLabel, null, nodeId, 0, null, function (err, result) {
                         if (err) {
                             return callbackSeries(err);
                         }
+                        if (result.length == 0) return callbackSeries();
                         var item = result[0];
                         self.currentNode = {
                             id: item.subject.value,
@@ -257,7 +254,7 @@ var NodeInfosWidget = (function () {
                 if (err) {
                     return UI.message(err.responseText || err, true);
                 }
-            }
+            },
         );
     };
 
@@ -614,7 +611,7 @@ defaultLang = 'en';*/
                 if (callback) {
                     return callback(null, { types: types, blankNodes: blankNodes });
                 }
-            }
+            },
         );
     };
 
@@ -747,7 +744,7 @@ defaultLang = 'en';*/
         });
 
         var html = "<div style='display:flex;flex-direction:row'>";
-        html += "<div><b><div class='nodesInfos_titles'>Ranges Authorized </div></b>";
+        html += "<div style='overflow:auto;max-height: 280px;'><b><div class='nodesInfos_titles'>Ranges Authorized </div></b>";
         html += `<table> <tbody> 
                 <tr>
                     <td class="detailsCellName"><span class="title">ancestorConcerned</span></td>
@@ -785,7 +782,7 @@ defaultLang = 'en';*/
             });
         }
         html += "</table> </tbody> </div>";
-        html += "<div style='margin-left:25px;'><b><div class='nodesInfos_titles'>Domain Authorized </div></b>";
+        html += "<div style='margin-left:25px;overflow:auto;max-height: 280px;'><b><div class='nodesInfos_titles'>Domain Authorized </div></b>";
         html += `<table> <tbody> 
                 <tr>
                     <td class="detailsCellName"><span class="title">Domain on</span></td>
@@ -1188,7 +1185,7 @@ object+="@"+currentEditingItem.item.value["xml:lang"]*/
                     if (callback) {
                         callback();
                     }
-                }
+                },
             );
         }
     };
@@ -1305,7 +1302,7 @@ object+="@"+currentEditingItem.item.value["xml:lang"]*/
                     }
                     $("#" + self.divId).dialog("close");
                     UI.message("node deleted");
-                }
+                },
             );
         }
     };
@@ -1437,7 +1434,7 @@ object+="@"+currentEditingItem.item.value["xml:lang"]*/
 
             $("#editPredicate_objectValue").val(PredicatesSelectorWidget.currentEditingItem.item.value.value);
             $("#editPredicate_propertyValue").val(PredicatesSelectorWidget.currentEditingItem.item.prop.value);
-            $("#editPredicate_objectValue").focus();
+            $("#editPredicate_objectValue").trigger("focus");
             $("#editPredicate_savePredicateButton").click(function () {
                 PredicatesSelectorWidget.storeRecentPredicates();
 
@@ -1557,7 +1554,7 @@ object+="@"+currentEditingItem.item.value["xml:lang"]*/
 
     self.setLargerObjectTextArea = function () {
         $("#editPredicate_objectValue").show();
-        $("#editPredicate_objectValue").focus();
+        $("#editPredicate_objectValue").trigger("focus");
         $("#editPredicate_largerTextButton").hide();
         //  $("#editPredicate_objectValue").hide();
         $("#editPredicate_objectValue").css("width", "700px");

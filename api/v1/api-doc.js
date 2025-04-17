@@ -407,7 +407,207 @@ const apiDoc = {
                 },
             },
         },
+        UserData: {
+            type: "object",
+            properties: {
+                id: {
+                    type: "number",
+                    minimum: 1,
+                },
+                data_type: {
+                    type: "string",
+                },
+                data_label: {
+                    type: "string",
+                    default: "",
+                },
+                data_comment: {
+                    type: "string",
+                    default: "",
+                },
+                data_group: {
+                    type: "string",
+                    default: "",
+                },
+                data_tool: {
+                    type: "string",
+                    default: "",
+                },
+                data_source: {
+                    type: "string",
+                    default: "",
+                },
+                data_content: {
+                    $ref: "#/definitions/UserDataContent",
+                },
+                is_shared: {
+                    type: "boolean",
+                    default: false,
+                },
+                shared_profiles: {
+                    type: "array",
+                    default: [],
+                    items: { type: "string" },
+                },
+                shared_users: {
+                    type: "array",
+                    default: [],
+                    items: { type: "string" },
+                },
+                owned_by: {
+                    type: "string",
+                },
+                created_at: {
+                    type: "string",
+                },
+            },
+            required: ["data_type"],
+        },
+        UserDataWithoutID: {
+            type: "object",
+            properties: {
+                data_type: {
+                    type: "string",
+                },
+                data_label: {
+                    type: "string",
+                    default: "",
+                },
+                data_comment: {
+                    type: "string",
+                    default: "",
+                },
+                data_group: {
+                    type: "string",
+                    default: "",
+                },
+                data_tool: {
+                    type: "string",
+                    default: "",
+                },
+                data_source: {
+                    type: "string",
+                    default: "",
+                },
+                data_content: {
+                    $ref: "#/definitions/UserDataContent",
+                },
+                is_shared: {
+                    type: "boolean",
+                    default: false,
+                },
+                shared_profiles: {
+                    type: "array",
+                    default: [],
+                    items: { type: "string" },
+                },
+                shared_users: {
+                    type: "array",
+                    default: [],
+                    items: { type: "string" },
+                },
+            },
+            required: ["data_type"],
+        },
+        UserDataWithoutOwner: {
+            type: "object",
+            properties: {
+                id: {
+                    type: "number",
+                    minimum: 1,
+                },
+                data_type: {
+                    type: "string",
+                },
+                data_label: {
+                    type: "string",
+                    default: "",
+                },
+                data_comment: {
+                    type: "string",
+                    default: "",
+                },
+                data_group: {
+                    type: "string",
+                    default: "",
+                },
+                data_tool: {
+                    type: "string",
+                    default: "",
+                },
+                data_source: {
+                    type: "string",
+                    default: "",
+                },
+                data_content: {
+                    $ref: "#/definitions/UserDataContent",
+                },
+                is_shared: {
+                    type: "boolean",
+                    default: false,
+                },
+                shared_profiles: {
+                    type: "array",
+                    default: [],
+                    items: { type: "string" },
+                },
+                shared_users: {
+                    type: "array",
+                    default: [],
+                    items: { type: "string" },
+                },
+                created_at: {
+                    type: "string",
+                },
+            },
+        },
+        UserDataContent: {
+            type: "object",
+            properties: {
+                sparqlServerUrl: {
+                    type: "string",
+                },
+                graphUri: {
+                    type: "string",
+                },
+                prefixes: {
+                    type: "object",
+                },
+                lookups: {
+                    type: "object",
+                },
+                databaseSources: {
+                    type: "object",
+                },
+                cvsSources: {
+                    type: "object",
+                },
+            },
+        },
     },
+    tags: [
+        { name: "Annotate", description: "Manage annotation" },
+        { name: "Authentication", description: "Manage user connection" },
+        { name: "Axiom", description: "Manage axiom" },
+        { name: "Config", description: "Manage main configuration file" },
+        { name: "Data", description: "Manage access to inner data files" },
+        { name: "Databases", description: "Manage external databases" },
+        { name: "ElasticSearch", description: "Manage ElasticSearch server" },
+        { name: "Graph", description: "Manage graph and triple store" },
+        { name: "JOWL", description: "Manage JOWL server and data" },
+        { name: "KG", description: "Manage KG tools suite" },
+        { name: "Logs", description: "Manage logging of the user actions" },
+        { name: "Misc", description: "The list of the useful routes" },
+        { name: "Ontology", description: "Manage ontology models" },
+        { name: "Plugins", description: "Manage external tools used to extend the application" },
+        { name: "Profiles", description: "Manage profiles used to limit access to information" },
+        { name: "RDF", description: "Manage RDF graphs" },
+        { name: "Sources", description: "Manage sources related to a graph URI" },
+        { name: "Sparql", description: "Manage Sparql requests" },
+        { name: "Tools", description: "Manage tools available for each user" },
+        { name: "UserData", description: "Manage shared data for each user and profile" },
+        { name: "Users", description: "Manage information about the registered users" },
+    ],
 };
 
 module.exports = apiDoc;

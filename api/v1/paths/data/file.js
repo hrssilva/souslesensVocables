@@ -9,11 +9,10 @@ module.exports = function () {
     function GET(req, res, next) {
         dataController.readFile(req.query.dir, req.query.fileName, function (err, result) {
             if (err) {
-                if(err=='file does not exist'){
+                if (err == "file does not exist") {
                     return res.status(500).json(err);
                 }
                 next(err);
-                
             } else {
                 return res.status(200).json(result);
             }
@@ -50,6 +49,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["Data"],
     };
 
     function POST(req, res, next) {
@@ -97,6 +97,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["Data"],
     };
 
     return operations;

@@ -32,7 +32,11 @@
     "jowlServer": {
         "enabled": false
     },
-    "slsApi": {
+    "slsPyApi": {
         "enabled": false
+    },
+    "userData": {
+        "location": "database",
+        "maximumFileSize": 1000000
     }
 }

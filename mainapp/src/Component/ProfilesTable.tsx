@@ -1,13 +1,16 @@
-import { useState, useMemo, useReducer, useEffect, ChangeEvent, forwardRef, Ref, Dispatch, MouseEventHandler } from "react";
+import { useState, useMemo, useReducer, ChangeEvent, forwardRef, Ref, Dispatch, MouseEventHandler } from "react";
 import {
+    Alert,
     Box,
     Button,
     Checkbox,
     Chip,
     CircularProgress,
     FormControl,
+    FormControlLabel,
     FormLabel,
     Grid,
+    IconButton,
     InputLabel,
     MenuItem,
     Modal,
@@ -27,8 +30,8 @@ import {
     Typography,
     styled,
 } from "@mui/material";
-import { ExpandMore, ChevronRight } from "@mui/icons-material";
 
+import { ChevronRight, Close, Done, Edit, ExpandMore } from "@mui/icons-material";
 import { TreeView, TreeItem, TreeItemProps, TreeItemContentProps, useTreeItem } from "@mui/x-tree-view";
 
 import clsx from "clsx";
@@ -70,7 +73,6 @@ const ProfilesTable = () => {
 
     const renderProfiles = SRD.match(
         {
-            // eslint-disable-next-line react/no-unescaped-entities
             notAsked: () => <p>Let’s fetch some data!</p>,
             loading: () => (
                 <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -78,16 +80,17 @@ const ProfilesTable = () => {
                 </Box>
             ),
             failure: (msg: string) => (
-                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                    ,<p>{`I stumbled into this error when I tried to fetch data: ${msg}. Please, reload this page.`}</p>
-                </Box>
+                <Alert variant="filled" severity="error" sx={{ m: 4 }}>
+                    {`I stumbled into this error when I tried to fetch data: ${msg}. Please, reload this page.`}
+                </Alert>
             ),
             success: (gotProfiles: Profile[]) => {
                 const datas = gotProfiles.map((profile) => {
-                    const { allowedSourceSchemas, allowedTools, sourcesAccessControl, ...restOfProperties } = profile;
+                    const { allowedSourceSchemas, allowedTools, isShared, sourcesAccessControl, ...restOfProperties } = profile;
                     const processedData = {
                         ...restOfProperties,
                         allowedTools: joinWhenArray(allowedTools),
+                        isShared: JSON.stringify(isShared),
                         allowedSourceSchemas: allowedSourceSchemas.join(";"),
                         sourcesAccessControl: JSON.stringify(sourcesAccessControl),
                     };
@@ -97,7 +100,7 @@ const ProfilesTable = () => {
                                 return [key, value.replace("\n", " ")];
                             }
                             return [key, value];
-                        })
+                        }),
                     );
                     return { ...dataWithoutCarriageReturns };
                 });
@@ -105,7 +108,7 @@ const ProfilesTable = () => {
                     let left = "";
                     let right = "";
 
-                    if (a[orderBy] instanceof Array) {
+                    if (a[orderBy] instanceof Array && b[orderBy] instanceof Array) {
                         left = a[orderBy]?.toString() ?? "";
                         right = b[orderBy]?.toString() ?? "";
                     } else {
@@ -118,6 +121,7 @@ const ProfilesTable = () => {
                 return (
                     <Stack direction="column" spacing={{ xs: 2 }} sx={{ m: 4 }} useFlexGap>
                         <TextField
+                            inputProps={{ autoComplete: "off" }}
                             label="Search Profiles by name"
                             id="filter profiles"
                             onChange={(event) => {
@@ -136,6 +140,11 @@ const ProfilesTable = () => {
                                         <TableCell align="center" style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
                                             <TableSortLabel active={orderBy === "allowedTools"} direction={order} onClick={() => handleRequestSort("allowedTools")}>
                                                 Allowed Tools
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell align="center" style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
+                                            <TableSortLabel active={orderBy === "isShared"} direction={order} onClick={() => handleRequestSort("isShared")}>
+                                                Shared Users
                                             </TableSortLabel>
                                         </TableCell>
                                         <TableCell align="center" style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>
@@ -169,6 +178,11 @@ const ProfilesTable = () => {
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
+                                                            {profile.isShared ? <Done sx={{ width: 30, height: 30 }} /> : <Close sx={{ width: 30, height: 30 }} />}
+                                                        </Stack>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Stack direction="row" justifyContent="center" spacing={{ xs: 1 }} useFlexGap>
                                                             {profile.allowedSourceSchemas.map((source) => (
                                                                 <Chip key={source} label={source} size="small" />
                                                             ))}
@@ -196,7 +210,7 @@ const ProfilesTable = () => {
                 );
             },
         },
-        model.profiles
+        model.profiles,
     );
 
     return renderProfiles;
@@ -208,7 +222,6 @@ const enum Type {
     UserClickedModal,
     UserUpdatedField,
     UserUpdatedSourceAccessControl,
-    ResetProfile,
     UserClickedCheckAll,
 }
 
@@ -218,10 +231,9 @@ const enum Mode {
 }
 
 export type Msg_ =
-    | { type: Type.UserClickedModal; payload: boolean }
-    | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string | string[] } }
+    | { type: Type.UserClickedModal; payload: { modal: boolean; profileForm?: Profile } }
+    | { type: Type.UserUpdatedField; payload: { fieldname: string; newValue: string | string[] | boolean } }
     | { type: Type.UserUpdatedSourceAccessControl; payload: { treeStr: string; newValue: SourceAccessControl | null } }
-    | { type: Type.ResetProfile; payload: Profile }
     | { type: Type.UserClickedCheckAll; payload: { fieldname: string; value: boolean } };
 
 const updateProfile = (profileEditionState: ProfileEditionState, msg: Msg_): ProfileEditionState => {
@@ -229,8 +241,11 @@ const updateProfile = (profileEditionState: ProfileEditionState, msg: Msg_): Pro
 
     switch (msg.type) {
         case Type.UserClickedModal:
-            return { ...profileEditionState, modal: msg.payload };
-
+            if (msg.payload.profileForm) {
+                return { ...profileEditionState, modal: msg.payload.modal, profileForm: msg.payload.profileForm };
+            } else {
+                return { ...profileEditionState, modal: msg.payload.modal };
+            }
         case Type.UserUpdatedField:
             return { ...profileEditionState, profileForm: { ...profileEditionState.profileForm, [fieldToUpdate]: msg.payload.newValue } };
 
@@ -259,9 +274,6 @@ const updateProfile = (profileEditionState: ProfileEditionState, msg: Msg_): Pro
         }
         case Type.UserClickedCheckAll:
             return { ...profileEditionState, profileForm: { ...profileEditionState.profileForm, [fieldToUpdate]: msg.payload.value ? "ALL" : [] } };
-
-        case Type.ResetProfile:
-            return { ...profileEditionState, profileForm: msg.payload };
     }
 };
 
@@ -273,10 +285,12 @@ type ProfileFormProps = {
 
 const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = "" }: ProfileFormProps) => {
     const [nodesClicked, setNodeToExpand] = useState<Array<string>>([]);
+    const [manualExpand, setManualExpand] = useState(false);
     const { model, updateModel } = useModel();
     const unwrappedSources = SRD.unwrap([], identity, model.sources);
     const unwrappedProfiles = SRD.unwrap([], identity, model.profiles);
     const [issues, setIssues] = useState<ZodIssue[]>([]);
+    const [filter, setFilter] = useState<string>("");
     const sources = useMemo(() => {
         return unwrappedSources;
     }, [unwrappedSources]);
@@ -293,21 +307,31 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = ""
                 selector: false,
             },
         },
-        model.config
+        model.config,
     );
     const [profileModel, update] = useReducer(updateProfile, { modal: false, profileForm: profile });
 
-    useEffect(() => {
-        update({ type: Type.ResetProfile, payload: profile });
-    }, [profileModel.modal]);
-    const handleOpen = () => update({ type: Type.UserClickedModal, payload: true });
+    const handleOpen = () => update({ type: Type.UserClickedModal, payload: { modal: true, profileForm: profile } });
     const handleClose = () => {
         setNodeToExpand([]);
-        update({ type: Type.UserClickedModal, payload: false });
+        update({ type: Type.UserClickedModal, payload: { modal: false } });
     };
-    const handleFieldUpdate = (fieldname: string) => (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement> | SelectChangeEvent<string[]>) =>
-        update({ type: Type.UserUpdatedField, payload: { fieldname: fieldname, newValue: event.target.value } });
+    const handleFieldUpdate = (fieldname: string) => (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement> | SelectChangeEvent<string[]>) => {
+        if (fieldname === "isShared") {
+            update({ type: Type.UserUpdatedField, payload: { fieldname: fieldname, newValue: (event.target as HTMLInputElement).checked } });
+        } else {
+            update({ type: Type.UserUpdatedField, payload: { fieldname: fieldname, newValue: event.target.value } });
+        }
+    };
 
+    const sourceFilter = (event: ChangeEvent<HTMLTextAreaElement>) => {
+        setFilter(event.target.value);
+        setManualExpand(false);
+    };
+    const handleManualExpand = (nodeIds: string[]) => {
+        setNodeToExpand(nodeIds);
+        setManualExpand(true);
+    };
     const profilesSchema = create ? ProfileSchemaCreate : ProfileSchema;
     const zo = useZorm("form", profilesSchema, { setupListeners: false, customIssues: issues });
     const handleSourceAccessControlUpdate = (src: SourceTreeNode) => (event: SelectChangeEvent) => {
@@ -394,31 +418,41 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = ""
         return fields.concat(source.name);
     };
 
-    const generateSourcesTree = () => {
+    const generateSourcesTree = (filter: string) => {
+        const filteredFields = new Set();
+        sources.forEach((source) => {
+            fieldsFromSource(source)
+                .filter((item) => item.toLowerCase().includes(filter.toLowerCase()))
+                .forEach((field) => {
+                    filteredFields.add(field);
+                    filteredFields.add(source.schemaType);
+                    source.group.split("/").forEach((gr) => filteredFields.add(gr));
+                });
+        });
         const sourcesTree: SourceTreeNode[] = [];
-
         let index = 0;
         sources.forEach((source) => {
             let currentTree = sourcesTree;
             const tree: string[] = [];
-            fieldsFromSource(source).forEach((field) => {
-                tree.push(field);
-                let root = currentTree.find((key) => key.name == field);
-                if (root === undefined) {
-                    root = {
-                        name: field,
-                        children: [],
-                        index: index,
-                        source: source,
-                        treeStr: tree.join("/"),
-                    };
-                    currentTree.push(root);
-                }
-                index = index + 1;
-                currentTree = root.children;
-            });
+            fieldsFromSource(source)
+                .filter((item) => filteredFields.has(item))
+                .forEach((field) => {
+                    tree.push(field);
+                    let root = currentTree.find((key) => key.name == field);
+                    if (root === undefined) {
+                        root = {
+                            name: field,
+                            children: [],
+                            index: index,
+                            source: source,
+                            treeStr: tree.join("/"),
+                        };
+                        currentTree.push(root);
+                    }
+                    index = index + 1;
+                    currentTree = root.children;
+                });
         });
-
         return sourcesTree;
     };
 
@@ -490,15 +524,31 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = ""
         });
     };
 
-    function SourcesTreeView() {
-        const treeviewSources = displayFormTree(generateSourcesTree());
+    const getAllNodeIds = (sources: JSX.Element[]) => {
+        const nodeIds: string[] = [];
+        sources.forEach((item: JSX.Element) => {
+            const iProps = item.props as TreeItemProps;
+            nodeIds.push(iProps.nodeId);
+            if (iProps.children) {
+                nodeIds.push(...getAllNodeIds(iProps.children as JSX.Element[]));
+            }
+        });
+        return nodeIds;
+    };
+
+    function SourcesTreeView({ filter }: { filter: string }) {
+        const treeviewSources = displayFormTree(generateSourcesTree(filter));
+        let expanded = Array.from(nodesClicked);
+        if (filter && treeviewSources && !manualExpand) {
+            expanded = getAllNodeIds(treeviewSources);
+        }
         return (
             <TreeView
                 aria-label="Sources access control navigator"
                 id="sources-access-treeview"
-                defaultExpanded={Array.from(nodesClicked)}
+                defaultExpanded={expanded}
                 onNodeToggle={(_event, nodeIds) => {
-                    setNodeToExpand(nodeIds);
+                    handleManualExpand(nodeIds);
                 }}
                 defaultCollapseIcon={<ExpandMore sx={{ width: 30, height: 30 }} />}
                 defaultExpandIcon={<ChevronRight sx={{ width: 30, height: 30 }} />}
@@ -510,9 +560,15 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = ""
 
     return (
         <>
-            <Button variant="contained" color="primary" onClick={handleOpen}>
-                {create ? "Create Profile" : "Edit"}
-            </Button>
+            {create ? (
+                <Button variant="contained" color="primary" onClick={handleOpen}>
+                    Create Profile
+                </Button>
+            ) : (
+                <IconButton aria-label="edit" color="primary" onClick={handleOpen} size="small" title="Edit">
+                    <Edit />
+                </IconButton>
+            )}
             <Modal onClose={handleClose} open={profileModel.modal}>
                 <Box
                     component="form"
@@ -571,10 +627,11 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = ""
                                 ))}
                             </Select>
                         </FormControl>
-                        <Box style={{ maxHeight: "300px", overflow: "auto" }}>
+                        <Box style={{ height: "300px", overflow: "auto" }}>
                             <FormControl>
                                 <FormLabel id="default-source-access-control-label">Default source access control</FormLabel>
-                                <SourcesTreeView />
+                                <TextField id="filter" label="Filter" onChange={sourceFilter} value={filter} variant="standard" />
+                                <SourcesTreeView filter={filter} />
                             </FormControl>
                         </Box>
                         <FormControl>
@@ -595,6 +652,9 @@ const ProfileForm = ({ profile = defaultProfile(ulid()), create = false, me = ""
                                     </MenuItem>
                                 ))}
                             </Select>
+                        </FormControl>
+                        <FormControl>
+                            <FormControlLabel control={<Checkbox checked={profileModel.profileForm.isShared} onChange={handleFieldUpdate("isShared")} />} label={"shared Users"} />
                         </FormControl>
                         <TextField defaultValue={profileModel.profileForm.theme ?? config.theme.defaultTheme} fullWidth id="theme" label="Theme" onChange={handleFieldUpdate("theme")} select>
                             {getAvailableThemes().map((theme) => (

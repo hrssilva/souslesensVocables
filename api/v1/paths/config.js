@@ -1,6 +1,4 @@
 const { mainConfigModel } = require("../../../model/mainConfig");
-const { userModel } = require("../../../model/users");
-const userManager = require("../../../bin/user.");
 
 module.exports = function () {
     let operations = {
@@ -22,7 +20,7 @@ module.exports = function () {
             version: process.env.npm_package_version,
             sentryDsnJsFront: config.sentryDsnJsFront,
             tools_available: config.tools_available,
-            slsApi: config.slsApi,
+            slsPyApi: config.slsPyApi,
             theme: config.theme,
         };
 
@@ -44,6 +42,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["Config"],
     };
 
     async function PUT(req, res, next) {
@@ -72,6 +71,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["Config"],
     };
 
     return operations;

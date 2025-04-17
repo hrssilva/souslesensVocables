@@ -1,5 +1,4 @@
 const fs = require("fs");
-const path = require("path");
 const z = require("zod");
 
 const configPath = process.env.CONFIG_PATH || "config";
@@ -26,13 +25,17 @@ const MainConfigObject = z
                 defaultTheme: z.string(),
             })
             .strict(),
-        auth: z.enum(["local", "disabled", "keycloak", "auth0"]),
+        auth: z.enum(["local", "database", "disabled", "keycloak", "auth0"]),
         cookieSameSite: z.string(),
         cookieSecure: z.boolean(),
         cookieSecureTrustProxy: z.boolean(),
         cookieMaxAge: z.number().positive(),
         defaultGroups: z.array(z.string()),
-        logDir: z.string(),
+        logs: z.object({
+            directory: z.string(),
+            useFileLogger: z.boolean(),
+            useSymlink: z.boolean(),
+        }),
         default_lang: z.string(),
         sentryDsnNode: z.string(),
         sentryDsnJsFront: z.string(),
@@ -89,23 +92,19 @@ const MainConfigObject = z
                 url: z.string().url().optional(),
             })
             .strict(),
-        slsApi: z
+        slsPyApi: z
             .object({
                 enabled: z.boolean(),
                 url: z.string().url().optional(),
             })
             .strict(),
-        authenticationDatabase: z
+        database: z
             .object({
                 user: z.string(),
                 password: z.string(),
                 host: z.string(),
                 database: z.string(),
                 port: z.number().positive().max(65535),
-                table: z.string(),
-                loginColumn: z.string(),
-                passwordColumn: z.string(),
-                groupsColumn: z.string(),
             })
             .strict(),
         annotator: z
@@ -123,6 +122,12 @@ const MainConfigObject = z
             })
             .strict()
             .optional(),
+        userData: z
+            .object({
+                location: z.enum(["database", "file"]),
+                maximumFileSize: z.number().positive(),
+            })
+            .strict(),
     })
     .strict();
 
@@ -145,26 +150,28 @@ const checkMainConfigSection = (errors, cleanedErrors) => {
 
 const colorText = (text, color = "31;1") => `\x1b[${color}m${text}\x1b[0m`;
 
-const printErrorReport = (errors, section) => {
+const printErrorReport = (errors, section, logs = []) => {
     Object.entries(errors).forEach(([key, data]) => {
         if (typeof data !== "string") {
-            printErrorReport(data, key);
+            logs = printErrorReport(data, key, logs);
         } else {
             const option = section === null ? key : `${section}.${key}`;
             if (data === "Required") {
-                console.error(`⛔ The option ${colorText(option)} is missing`);
+                logs.push(`⛔ The option ${colorText(option)} is missing`);
             } else if (data.startsWith("Unrecognized key")) {
                 const keys = data.split(": ")[1];
                 if (option === "root") {
-                    console.error(`❓ Unknown key(s): ${keys}`);
+                    logs.push(`❓ Unknown key(s): ${keys}`);
                 } else {
-                    console.error(`❓ Unknown key(s) for the option ${colorText(option)}: ${keys}`);
+                    logs.push(`❓ Unknown key(s) for the option ${colorText(option)}: ${keys}`);
                 }
             } else {
-                console.error(`❌ Wrong value for the option ${colorText(option)}: ${data}`);
+                logs.push(`❌ Wrong value for the option ${colorText(option)}: ${data}`);
             }
         }
     });
+
+    return logs;
 };
 
 const checkMainConfig = (config) => {
@@ -174,7 +181,8 @@ const checkMainConfig = (config) => {
     if (!results.success) {
         const errors = checkMainConfigSection(results.error.format(), {});
         console.error("The configuration file is invalid:");
-        printErrorReport(errors, null);
+        const logs = printErrorReport(errors, null);
+        logs.forEach((log) => console.error(log));
         return false;
     }
 
@@ -188,7 +196,10 @@ const readMainConfig = (path = mainConfigPath) => {
 const config = readMainConfig();
 
 module.exports = {
+    MainConfigObject,
     checkMainConfig,
+    checkMainConfigSection,
+    colorText,
     config,
     configDatabasesPath,
     configPath,
@@ -200,5 +211,6 @@ module.exports = {
     directoryPlugins,
     directoryPluginsRepositories,
     mainConfigPath,
+    printErrorReport,
     readMainConfig,
 };

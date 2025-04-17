@@ -1,5 +1,4 @@
 const { processResponse } = require("../utils");
-const SourceIntegrator = require("../../../../bin/sourceIntegrator.");
 const ConfigManager = require("../../../../bin/configManager.");
 const GraphStore = require("../../../../bin/graphStore.");
 const async2 = require("async");
@@ -9,7 +8,7 @@ module.exports = function () {
         POST,
     };
 
-    async function POST(req, res, next) {
+    async function POST(req, res, _next) {
         const body = req.body.body;
 
         ConfigManager.getUser(req, res, function (err, userInfo) {
@@ -34,7 +33,7 @@ module.exports = function () {
                     [
                         // check if source name
                         function (callbackSeries) {
-                            GraphStore.insertSourceInConfig(body.sourceName, body.graphUri, ConfigManager.config.sparql_server.url, body.options, function (err, result) {
+                            GraphStore.insertSourceInConfig(body.sourceName, body.graphUri, ConfigManager.config.sparql_server.url, body.options, function (err, _result) {
                                 return callbackSeries(err);
                             });
                         },
@@ -76,7 +75,7 @@ module.exports = function () {
                     ],
                     function (err) {
                         processResponse(res, err, "DONE");
-                    }
+                    },
                 );
             } else {
                 return res.status(403);
@@ -117,6 +116,7 @@ module.exports = function () {
                 description: "Response…",
             },
         },
+        tags: ["Graph"],
     };
 
     return operations;

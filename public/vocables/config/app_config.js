@@ -302,20 +302,20 @@ var Config = (function () {
             "http://purl.obolibrary.org/obo/BFO_0000006": "#F90EDD",
             "http://purl.obolibrary.org/obo/BFO_0000029": "#F90EDD",
             "http://purl.obolibrary.org/obo/BFO_0000140": "#F90EDD",
-            "http://purl.obolibrary.org/obo/BFO_0000182": "#70309f",
-            "http://purl.obolibrary.org/obo/BFO_0000144": "#70309f",
-            "http://purl.obolibrary.org/obo/BFO_0000148": "#70309f",
-            "http://purl.obolibrary.org/obo/BFO_0000038": "#70309f",
-            "http://purl.obolibrary.org/obo/BFO_0000203": "#70309f",
-            "http://purl.obolibrary.org/obo/BFO_0000015": "#70309f",
-            "http://purl.obolibrary.org/obo/BFO_0000008": "#70309f",
+            "http://purl.obolibrary.org/obo/BFO_0000182": "#b96af4",
+            "http://purl.obolibrary.org/obo/BFO_0000144": "#b96af4",
+            "http://purl.obolibrary.org/obo/BFO_0000148": "#b96af4",
+            "http://purl.obolibrary.org/obo/BFO_0000038": "#b96af4",
+            "http://purl.obolibrary.org/obo/BFO_0000203": "#b96af4",
+            "http://purl.obolibrary.org/obo/BFO_0000015": "#b96af4",
+            "http://purl.obolibrary.org/obo/BFO_0000008": "#b96af4",
         },
 
         BFO: {
             "http://purl.obolibrary.org/obo/BFO_0000002": "#00AFEF",
             "http://purl.obolibrary.org/obo/BFO_0000020": "#efbf00",
             "http://purl.obolibrary.org/obo/BFO_0000031": "#a8da83",
-            "http://purl.obolibrary.org/obo/BFO_0000003": "#70309f",
+            "http://purl.obolibrary.org/obo/BFO_0000003": "#b96af4",
         },
         "BFO-2020": {
             "http://purl.obolibrary.org/obo/BFO_0000002": "#00AFEF",
@@ -345,6 +345,16 @@ var Config = (function () {
             "http://rds.posccaesar.org/ontology/lis14/rdl/Quality": "#a9e87b",
             "http://rds.posccaesar.org/ontology/lis14/rdl/Temporal": "#b96af4",
         },
+        "IDO-4": {
+            "http://rds.posccaesar.org/ontology/lis14/rdl/Object": "#00B5EC",
+            "http://rds.posccaesar.org/ontology/lis14/rdl/Potential": "#efbf00",
+            "http://rds.posccaesar.org/ontology/lis14/rdl/Quality": "#a9e87b",
+            "http://rds.posccaesar.org/ontology/lis14/rdl/Temporal": "#b96af4",
+        },
+
+        EMMO: {
+            "http://emmo.info/emmo#EMMO_90ae56e4_d197_49b6_be1a_0049e4756606": "#00B5EC",
+        },
     };
     self.lessIconsFileNames = {
         "@arrow-icon": "caret-right",
@@ -353,6 +363,7 @@ var Config = (function () {
         "@lineage-logo": "lineageLogo",
         "@KGquery-logo": "Kgquery",
         "@KGcreator-logo": "Kgcreator",
+        "@MappingModeler-logo": "Kgcreator",
         "@SPARQL-logo": "SPARQL",
         "@admin-logo": "Admin",
         "@ConfigEditor-logo": "ConfigEditor",
@@ -370,6 +381,7 @@ var Config = (function () {
         "@propertiesIcon": "PropertiesIcon",
         "@containersIcon": "ContainerIcon",
         "@classesIcon": "ClassesIcon",
+        "@queryIcon": "SPARQL",
     };
 
     self.slsvColorThemes = {

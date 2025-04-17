@@ -34,7 +34,7 @@ var CommonBotFunctions = (function () {
             },
             function (err) {
                 return callback(err);
-            }
+            },
         );
     };
 
@@ -70,8 +70,8 @@ var CommonBotFunctions = (function () {
             }
 
             for (var key in Config.ontologiesVocabularyModels[vocab].classes) {
-                var classId = Config.ontologiesVocabularyModels[vocab].classes[key];
-                classes.push({ id: classId.id, label: classId.label, source: vocab });
+                var obj = Config.ontologiesVocabularyModels[vocab].classes[key];
+                if (obj && obj.id.indexOf("http") == 0) classes.push({ id: obj.id, label: obj.label, source: vocab });
             }
 
             self.sortList(classes);
@@ -143,7 +143,7 @@ var CommonBotFunctions = (function () {
                     return callback(null, props);
                 }
                 _botEngine.showList(props, varToFill);
-            }
+            },
         );
     };
 
@@ -163,7 +163,7 @@ var CommonBotFunctions = (function () {
             },
             function (err) {
                 return callback(err, allClasses);
-            }
+            },
         );
     };
     self.listSourceAllObjectProperties = function (source, varToFill, props, callback) {
@@ -182,7 +182,7 @@ var CommonBotFunctions = (function () {
             },
             function (err) {
                 return callback(err, allProps);
-            }
+            },
         );
     };
     self.listSourceAllObjectPropertiesConstraints = function (source, varToFill, callback) {
@@ -204,7 +204,7 @@ var CommonBotFunctions = (function () {
 
             function (err) {
                 return callback(err, allConstraints);
-            }
+            },
         );
     };
 

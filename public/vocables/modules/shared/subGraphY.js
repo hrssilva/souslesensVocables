@@ -40,7 +40,7 @@ var SubGraph = (function () {
                     restrictions: allRestrictionProperties,
                     classesMap: classesMap,
                 });
-            }
+            },
         );
     };
 
@@ -272,24 +272,8 @@ var SubGraph = (function () {
                 }
 
                 return callback(null, result);
-            }
+            },
         );
-    };
-
-    self.getSubGraphTurtles = function (sourceLabel, options, classUri) {
-        if (!classUri) {
-            classUri = "http://tsf/resources/ontology/DEXPIProcess_gfi_2/TransportingFluidsActivity";
-        }
-
-        self.instantiateSubGraph(sourceLabel, classUri, function (err, result) {});
-
-        return;
-        self.getSubGraphResources(sourceLabel, classUri, options, function (err, result) {
-            var resources = result.classes.concat(result.restrictions);
-            self.getResourcesPredicates(sourceLabel, resources, "SELECT", null, function (err, result) {
-                console.log(result);
-            });
-        });
     };
 
     return self;

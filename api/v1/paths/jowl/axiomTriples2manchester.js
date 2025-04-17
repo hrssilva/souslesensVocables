@@ -1,6 +1,5 @@
-const {processResponse} = require("../utils");
+const { processResponse } = require("../utils");
 const request = require("request");
-const async = require("async");
 const ConfigManager = require("../../../../bin/configManager.");
 
 //https://jena.apache.org/documentation/inference/
@@ -10,22 +9,22 @@ module.exports = function () {
         GET,
     };
 
-    function GET(req, res, next) {
+    function GET(req, res, _next) {
         const jowlServerConfig = ConfigManager.config.jowlServer;
         if (!jowlServerConfig.enabled) {
-            res.status(500).json({ message: "Jowl Server is disable"});
+            res.status(500).json({ message: "Jowl Server is disable" });
         }
 
         let jowlConfigUrl = jowlServerConfig.url;
         if (!jowlConfigUrl.endsWith("/")) {
-            jowlConfigUrl += "/"
+            jowlConfigUrl += "/";
         }
         jowlConfigUrl += "axioms/triples2manchester";
 
         const payload = {
-            "graphName": req.query.ontologyGraphUri,
-            "triples": JSON.parse(req.query.axiomTriples),
-        }
+            graphName: req.query.ontologyGraphUri,
+            triples: JSON.parse(req.query.axiomTriples),
+        };
         const options = {
             method: "POST",
             json: payload,
@@ -34,13 +33,13 @@ module.exports = function () {
             },
             url: jowlConfigUrl,
         };
-        request(options, function (error, response, body) {
+        request(options, function (error, _response, body) {
             return processResponse(res, error, body);
         });
     }
 
     GET.apiDoc = {
-        security: [{restrictLoggedUser: []}],
+        security: [{ restrictLoggedUser: [] }],
         summary: "generates  manchester syntax from axioms triples",
         description: "generates  manchester syntax from axioms triples",
         operationId: "generates  manchester syntax from axioms triples",
@@ -58,7 +57,7 @@ module.exports = function () {
                 in: "query",
                 type: "string",
                 required: true,
-            }
+            },
         ],
 
         responses: {
@@ -69,6 +68,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["JOWL"],
     };
 
     return operations;

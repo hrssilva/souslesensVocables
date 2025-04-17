@@ -1,5 +1,4 @@
 const { processResponse } = require("../utils");
-const SourceIntegrator = require("../../../../bin/sourceIntegrator.");
 const ConfigManager = require("../../../../bin/configManager.");
 const GraphStore = require("../../../../bin/graphStore.");
 const async2 = require("async");
@@ -8,11 +7,10 @@ const httpProxy = require("../../../../bin/httpProxy.");
 const Util = require("../../../../bin/util.");
 const { sourceModel } = require("../../../../model/sources");
 
-module.exports = function() {
+module.exports = function () {
     let operations = {
-        POST
+        POST,
     };
-
 
     function transformToTriples(ontologyContentEncoded64, callback) {
         var jowlConfig = ConfigManager.config.jowlServer;
@@ -20,18 +18,18 @@ module.exports = function() {
             jowlConfig.url += "/";
         }
         var payload = {
-            ontologyContentEncoded64: ontologyContentEncoded64
+            ontologyContentEncoded64: ontologyContentEncoded64,
         };
 
         var options = {
             method: "POST",
             json: payload,
             headers: {
-                "content-type": "application/json"
+                "content-type": "application/json",
             },
-            url: jowlConfig.url + "jena/rdftriple"
+            url: jowlConfig.url + "jena/rdftriple",
         };
-        request(options, function(error, response, body) {
+        request(options, function (error, response, body) {
             if (error) {
                 return callback(error);
             }
@@ -55,13 +53,13 @@ module.exports = function() {
         var totalImportedTriples = -1;
         async2.eachSeries(
             slices,
-            function(triples, callbackEach) {
+            function (triples, callbackEach) {
                 var insertTriplesStr = "";
 
-                triples.forEach(function(triple) {
+                triples.forEach(function (triple) {
                     var p = triple.object.indexOf("@");
                     if (p > -1) {
-                        triple.object = triple.object.replace(/(.*)(@[a-z]{2})'/, function(a, b, c) {
+                        triple.object = triple.object.replace(/(.*)(@[a-z]{2})'/, function (a, b, c) {
                             return b + "'" + c;
                         });
                     }
@@ -73,18 +71,16 @@ module.exports = function() {
 
                 queryGraph += " WITH GRAPH  <" + graphUri + ">  " + "INSERT DATA" + "  {" + insertTriplesStr + "  }";
 
-
                 var params = { query: queryGraph };
 
                 if (ConfigManager.config) {
                     params.auth = sparqlServerConnection.auth;
                 }
 
-                sparqlServerUrl = sparqlServerConnection.url;
+                const sparqlServerUrl = sparqlServerConnection.url;
 
-                httpProxy.post(sparqlServerUrl, null, params, function(err, _result) {
+                httpProxy.post(sparqlServerUrl, null, params, function (err, _result) {
                     if (err) {
-                        var x = queryGraph;
                         return callbackEach(err);
                     }
                     totalImportedTriples += triples.length;
@@ -92,29 +88,23 @@ module.exports = function() {
                     return callbackEach();
                 });
             },
-            function(err) {
+            function (err) {
                 return callback(err, totalImportedTriples);
-            }
+            },
         );
     }
 
     async function isUserAuthorizedToUpload(userInfo) {
-        const ownedSources = await sourceModel.getOwnedSources(userInfo)
-        const numberOfOwnedSources = Object.keys(ownedSources).length
+        const ownedSources = await sourceModel.getOwnedSources(userInfo);
+        const numberOfOwnedSources = Object.keys(ownedSources).length;
 
-        if (userInfo.user.groups.includes("admin") &&
-            numberOfOwnedSources < userInfo.maxNumberCreatedSource &&
-            userInfo.allowSourceCreation
-        ) {
-            return true
+        if (userInfo.user.groups.includes("admin") && numberOfOwnedSources < userInfo.maxNumberCreatedSource && userInfo.allowSourceCreation) {
+            return true;
         }
-        return false
+        return false;
     }
 
-
-    async function POST(req, res, next) {
-
-
+    async function POST(req, res, _next) {
         // upload from URL
         if (req.body.uploadUrl) {
             var graphUri = req.body.graphUri;
@@ -125,7 +115,7 @@ module.exports = function() {
             if (!uploadUrl) {
                 return res.status(400).json({ error: "missing uploadUrl" });
             }
-            ConfigManager.getUser(req, res, function(err, userInfo) {
+            ConfigManager.getUser(req, res, function (err, userInfo) {
                 if (err) {
                     return res.status(400).json({ error: err });
                 }
@@ -138,7 +128,7 @@ module.exports = function() {
                     sparqlServerConnection.auth = {
                         user: ConfigManager.config.sparql_server.user,
                         pass: ConfigManager.config.sparql_server.password,
-                        sendImmediately: false
+                        sendImmediately: false,
                     };
                 }
                 var clearOldGraph = false;
@@ -149,17 +139,15 @@ module.exports = function() {
                 async2.series(
                     [
                         // check if graphExists
-                        function(callbackSeries) {
-
-                            GraphStore.graphExists(sparqlServerConnection, graphUri, function(err, result) {
+                        function (callbackSeries) {
+                            GraphStore.graphExists(sparqlServerConnection, graphUri, function (err, result) {
                                 graphExists = result;
                                 return callbackSeries(err);
                             });
                         },
 
                         //clear graph  if reload
-                        function(callbackSeries) {
-
+                        function (callbackSeries) {
                             if (clearOldGraph !== "true") {
                                 return callbackSeries();
                             }
@@ -167,7 +155,7 @@ module.exports = function() {
                                 return callbackSeries();
                             }
 
-                            GraphStore.clearGraph(sparqlServerConnection, graphUri, function(err, result) {
+                            GraphStore.clearGraph(sparqlServerConnection, graphUri, function (err, _result) {
                                 if (err) {
                                     return callbackSeries(err);
                                 }
@@ -177,8 +165,8 @@ module.exports = function() {
                             });
                         },
                         // get url content and encode it
-                        function(callbackSeries) {
-                            request(uploadUrl, {}, function(error, request, body) {
+                        function (callbackSeries) {
+                            request(uploadUrl, {}, function (error, request, body) {
                                 if (error) {
                                     return callbackSeries(error);
                                 }
@@ -188,8 +176,8 @@ module.exports = function() {
                             });
                         },
                         // call jowl to transform data in triples
-                        function(callbackSeries) {
-                            transformToTriples(ontologyContentEncoded64, function(err, triples) {
+                        function (callbackSeries) {
+                            transformToTriples(ontologyContentEncoded64, function (err, triples) {
                                 if (err) {
                                     return callbackSeries(err);
                                 }
@@ -199,36 +187,31 @@ module.exports = function() {
                         },
 
                         //writeTriples
-                        function(callbackSeries) {
-                            writeTriples(sparqlServerConnection, graphUri, allTriples, function(err, countTriples) {
+                        function (callbackSeries) {
+                            writeTriples(sparqlServerConnection, graphUri, allTriples, function (err, countTriples) {
                                 totalImportedTriples = countTriples;
                                 callbackSeries(err);
                             });
-                        }
-
-
-                    ], function(err) {
+                        },
+                    ],
+                    function (err) {
                         processResponse(res, err, { result: totalImportedTriples });
-                    });
+                    },
+                );
             });
-
 
             // upload from GRAPH
         } else if (req.files && req.files["importRDF"]) {
-
             var graphUri = req.body.graphUri;
             var data = "" + req.files["importRDF"].data;
-            var uploadFromUrl = false;
 
+            console.log("--------------1---------");
 
-            console.log(("--------------1---------"));
-
-            ConfigManager.getUser(req, res, function(err, userInfo) {
+            ConfigManager.getUser(req, res, function (err, userInfo) {
                 if (err) {
                     return res.status(400).json({ error: err });
                 }
-                console.log(("--------------2---------"));
-
+                console.log("--------------2---------");
 
                 if (!isUserAuthorizedToUpload(userInfo)) {
                     return processResponse(res, err, { result: "not authorized" });
@@ -239,7 +222,7 @@ module.exports = function() {
                     sparqlServerConnection.auth = {
                         user: ConfigManager.config.sparql_server.user,
                         pass: ConfigManager.config.sparql_server.password,
-                        sendImmediately: false
+                        sendImmediately: false,
                     };
                 }
                 var clearOldGraph = false;
@@ -249,20 +232,16 @@ module.exports = function() {
                 var ontologyContentEncoded64 = null;
                 async2.series(
                     [
-
-
                         // check if graphExists
-                        function(callbackSeries) {
-
-                            GraphStore.graphExists(sparqlServerConnection, graphUri, function(err, result) {
+                        function (callbackSeries) {
+                            GraphStore.graphExists(sparqlServerConnection, graphUri, function (err, result) {
                                 graphExists = result;
                                 return callbackSeries(err);
                             });
                         },
 
                         //clear graph  if reload
-                        function(callbackSeries) {
-
+                        function (callbackSeries) {
                             if (clearOldGraph !== "true") {
                                 return callbackSeries();
                             }
@@ -270,7 +249,7 @@ module.exports = function() {
                                 return callbackSeries();
                             }
 
-                            GraphStore.clearGraph(sparqlServerConnection, graphUri, function(err, result) {
+                            GraphStore.clearGraph(sparqlServerConnection, graphUri, function (err, _result) {
                                 if (err) {
                                     return callbackSeries(err);
                                 }
@@ -280,51 +259,45 @@ module.exports = function() {
                             });
                         },
 
-                        function(callbackSeries) {
-
+                        function (callbackSeries) {
                             ontologyContentEncoded64 = Buffer.from(data).toString("base64");
                             callbackSeries();
-
                         },
 
                         //get triples from jowl/jena/rdftriple
-                        function(callbackSeries) {
+                        function (callbackSeries) {
                             if (graphExists) {
                                 return callbackSeries();
                             }
                             // call jowl to transform data in triples
-                            console.log(("--------------4---------"));
-                            transformToTriples(ontologyContentEncoded64, function(err, triples) {
-                                console.log(("--------------5---------"));
+                            console.log("--------------4---------");
+                            transformToTriples(ontologyContentEncoded64, function (err, triples) {
+                                console.log("--------------5---------");
                                 if (err) {
                                     return callbackSeries(err);
                                 }
                                 allTriples = triples;
                                 callbackSeries();
                             });
-
-
                         },
 
                         //writeTriples
-                        function(callbackSeries) {
+                        function (callbackSeries) {
                             if (graphExists) {
                                 return callbackSeries();
                             }
-                            console.log(("--------------6---------"));
-                            writeTriples(sparqlServerConnection, graphUri, allTriples, function(err, countTriples) {
+                            console.log("--------------6---------");
+                            writeTriples(sparqlServerConnection, graphUri, allTriples, function (err, countTriples) {
                                 totalImportedTriples = countTriples;
-                                console.log(("--------------7---------"));
+                                console.log("--------------7---------");
                                 callbackSeries(err);
                             });
-
-
-                        }
+                        },
                     ],
-                    function(err) {
-                        console.log(("--------------8---------"));
+                    function (err) {
+                        console.log("--------------8---------");
                         processResponse(res, err, { result: totalImportedTriples });
-                    }
+                    },
                 );
             });
         }
@@ -344,19 +317,20 @@ module.exports = function() {
                         type: "object",
                         properties: {
                             user: {
-                                type: "string"
+                                type: "string",
                             },
                             tool: {
-                                type: "string"
+                                type: "string",
                             },
                             timestamp: {
-                                type: "string"
-                            }
-                        }
-                    }
-                }
-            }
-        }
+                                type: "string",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        tags: ["JOWL"],
     };
 
     return operations;

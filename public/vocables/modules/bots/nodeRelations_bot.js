@@ -42,6 +42,9 @@ var NodeRelations_bot = (function () {
                 listRestrictions: { drawRestrictions: {} },
             },
             "Inverse Restrictions": { listInverseRestrictions: { drawInverseRestrictions: {} } },
+            "Similars (same label)": {
+                similarsFn: {},
+            },
         },
     };
 
@@ -56,6 +59,10 @@ var NodeRelations_bot = (function () {
     };
 
     self.functions = {
+        similarsFn: function () {
+            Lineage_similars.showDialog(true);
+            _botEngine.nextStep();
+        },
         listVocabsFn: function () {
             CommonBotFunctions.listVocabsFn(Lineage_sources.activeSource, "currentVocab", true);
         },
@@ -134,6 +141,7 @@ var NodeRelations_bot = (function () {
                 options.filter = Sparql_common.setFilter("prop", self.params.currentProperty);
             }
             Lineage_whiteboard.drawRestrictions(self.params.source, self.params.currentClass, null, null, {}, function (err, result) {});
+            _botEngine.nextStep();
         },
         drawInverseRestrictions: function () {
             var options = { inverseRestriction: true };
@@ -141,6 +149,7 @@ var NodeRelations_bot = (function () {
                 options.filter = Sparql_common.setFilter("prop", self.params.currentProperty);
             }
             Lineage_whiteboard.drawRestrictions(self.params.source, self.params.currentClass, null, null, options, function (err, result) {});
+            _botEngine.nextStep();
         },
         executeQuery: function () {
             var source = self.params.source;
@@ -280,9 +289,9 @@ var NodeRelations_bot = (function () {
         },
     };
 
-    self.getSourceInferredModelVisjsData = function (sourceLabel, callback) {
-        if (self.params.currentSourceInferredModelVijsData) {
-            return callback(null, self.params.currentSourceInferredModelVijsData);
+    self.getSourceImplicitModelVisjsData = function (sourceLabel, callback) {
+        if (self.params.currentSourceImplicitModelVijsData) {
+            return callback(null, self.params.currentSourceImplicitModelVijsData);
         }
         var visjsGraphFileName = self.params.source + "_KGmodelGraph.json";
         $.ajax({
@@ -290,8 +299,8 @@ var NodeRelations_bot = (function () {
             url: `${Config.apiUrl}/data/file?dir=graphs&fileName=${visjsGraphFileName}`,
             dataType: "json",
             success: function (result, _textStatus, _jqXHR) {
-                self.params.currentSourceInferredModelVijsData = JSON.parse(result);
-                return callback(null, self.params.currentSourceInferredModelVijsData);
+                self.params.currentSourceImplicitModelVijsData = JSON.parse(result);
+                return callback(null, self.params.currentSourceImplicitModelVijsData);
             },
             error: function (err) {
                 return callback(err);

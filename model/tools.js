@@ -1,9 +1,8 @@
 const fg = require("fast-glob");
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const { Lock } = require("async-await-mutex-lock");
-const { simpleGit } = require("simple-git");
+const { simpleGit, GitError } = require("simple-git");
 
 const { convertType } = require("./utils");
 const { configPluginsConfig, configPluginsRepository, directoryPlugins, directoryPluginsRepositories } = require("./config");
@@ -17,26 +16,24 @@ const { configPluginsConfig, configPluginsRepository, directoryPlugins, director
  */
 
 const NATIVE_TOOLS = [
-    { name: "lineage", controller: "Lineage_whiteboard", useSource: true, multiSources: false, toTools: {},displayImports:true },
-   // { name: "AxiomEditor", controller: "Axiom_editor", useSource: false, multiSources: false, toTools: {} },
+    { name: "lineage", controller: "Lineage_whiteboard", useSource: true, multiSources: false, toTools: {}, displayImports: true },
+    // { name: "AxiomEditor", controller: "Axiom_editor", useSource: false, multiSources: false, toTools: {} },
     { name: "KGcreator", controller: "KGcreator", useSource: true, multiSources: false, toTools: {} },
     { name: "KGquery", controller: "KGquery", useSource: true, multiSources: false, toTools: {} },
     { name: "MappingModeler", controller: "MappingModeler", useSource: true, multiSources: false, toTools: {} },
     { name: "KGconstraintsModeler", controller: "KGconstraintsModeler", useSource: true, multiSources: false, toTools: {} },
     { name: "KGconstraints_editor", controller: "KGconstraints_editor", useSource: true, multiSources: false, toTools: {} },
-    { name: "SPARQL", label: "SPARQL endpoint", controller: "SPARQL_endpoint", useSource: false, multiSources: false, toTools: {},resetURLParamsDiv:'mainDialogDiv'},
-    { name: "OntoCreator", controller: "Lineage_createSLSVsource", useSource: false, multiSources: false, toTools: {},resetURLParamsDiv:'botPanel' },
-    { name: "admin", label: "Admin", controller: "Admin", useSource: false, multiSources: false, toTools: {}},
-    { name: "ConfigEditor", controller: "ConfigEditor", useSource: false, multiSources: false, toTools: {},resetURLParamsDiv:'mainDialogDiv' },
-    { name: "GraphManagement", controller: "GraphManagement", useSource: false, multiSources: false, toTools: {},resetURLParamsDiv:'mainDialogDiv'},
+    { name: "SPARQL", label: "SPARQL endpoint", controller: "SPARQL_endpoint", useSource: false, multiSources: false, toTools: {}, resetURLParamsDiv: "mainDialogDiv" },
+    { name: "OntoCreator", controller: "Lineage_createSLSVsource", useSource: false, multiSources: false, toTools: {}, resetURLParamsDiv: "botPanel" },
+    { name: "admin", label: "Admin", controller: "Admin", useSource: false, multiSources: false, toTools: {} },
+    { name: "ConfigEditor", controller: "ConfigEditor", useSource: false, multiSources: false, toTools: {}, resetURLParamsDiv: "mainDialogDiv" },
+    { name: "GraphManagement", controller: "GraphManagement", useSource: false, multiSources: false, toTools: {}, resetURLParamsDiv: "mainDialogDiv" },
     { name: "Standardizer", controller: "Standardizer", useSource: true, multiSources: false, toTools: {} },
     { name: "TSF_Dictionary", controller: "Lineage_dictionary", useSource: false, multiSources: false, toTools: {} },
     { name: "UserManagement", controller: "UserManagement", useSource: false, multiSources: false, toTools: {} },
 
-    { name: "Weaver", controller: "Weaver", useSource: true, multiSources: false, toTools: {},displayImports:true },
-   // { name: "Lifex_cost", controller: "Lifex_cost", useSource: false, multiSources: false, toTools: {} },
-
-    
+    { name: "Weaver", controller: "Weaver", useSource: true, multiSources: false, toTools: {}, displayImports: true },
+    // { name: "Lifex_cost", controller: "Lifex_cost", useSource: false, multiSources: false, toTools: {} },
 ].map((tool) => ({ type: "tool", label: tool.label ?? tool.name, ...tool }));
 
 const lock = new Lock();
@@ -113,7 +110,7 @@ class ToolModel {
             Object.entries(plugins).map(([key, config]) => {
                 const converted = Object.fromEntries(Object.entries(config).map(([label, option]) => [label, convertType(option)]));
                 return [key, converted];
-            })
+            }),
         );
     };
 
@@ -125,7 +122,7 @@ class ToolModel {
     deleteRepository = async (repositoryId) => {
         const repositories = await this.readRepositories();
 
-        const filteredRepositories = Object.fromEntries(Object.entries(repositories).filter(([identifier, data]) => identifier !== repositoryId));
+        const filteredRepositories = Object.fromEntries(Object.entries(repositories).filter(([identifier, _data]) => identifier !== repositoryId));
 
         await this.writeRepositories(filteredRepositories);
 
@@ -148,7 +145,7 @@ class ToolModel {
             }
 
             let url = repositoryInfo.url;
-            if (repositoryInfo.hasOwnProperty("token")) {
+            if (Object.hasOwn(repositoryInfo, "token")) {
                 url = this._getTokenizeURL(url, repositoryInfo.token);
             }
 
@@ -157,20 +154,17 @@ class ToolModel {
             if (!fs.existsSync(repositoryPath)) {
                 await simpleGit().clone(url, repositoryPath);
             } else {
-                await simpleGit(repositoryPath).remote(["set-url", "origin", url]).fetch();
+                await simpleGit(repositoryPath).env("LC_ALL", "C").remote(["set-url", "origin", url]).fetch();
             }
 
-            if (repositoryInfo.hasOwnProperty("version")) {
+            if (Object.hasOwn(repositoryInfo, "version")) {
                 await simpleGit(repositoryPath).checkout(repositoryInfo.version || ".");
             }
         } catch (error) {
             console.error(error);
-
-            const result = error.toString().match(/remote: ([^\.]+)/);
-            if (result !== null) {
-                return { status: "failure", message: result[1] };
+            if (error instanceof GitError) {
+                return { status: "failure", message: error.message };
             }
-
             return { status: "failure", message: "Unknown error occurs on the server" };
         }
 
@@ -305,7 +299,7 @@ class ToolModel {
             const currentPlugins = this.plugins.map((plugin) => plugin.name);
 
             const nextPlugins = Object.entries(repositories)
-                .map(([identifier, data]) => {
+                .map(([_identifier, data]) => {
                     if (data.plugins === undefined) {
                         return path.parse(data.url).name;
                     }

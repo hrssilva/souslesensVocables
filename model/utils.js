@@ -1,3 +1,5 @@
+const knex = require("knex");
+
 /**
  * Convert a string to a valid JavaScript type
  *
@@ -19,11 +21,11 @@ const convertType = (value, trimValue = true) => {
         return value === "true" ? true : false;
     }
 
-    if (value.search(/^(\+|\-)?[0-9]+$/) > -1) {
+    if (value.search(/^(\+|-)?[0-9]+$/) > -1) {
         return parseInt(value);
     }
 
-    if (value.search(/^(\+|\-)?[0-9]+(\.[0-9]*)?([eE](\+|\-)?[0-9]+)?$/) > -1) {
+    if (value.search(/^(\+|-)?[0-9]+(\.[0-9]*)?([eE](\+|-)?[0-9]+)?$/) > -1) {
         return parseFloat(value);
     }
 
@@ -44,4 +46,26 @@ const chunk = (list, chunkSize = 10) => {
     return [...Array(Math.ceil(list.length / chunkSize))].map((_) => list.splice(0, chunkSize));
 };
 
-module.exports = { convertType, chunk };
+/**
+ * Retrieve the Postgres connection from the configuration information
+ *
+ * @param {object} database – The information relative to the database used to
+ *                            made the connection
+ * @returns {knex} - the knex connection instance configure to use Postgres
+ */
+const getKnexConnection = (database) => {
+    return knex({ client: "pg", connection: database });
+};
+
+/**
+ * Close the connection to the Postgres database
+ *
+ * This method is here to be mocked easily with the jest tests
+ *
+ * @param {knex} connection - the instance of the connection to the Postgres database
+ */
+const cleanupConnection = (connection) => {
+    return connection.destroy && connection.destroy();
+};
+
+module.exports = { cleanupConnection, convertType, chunk, getKnexConnection };

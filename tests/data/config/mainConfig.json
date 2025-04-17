@@ -3,9 +3,13 @@
     "souslesensUrlForVirtuoso": "http://localhost:3011",
     "listenPort": 3011,
     "serverUrl": "../slsv",
-    "auth": "local",
+    "auth": "database",
     "defaultGroups": [],
-    "logDir": "logs",
+    "logs": {
+      "directory": "logs",
+      "useFileLogger": true,
+      "useSymlink": true
+    },
     "default_lang": "en",
     "formalOntologySourceLabel": "ISO",
     "sentryDsnNode": "",
@@ -60,21 +64,28 @@
         "selector": false,
         "defaultTheme": "Sea Breeze"
     },
-    "authenticationDatabase": {
+    "database": {
         "host": "localhost",
         "port": 3306,
         "user": "slsv",
         "password": "slsv",
+        "database": "slsv"
+    },
+    "database": {
+        "host": "localhost",
+        "port": 5432,
         "database": "slsv",
-        "table": "user",
-        "loginColumn": "login",
-        "passwordColumn": "password",
-        "groupsColumn": "groups"
+        "user": "slsv",
+        "password": "slsv"
     },
     "jowlServer": {
         "enabled": false
     },
-    "slsApi": {
+    "slsPyApi": {
         "enabled": false
+    },
+    "userData": {
+        "location": "database",
+        "maximumFileSize": 1000000
     }
 }

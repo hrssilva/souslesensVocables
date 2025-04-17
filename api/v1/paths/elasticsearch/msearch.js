@@ -2,9 +2,7 @@ const path = require("path");
 const elasticRestProxy = require(path.resolve("bin/elasticRestProxy..js"));
 const ConfigManager = require("../../../../bin/configManager.");
 const UserRequestFiltering = require("../../../../bin/userRequestFiltering.");
-
 const { processResponse } = require("../utils");
-const httpProxy = require("../../../../bin/httpProxy.");
 
 module.exports = function () {
     let operations = {
@@ -13,27 +11,25 @@ module.exports = function () {
 
     function POST(req, res, _next) {
         if (ConfigManager.config) {
+            ConfigManager.getUserSources(req, res, function (err, userSources) {
+                if (err) {
+                    return res.status(400).json({ error: "error 1 " + err });
+                }
 
-                ConfigManager.getUserSources(req, res, function (err, userSources) {
-                    if (err) {
-                        return res.status(400).json({ error: "error 1 " + err });
+                UserRequestFiltering.validateElasticSearchIndices(null, req.body.indexes, userSources, "r", function (parsingError, _filteredQuery) {
+                    if (parsingError) {
+                        console.log("validateElasticSearchIndicesError");
+                        return processResponse(res, "error 2 " + parsingError, null);
                     }
-
-                    UserRequestFiltering.validateElasticSearchIndices(null, req.body.indexes, userSources, "r", function (parsingError, filteredQuery) {
-                        if (parsingError) {
-                            console.log("validateElasticSearchIndicesError");
-                            return processResponse(res, "error 2 " + parsingError, null);
+                    console.log("validateElasticSearchIndicesOK");
+                    elasticRestProxy.executeMsearch(req.body.ndjson, function (err, result) {
+                        if (err) {
+                            return res.status(400).json({ error: "error 3 " + err });
                         }
-                        console.log("validateElasticSearchIndicesOK");
-                        elasticRestProxy.executeMsearch(req.body.ndjson, function (err, result) {
-                            if (err) {
-                                return res.status(400).json({ error: "error 3 " + err });
-                            }
-                            return res.status(200).json(result);
-                        });
+                        return res.status(200).json(result);
                     });
                 });
-
+            });
         } else {
             elasticRestProxy.executeMsearch(req.body.ndjson, function (err, result) {
                 if (err) {
@@ -76,6 +72,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["ElasticSearch"],
     };
 
     return operations;

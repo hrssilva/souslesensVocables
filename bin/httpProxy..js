@@ -108,9 +108,6 @@ var httpProxy = {
             console.log(" POST-----------USING  proxy---------" + proxy);
         }
 
-
-        options.rejectUnauthorized = false;
-
         request(options, function (error, response, body) {
             if (error) {
                 console.log(error);
@@ -120,20 +117,17 @@ var httpProxy = {
                 return callback(body || "" + " " + response.statusMessage);
             } else if (headers && headers["Accept"] && headers["Accept"].indexOf("json") < 0) {
                 return callback(null, body);
-            }
-            else if (headers && headers["Content-Type"] && headers["Content-Type"].indexOf("text") >-1) {
+            } else if (headers && headers["Content-Type"] && headers["Content-Type"].indexOf("text") > -1) {
                 return callback(null, body);
-            }
-            else if (typeof body === "string") {
+            } else if (typeof body === "string") {
                 if (body == "") {
-                    return callback("undefined ERROR ")
+                    return callback("undefined ERROR ");
                 }
                 body = body.trim();
                 var p = body.toLowerCase().indexOf("bindings");
                 var q = body.toLowerCase().indexOf("results");
-                if (p < 0 && q < 0)
+                if (p < 0 && q < 0) {
                     // error virtuoso
-                {
                     return callback(body);
                 }
                 // if ((body.toLowerCase().indexOf("error") > -1 && body.indexOf("error") < 30) || body.indexOf("{") < 0) return callback(body); //error
@@ -153,7 +147,6 @@ var httpProxy = {
                     return callback(err, body);
                 }
             } else {
-
                 return callback(null, body);
             }
         });

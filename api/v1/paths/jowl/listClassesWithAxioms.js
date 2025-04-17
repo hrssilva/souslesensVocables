@@ -1,6 +1,5 @@
 const { processResponse } = require("../utils");
 const request = require("request");
-const async = require("async");
 const ConfigManager = require("../../../../bin/configManager.");
 
 //https://jena.apache.org/documentation/inference/
@@ -10,10 +9,10 @@ module.exports = function () {
         GET,
     };
 
-    function GET(req, res, next) {
+    function GET(req, res, _next) {
         const jowlServerConfig = ConfigManager.config.jowlServer;
         if (!jowlServerConfig.enabled) {
-            res.status(500).json({ message: "Jowl Server is disable"});
+            res.status(500).json({ message: "Jowl Server is disable" });
         }
 
         let jowlConfigUrl = jowlServerConfig.url;
@@ -23,8 +22,8 @@ module.exports = function () {
         jowlConfigUrl += "axioms/listClassesWithAxioms";
 
         const payload = {
-            "graphName": req.query.graphName,
-        }
+            graphName: req.query.graphName,
+        };
 
         const options = {
             method: "POST",
@@ -42,8 +41,8 @@ module.exports = function () {
     GET.apiDoc = {
         security: [{ restrictLoggedUser: [] }],
         summary: "get  classes with axioms from owl API",
-        description:  "get  classes with axioms from owl API",
-        operationId:  "get  classes with axioms from owl API",
+        description: "get  classes with axioms from owl API",
+        operationId: "get  classes with axioms from owl API",
         parameters: [
             {
                 name: "graphName",
@@ -51,7 +50,7 @@ module.exports = function () {
                 type: "string",
                 in: "query",
                 required: true,
-            }
+            },
         ],
 
         responses: {
@@ -62,6 +61,7 @@ module.exports = function () {
                 },
             },
         },
+        tags: ["JOWL"],
     };
 
     return operations;

@@ -149,14 +149,13 @@ const DatabaseFormDialog = ({ database = defaultDatabase(ulid()), create = false
                 <DialogContent sx={{ marginTop: "1em" }}>
                     <Stack spacing={4}>
                         <TextField
-                            defaultValue={databaseModel.form.id}
+                            value={databaseModel.form.name}
                             error={currentErrors.name !== undefined}
                             fullWidth
                             helperText={currentErrors.name}
                             id="name"
                             label="Name"
                             onChange={handleFieldUpdate("name")}
-                            value={databaseModel.form.name}
                         />
                         <TextField
                             defaultValue={databaseModel.form.driver}
@@ -274,7 +273,6 @@ const DatabasesTable = () => {
 
     const renderDatabases = SRD.match(
         {
-            // eslint-disable-next-line react/no-unescaped-entities
             notAsked: () => <p>Let’s fetch some data!</p>,
             loading: () => (
                 <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -301,6 +299,7 @@ const DatabasesTable = () => {
                             </Alert>
                         </Snackbar>
                         <TextField
+                            inputProps={{ autoComplete: "off" }}
                             label="Search Databases by name"
                             id="filter databases"
                             onChange={(event) => {
@@ -362,7 +361,7 @@ const DatabasesTable = () => {
                                                                 href={createSingleDatabaseDownloadUrl(
                                                                     // TODO fix typing
                                                                     (model.databases as unknown as Record<string, Database[]>).data,
-                                                                    database.id
+                                                                    database.id,
                                                                 )}
                                                                 download={`database-${database.id}.json`}
                                                             >
@@ -387,7 +386,7 @@ const DatabasesTable = () => {
                                 }}
                                 href={createDatabasesDownloadUrl(
                                     // TODO fix typing
-                                    (model.databases as unknown as Record<string, Database[]>).data
+                                    (model.databases as unknown as Record<string, Database[]>).data,
                                 )}
                                 download={"databases.json"}
                             >
@@ -399,7 +398,7 @@ const DatabasesTable = () => {
                 );
             },
         },
-        model.databases
+        model.databases,
     );
 
     return renderDatabases;

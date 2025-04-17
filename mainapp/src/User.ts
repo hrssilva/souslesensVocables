@@ -1,9 +1,8 @@
 import { ulid } from "ulid";
 import { failure, success } from "srd";
 import { Msg } from "./Admin";
-import { Msg_, Type, Mode } from "../src/Component/UsersTable";
 import { Dispatch, SetStateAction } from "react";
-const endpoint = "/api/v1/users";
+const endpoint = "/api/v1/admin/users";
 
 async function getUsers(): Promise<User[]> {
     const response = await fetch(endpoint);
@@ -35,23 +34,32 @@ async function putUsers(body: User[]): Promise<User[]> {
     return mapUsers(json.resources);
 }
 
-async function saveUserBis(body: User, mode: Mode, updateModel: Dispatch<Msg>, updateLocal: Dispatch<Msg_>) {
+async function saveUserBis(user: User, create: boolean, updateModel: Dispatch<Msg>) {
     try {
+        // Do not send password on edit if blank
+        let body: Omit<User, "password">;
+        if (!create && !user.password) {
+            const { password: _, ...bodyWithoutPassword } = user;
+            body = bodyWithoutPassword;
+        } else {
+            body = { ...user };
+        }
         const response = await fetch(endpoint, {
-            method: mode === Mode.Edition ? "put" : "post",
-            body: JSON.stringify({ [body.id]: body }, null, "\t"),
+            method: create ? "post" : "put",
+            body: JSON.stringify({ [user.id]: body }, null, "\t"),
             headers: { "Content-Type": "application/json" },
         });
         const { message, resources } = (await response.json()) as { message: string; resources: User[] };
         if (response.status === 200) {
             updateModel({ type: "users", payload: success(mapUsers(resources)) });
-            updateLocal({ type: Type.UserClickedModal, payload: false });
-            updateLocal({ type: Type.ResetUser, payload: mode });
+            return Promise.resolve();
         } else {
             updateModel({ type: "users", payload: failure(`${response.status}, ${message}`) });
+            return Promise.reject(Error(message));
         }
     } catch (e) {
         updateModel({ type: "users", payload: failure(e as string) });
+        return Promise.reject(Error(e as string));
     }
 }
 
@@ -87,7 +95,7 @@ const decodeUser = (user: UserJSON): User => {
         login: user.login,
         password: user.password,
         groups: user.groups,
-        source: user.source ? user.source : "json",
+        source: user.source ? user.source : "database",
         allowSourceCreation: user.allowSourceCreation,
         maxNumberCreatedSource: user.maxNumberCreatedSource,
         _type: "user",
@@ -99,7 +107,7 @@ type UserJSON = { id?: string; login: string; password: string; groups: string[]
 export type User = { id: string; _type: string; login: string; password: string; groups: string[]; source: string; allowSourceCreation: boolean; maxNumberCreatedSource: number };
 
 const newUser = (key: string): User => {
-    return { id: key, _type: "user", login: "", password: "", groups: [], source: "json", allowSourceCreation: false, maxNumberCreatedSource: 5 };
+    return { id: key, _type: "user", login: "", password: "", groups: [], source: "database", allowSourceCreation: false, maxNumberCreatedSource: 5 };
 };
 
 export { getUsers, newUser, saveUserBis as putUsersBis, restoreUsers, deleteUser, putUsers };

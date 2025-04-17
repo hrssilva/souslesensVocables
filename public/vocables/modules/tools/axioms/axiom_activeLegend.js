@@ -367,7 +367,9 @@ var Axiom_activeLegend = (function () {
             if (isCardinalityRestriction || hasClass) {
                 hiddenNodes.push("Class");
             }
-            if (isCardinalityRestriction) hiddenNodes.push("Connective");
+            if (isCardinalityRestriction) {
+                hiddenNodes.push("Connective");
+            }
         } else if (resourceType == "Connective") {
             hiddenNodes.push("ObjectProperty");
         }
@@ -405,6 +407,7 @@ var Axiom_activeLegend = (function () {
         //  });
     };
     self.hideLegendItems = function (hiddenNodes) {
+        if (!self.axiomsLegendVisjsGraph) return;
         var legendNodes = self.axiomsLegendVisjsGraph.data.nodes.getIds();
         var newNodes = [];
         legendNodes.forEach(function (nodeId) {
@@ -511,7 +514,14 @@ var Axiom_activeLegend = (function () {
         $("#smallDialogDiv").dialog("open");
     };
 
-    self.drawLegend = function (graphLegendDiv, legendItems, options) {
+    /**
+     *
+     * @param {*} graphLegendDiv
+     * @param {*} legendItems
+     * @param {{horizontal: string, xOffset: string, onLegendNodeClick: string, showLegendGraphPopupMenu: string}} options:
+     * @param {*} callback
+     */
+    self.drawLegend = function (graphLegendDiv, legendItems, options, callback) {
         if (!options) {
             options = {};
         }
@@ -531,13 +541,17 @@ var Axiom_activeLegend = (function () {
         }
 
         var yOffset = -450;
+        if (options.horizontal) {
+            yOffset = 0;
+            options.xOffset = -200;
+        }
         legendItems.forEach(function (item) {
             visjsData.nodes.push({
                 id: item.label,
                 label: item.label,
                 shape: "box",
                 color: item.color,
-                size: 8,
+                size: item.size || 8,
                 level: -1,
                 font: {
                     bold: true,
@@ -553,7 +567,11 @@ var Axiom_activeLegend = (function () {
 
                 fixed: { x: true, y: true },
             });
-            yOffset += 50;
+            if (options.horizontal) {
+                options.xOffset += 90;
+            } else {
+                yOffset += 50;
+            }
         });
 
         var options = {
@@ -567,7 +585,11 @@ var Axiom_activeLegend = (function () {
         };
 
         self.axiomsLegendVisjsGraph = new VisjsGraphClass(graphLegendDiv || self.graphLegendDiv, visjsData, options);
-        self.axiomsLegendVisjsGraph.draw(function () {});
+        self.axiomsLegendVisjsGraph.draw(function () {
+            if (callback) {
+                return callback();
+            }
+        });
     };
 
     self.clearAxiom = function () {
@@ -590,7 +612,9 @@ var Axiom_activeLegend = (function () {
             self.axiomTriplesToManchester(triples, function (err, manchesterStr) {
                 if (err) {
                     //machstersyntax dont work yet with cardinality restrictions but we store the triples anyway
-                    if (!hasCardinalityRestriction) return alert(err);
+                    if (!hasCardinalityRestriction) {
+                        return alert(err);
+                    }
                 }
 
                 var triples = self.visjsGraphToTriples();
@@ -832,9 +856,9 @@ var Axiom_activeLegend = (function () {
         var newNodes = [];
         Axioms_graph.axiomsVisjsGraph.data.nodes.forEach(function (node) {
             if (node.id != self.newAxiomNode.id) {
-                var color = common.colorToRgba(node.color, Lineage_whiteboard.defaultLowOpacity);
-                var fontColor = common.colorToRgba(Lineage_whiteboard.defaultNodeFontColor, Lineage_whiteboard.defaultLowOpacity);
-                var opacity = 0.3;
+                var color = common.colorToRgba(node.color, 1);
+                var fontColor = common.colorToRgba(Lineage_whiteboard.defaultNodeFontColor, 1);
+                var opacity = Lineage_whiteboard.defaultLowOpacity;
 
                 newNodes.push({
                     id: node.id,

@@ -2,6 +2,279 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.4.2](https://github.com/souslesens/souslesensVocables/compare/2.4.1...2.4.2) (2025-03-31)
+
+### [2.4.1](https://github.com/souslesens/souslesensVocables/compare/2.4.0...2.4.1) (2025-03-28)
+
+
+### Bug Fixes
+
+* fix mappingModeler load for no source ,icons size and import export JSON for mappingModeler
+
+## [2.4.0](https://github.com/souslesens/souslesensVocables/compare/2.3.0...2.4.0) (2025-03-28)
+
+
+### Bug Fixes
+
+* **authentication:** create use account if not exists when first login with keycloak ([3338e3e](https://github.com/souslesens/souslesensVocables/commit/3338e3e8b9f02bb3fed410497b91c4714fd5edf5))
+* return the data_content with userData ([2a54da4](https://github.com/souslesens/souslesensVocables/commit/2a54da4fffcf9d4238079119b08268135f7c71d8))
+
+## [2.3.0](https://github.com/souslesens/souslesensVocables/compare/2.2.1...2.3.0) (2025-03-24)
+
+> [!IMPORTANT]
+> Updating to 2.3.0 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Features
+
+* add a base URI to sources ([5ad0428](https://github.com/souslesens/souslesensVocables/commit/5ad0428e9c79909314258a54360ecbbf98d89760)), closes [#1104](https://github.com/souslesens/souslesensVocables/issues/1104)
+* add a cancel button to graph upload ([4afa84b](https://github.com/souslesens/souslesensVocables/commit/4afa84bb21aad17393a2d870b0cb44479af00716))
+* add a create source with upload graph button ([33c7e1f](https://github.com/souslesens/souslesensVocables/commit/33c7e1fb3a0a78cf2a3af86f391aa132499781a1)), closes [#1172](https://github.com/souslesens/souslesensVocables/issues/1172)
+* add a new architecture schema ([456f840](https://github.com/souslesens/souslesensVocables/commit/456f840793ae7c9a2370571cdab01c5e1df502bc))
+* add a procedure to convert docx to markdown ([c926775](https://github.com/souslesens/souslesensVocables/commit/c92677545dc00516f4bd076a37bc79612de02ab0))
+* add data_tool and data_source on usersData ([921e81c](https://github.com/souslesens/souslesensVocables/commit/921e81cf57899696aa611926926c28be4b65d858))
+* add details to installation procedure ([a1bbbf8](https://github.com/souslesens/souslesensVocables/commit/a1bbbf8c3f3cf6baf971c934ed212f5421f3b0bb))
+* add filters on userData ([7171524](https://github.com/souslesens/souslesensVocables/commit/7171524be8e8a4236eeff57142995ed2d8bf3679))
+* add icons for profile.ishared ([15dfac6](https://github.com/souslesens/souslesensVocables/commit/15dfac654c91ad3efa602d94fb2709703c4eb81d))
+* add JSDoc to documentation ([93f0558](https://github.com/souslesens/souslesensVocables/commit/93f05589e25bdc1349569fd08a83820e3d3c889f))
+* Add KGBuilder tutorial ([bf36739](https://github.com/souslesens/souslesensVocables/commit/bf367397e7cd6b81dbd112f9c7108c78c41cc115))
+* add new tools tests ([0438e15](https://github.com/souslesens/souslesensVocables/commit/0438e155c4fe076ee9b356f72e2ad6b7a065dfd9))
+* add shared_users boolean on profiles ([96c4056](https://github.com/souslesens/souslesensVocables/commit/96c4056a82ff209bd5cecc7da9e9ad3f909e4fba)), closes [#1080](https://github.com/souslesens/souslesensVocables/issues/1080)
+* add source creation message ([dd74161](https://github.com/souslesens/souslesensVocables/commit/dd74161b7e3c0686879f953050d40cf02f0dad3a)), closes [#1165](https://github.com/souslesens/souslesensVocables/issues/1165)
+* add source creation modal at source upload ([bdcac48](https://github.com/souslesens/souslesensVocables/commit/bdcac48ea0cbd99263d4582b6ac1b4da26a8f68a))
+* add the possibility to upload graph add source creation ([aad4f7e](https://github.com/souslesens/souslesensVocables/commit/aad4f7ee58c73d25398e61029f1421126c63e29a)), closes [#1076](https://github.com/souslesens/souslesensVocables/issues/1076)
+* add tools tests ([d7a31f4](https://github.com/souslesens/souslesensVocables/commit/d7a31f49dd24e0a0486d0c8ddd7422e164eebe80))
+* **api:** adapt the /log routes to not use the symlink ([bb209b8](https://github.com/souslesens/souslesensVocables/commit/bb209b8009d094085252ab8964da13b0f4369dbc))
+* **api:** add the description for each register API tags ([b0be329](https://github.com/souslesens/souslesensVocables/commit/b0be32964aa7c3c84565defc37164bb9d2921602))
+* **api:** prevent passing an empty password ([23cbde1](https://github.com/souslesens/souslesensVocables/commit/23cbde1c69508701b77668806385321b491fa78c))
+* **api:** returns userData identifier when the insert was successul ([4eec8dc](https://github.com/souslesens/souslesensVocables/commit/4eec8dc15c22c2ff9e1157be3766b2f2a5e5067a))
+* better toc ([ab351dc](https://github.com/souslesens/souslesensVocables/commit/ab351dcbabdd9fcd6484b13b4aaa016cf9d79995))
+* **bin:** adapt the logger with the new logs section in mainConfig ([35caeec](https://github.com/souslesens/souslesensVocables/commit/35caeec7aa04c77781e3f0b8199e14beb8ba0e19))
+* check that baseUri end with / or # ([c3f18ff](https://github.com/souslesens/souslesensVocables/commit/c3f18ffe3616376d411eb6c4a9de0595692f0612))
+* **config:** add the userData section in mainConfig ([de9e88b](https://github.com/souslesens/souslesensVocables/commit/de9e88b8308dc451cfed8c97766983996d9c0fa3))
+* **config:** replace the logDir option with a logs object ([f5a2dde](https://github.com/souslesens/souslesensVocables/commit/f5a2dde2e42b1521fb00677fa848c2233df19d78))
+* filter on data_group for usersData api ([37a9434](https://github.com/souslesens/souslesensVocables/commit/37a9434f1774216fdededbe1ea3b8f0013a1ed98)), closes [#1187](https://github.com/souslesens/souslesensVocables/issues/1187)
+* filter on data_type for usersData api ([4f64149](https://github.com/souslesens/souslesensVocables/commit/4f64149d93e36351870423d92331a4930e499b11)), closes [#1195](https://github.com/souslesens/souslesensVocables/issues/1195)
+* **mainapp:** ConfigEditor: graphUri and baseUri are URLs ([933533f](https://github.com/souslesens/souslesensVocables/commit/933533fcff16e0b8aeb5088e55f143b44edbdb1c))
+* **mainapp:** improve user form password label ([61f0cb3](https://github.com/souslesens/souslesensVocables/commit/61f0cb366f51d12c1071470e54de48b5de8f5f72))
+* **mainapp:** make login and password required in user form ([080932d](https://github.com/souslesens/souslesensVocables/commit/080932d5687d7f8113135eb985e4c92651983827))
+* **model:** remove the data_content field from the view user_data_list ([acef57b](https://github.com/souslesens/souslesensVocables/commit/acef57ba4516bb0750e297789c57ef69e77a798c))
+* take isShared in account in api/users route ([d2dd552](https://github.com/souslesens/souslesensVocables/commit/d2dd552ff9f4f30794179a01a267eddf10c6ff35)), closes [#1080](https://github.com/souslesens/souslesensVocables/issues/1080)
+* upgrade libs ([1c4aace](https://github.com/souslesens/souslesensVocables/commit/1c4aacecc27a10c5a86a74ef5b512649caa220c6))
+* upgrade lint libs ([8b45661](https://github.com/souslesens/souslesensVocables/commit/8b4566115acb1aaff87c04d1e989489e4daecc35))
+* upgrade some js libs ([f00143a](https://github.com/souslesens/souslesensVocables/commit/f00143a7ceda99dadda265042310efb4a4409f98))
+* upgrade to node 22 ([c4effb5](https://github.com/souslesens/souslesensVocables/commit/c4effb5690c6837c8eac571fb7abfe5f8baa99fc))
+* upgrade vite ([1bf1059](https://github.com/souslesens/souslesensVocables/commit/1bf1059fec678d5081b880078901ee7c360ab47f))
+* upload a graph from URL ([051a39b](https://github.com/souslesens/souslesensVocables/commit/051a39bb5fbe1ad4b5a16c7aa17087b78547ebe7)), closes [#1077](https://github.com/souslesens/souslesensVocables/issues/1077)
+* **userData:** allow to store the data_content on the file system ([e524ff8](https://github.com/souslesens/souslesensVocables/commit/e524ff8d9ce8d499f0feda4390d91bee1c9a4e58))
+* **userData:** do not allow content over the maximum size with database ([7295b2d](https://github.com/souslesens/souslesensVocables/commit/7295b2d8ed9ab86a02e5f17691e90d837b79c422))
+
+
+### Bug Fixes
+
+* adapt title for user creation ([6919be8](https://github.com/souslesens/souslesensVocables/commit/6919be848b1b0a56596181d8b9ff7848aceda651))
+* add misssing useMemo deps ([d9cf647](https://github.com/souslesens/souslesensVocables/commit/d9cf6477f39d8ca737e27c35859cc0ffc4f51905))
+* **api:** add the missing tags for /triples2rdf and /users/{id} routes ([98e4c47](https://github.com/souslesens/souslesensVocables/commit/98e4c47255407895c0a208917f935c79902dc49f))
+* better handling git message ([bd49572](https://github.com/souslesens/souslesensVocables/commit/bd49572ecff274d4c28b2228b29977a54bb977a3))
+* complete api doc for userData ([fa8d769](https://github.com/souslesens/souslesensVocables/commit/fa8d76983666dbd12a2bf52bcfeb55fb473742f8))
+* correct some eslint errors ([5476d97](https://github.com/souslesens/souslesensVocables/commit/5476d97e7737ac877cf3ce9d27a8b8932f416d59))
+* do not make special case on admin on non-admin routes ([9f3f144](https://github.com/souslesens/souslesensVocables/commit/9f3f144c38366aca67613c1360f911c54072f7ff))
+* don't let users delete other people's data ([2488a77](https://github.com/souslesens/souslesensVocables/commit/2488a77ffa822bdc78d67cc871bdaa449bae0965))
+* fixed some errors in api and model ([685ee25](https://github.com/souslesens/souslesensVocables/commit/685ee25d68989fee3e51d7e0e1aee246868892c5))
+* fixed some errors in bin ([0f6e704](https://github.com/souslesens/souslesensVocables/commit/0f6e70461c3912259ff322ce194a8b5d0c477d63))
+* **jsdoc:** exclude lineage_whiteboard.js (broken jsdocs) ([8fd013a](https://github.com/souslesens/souslesensVocables/commit/8fd013aa7dde3fd483c74e771387d468971a682a))
+* **mainapp:** close icon for close button in UploadGraphModal ([f087db8](https://github.com/souslesens/souslesensVocables/commit/f087db80c941bb6d529f881ed22b0356925c2bf2))
+* **mainapp:** do not send blank password on edit ([6fc74ea](https://github.com/souslesens/souslesensVocables/commit/6fc74ea3df6092e118c0890378206dfe5dbc1376))
+* **mainapp:** use the Alert widget with the ProfilesTable component ([5669948](https://github.com/souslesens/souslesensVocables/commit/5669948c21f3daa87042e861f9351769bd637bf4))
+* move tutorials section to user documentation ([0707fea](https://github.com/souslesens/souslesensVocables/commit/0707fea4da3e90477ac25fcca34b0c7dc379a98b))
+* open graph in new tab ([395a65c](https://github.com/souslesens/souslesensVocables/commit/395a65c2d33bd75313b0772d2b877700eaa78c33))
+* remove dead code ([27d0ee4](https://github.com/souslesens/souslesensVocables/commit/27d0ee46e71b45c19f287d7c4cb9c5add3807356))
+* remove duplicate dependencies ([8ea587b](https://github.com/souslesens/souslesensVocables/commit/8ea587baa76f135493d2e399855a400493e6e1b7))
+* remove loop unsuported by sqlite ([b46a5c6](https://github.com/souslesens/souslesensVocables/commit/b46a5c6234bf6ddc89b592ad3f621f11dd36eacb))
+* remove trailing whitespaces ([2d66e99](https://github.com/souslesens/souslesensVocables/commit/2d66e99adde3ed529ec560021258db6bdbb821a8))
+* remove unused file ([9f89b84](https://github.com/souslesens/souslesensVocables/commit/9f89b8483978a5fe02a4ddc41d5feb391c9f1e0a))
+* remove unused packages ([816da90](https://github.com/souslesens/souslesensVocables/commit/816da90bf1745eca4d68c58a44dc3e9fe11bde11))
+* remove useless defaultValue ([ed6d75c](https://github.com/souslesens/souslesensVocables/commit/ed6d75c6f73da732ba18c504b6db8223c998c980))
+* rename autocomplete to autoComplete ([9d6ca96](https://github.com/souslesens/souslesensVocables/commit/9d6ca96e8f0e76de7e7502a7504f59eec02fd529))
+* rename GraphManagement-logo path ([731696f](https://github.com/souslesens/souslesensVocables/commit/731696fb1cc2419505caa622ac4585e8f7ef32ac))
+* rename incorect paths ([15afad6](https://github.com/souslesens/souslesensVocables/commit/15afad6ce8205d7c37e071e11a15e7b6f231a3dc))
+* rename uri by url ([6105935](https://github.com/souslesens/souslesensVocables/commit/6105935f09945278c271ffe63acfce8013050662))
+* rename variable ([ed1aa0a](https://github.com/souslesens/souslesensVocables/commit/ed1aa0a63855efece00d1a5c6f8cae3b9ddd9161))
+* replace vertical option that doesnt exist ([fdd2013](https://github.com/souslesens/souslesensVocables/commit/fdd2013493590fa19a5fcd08d336a87e992f5123))
+* run eslint ([d781eca](https://github.com/souslesens/souslesensVocables/commit/d781ecad664742cc2e9a8c756011181ec9dca72d))
+* run prettier in bin directory ([ac68aa6](https://github.com/souslesens/souslesensVocables/commit/ac68aa6c043ce91b81e6e7ed21eda903ca3477b1))
+* **sentry:** update sentry init ([facfedb](https://github.com/souslesens/souslesensVocables/commit/facfedbc735b6f85fca329b4ec60590b616e7284))
+* sort documentation ([2d9a118](https://github.com/souslesens/souslesensVocables/commit/2d9a11824ae575651050627c214858e3c116e481))
+* uris can be empty ([2aeb4d7](https://github.com/souslesens/souslesensVocables/commit/2aeb4d7bd23ec4e854450282cbcb017b68fa66d2))
+* use a compatible page size ([07ae624](https://github.com/souslesens/souslesensVocables/commit/07ae6240a5a3f3d6f00d1a92fe9d1cff05af5190))
+* use edit icon for profiles ([3042da3](https://github.com/souslesens/souslesensVocables/commit/3042da3237e8f01debe664da1f968357d9e92557))
+* use edit icon for users ([47e2596](https://github.com/souslesens/souslesensVocables/commit/47e2596329085a84059d8ecddca949a0ef40c032))
+* use hasOwn instead of repositoryInfo.hasOwnProperty ([a3f9331](https://github.com/souslesens/souslesensVocables/commit/a3f9331a892515808ef2edbfa67bd326af22c5f9))
+* user in request ([4d03b30](https://github.com/souslesens/souslesensVocables/commit/4d03b30c240352de31326a219618aa4390932e9d))
+
+### [2.2.1](https://github.com/souslesens/souslesensVocables/compare/2.2.0...2.2.1) (2025-02-12)
+
+
+### Bug Fixes
+
+* avoid cyclical imports ([6950981](https://github.com/souslesens/souslesensVocables/commit/69509815b81ea90c3f241b86259484bb509d8eaa))
+
+## [2.2.0](https://github.com/souslesens/souslesensVocables/compare/2.1.0...2.2.0) (2025-02-11)
+
+
+### Features
+
+* remove data in UserData when a profile is deleted ([815e4cc](https://github.com/souslesens/souslesensVocables/commit/815e4cc14e741686dcdf271a49a56a6a1a2d0fad)), closes [#1072](https://github.com/souslesens/souslesensVocables/issues/1072)
+* remove data in UserData when a user is deleted ([68cce76](https://github.com/souslesens/souslesensVocables/commit/68cce76863f1f122d175a502d5b959c026924f58)), closes [#1072](https://github.com/souslesens/souslesensVocables/issues/1072)
+
+## [2.1.0](https://github.com/souslesens/souslesensVocables/compare/2.0.0...2.1.0) (2025-02-07)
+
+> [!IMPORTANT]
+> Updating to 2.1.0 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Features
+
+* add jest-coverage-comment github action ([e5fe272](https://github.com/souslesens/souslesensVocables/commit/e5fe2720b0239efa3796e8ae9a0a8d65394f4793))
+* add source tests ([492d5ec](https://github.com/souslesens/souslesensVocables/commit/492d5ecc346c6a4a5ba928bd86149fb5a466b871))
+* add tests for userData ([ec5cb7b](https://github.com/souslesens/souslesensVocables/commit/ec5cb7bb6064d00116a18e5fc985cb8ae6141d62))
+* add tests for userData model ([946ab88](https://github.com/souslesens/souslesensVocables/commit/946ab887bde4209c9daf910e2146c12535942ed9))
+* **database:** add the userdata schema into database ([a6b3e18](https://github.com/souslesens/souslesensVocables/commit/a6b3e18f583b59f88b5c7a478cf4c83361885eda))
+* **database:** migrate profiles entries into database ([622e09d](https://github.com/souslesens/souslesensVocables/commit/622e09d7acf4533b276046370ecbcb8cb937d5d3))
+* **database:** migrate users entries into database ([94571ce](https://github.com/souslesens/souslesensVocables/commit/94571cee590c0da51173cc5899b63941652543a9))
+* remove non existing users and profiles from userData at insert and update ([828c64a](https://github.com/souslesens/souslesensVocables/commit/828c64aa165ab39cee30d4fe35e4ea4d5ad6fb42)), closes [#1073](https://github.com/souslesens/souslesensVocables/issues/1073)
+
+
+### Bug Fixes
+
+* authentication with keycloak ([8cf5851](https://github.com/souslesens/souslesensVocables/commit/8cf5851524fcf8ac2a83930c2d231d082addd0d4))
+* indent userData test file properly ([01e513b](https://github.com/souslesens/souslesensVocables/commit/01e513bf43cc6d4a71e095ce5df2ad09bd05412d))
+* **mainapp:** always manage the value of the groups field in the sources editor ([eaf555d](https://github.com/souslesens/souslesensVocables/commit/eaf555d5a01cb03e906e2fbdfb85247dea614c8b))
+* **migrations:** bcrypt password only if user is local/json ([8f58ba5](https://github.com/souslesens/souslesensVocables/commit/8f58ba5adfed40fa2988f5f6d5bac2bbf8ea6865))
+* remove useless file ([72ac8cc](https://github.com/souslesens/souslesensVocables/commit/72ac8cc4a3d6537f5cc3b02e768f5cc141f44ca9))
+* use select for db deletion ([b016f0b](https://github.com/souslesens/souslesensVocables/commit/b016f0b462a427bad2ba20fceee665b5c8ff9f24))
+
+## [2.0.0](https://github.com/souslesens/souslesensVocables/compare/1.100.2...2.0.0) (2025-01-30)
+
+> [!IMPORTANT]
+> Updating to 2.0.0 require manual migrations. See
+> [documentation](https://souslesens.github.io/souslesensVocables/migrations/migrate-to-v2.html)
+> for details.
+
+
+### Features
+
+* add a button to upload source ([3243287](https://github.com/souslesens/souslesensVocables/commit/324328744da1dadf1196df10102e6380a3605dab)), closes [#1075](https://github.com/souslesens/souslesensVocables/issues/1075)
+* add filter to source control access ([4516616](https://github.com/souslesens/souslesensVocables/commit/4516616c83f0efd7d8e89195ae803c7b97c2a10b))
+* **api/userData:** owned_by is set server side ([fb5acbb](https://github.com/souslesens/souslesensVocables/commit/fb5acbbdfa3063a11e68ec2fce4d2ef7bc52133f))
+* **api/userData:** user can PUT only thier own sources ([47219d2](https://github.com/souslesens/souslesensVocables/commit/47219d2fe06f503f4ad75fce5dd578a350b6f9c1))
+* **api/user:** Move profiles to admin section ([11c8fec](https://github.com/souslesens/souslesensVocables/commit/11c8fecfbaebe367610b4030ab220e8d2c1f1718))
+* **api/user:** Move user api to admin section ([c8f0bd7](https://github.com/souslesens/souslesensVocables/commit/c8f0bd77ac9105c620cf71ee8b01aafa9678bb68))
+* **database:** add the userdata schema into database ([926b4a1](https://github.com/souslesens/souslesensVocables/commit/926b4a135761626376974a5f1a9f67626e8e5a8e))
+* **database:** migrate profiles entries into database ([aa5c53e](https://github.com/souslesens/souslesensVocables/commit/aa5c53eb4f5a765e148bbb20871b5bf7a848ff6f))
+* **database:** migrate users entries into database ([8f8a1e4](https://github.com/souslesens/souslesensVocables/commit/8f8a1e4c0f2ded2267dba283e6b3b3d2761c4404))
+* upgrade dev dependencies ([e8d5541](https://github.com/souslesens/souslesensVocables/commit/e8d5541c8d3ec977044cf10cbfd5a9c94f32bfff))
+* upgrade some js libs ([fd0bae8](https://github.com/souslesens/souslesensVocables/commit/fd0bae8db0e5cd9a6521e65d88648f10df964f03))
+
+
+### Bug Fixes
+
+* **api/userData:** GET route is open for users ([991b55a](https://github.com/souslesens/souslesensVocables/commit/991b55aa99c1f29172bb2324337f5f30d3b158ff))
+* **api/userData:** POST request don't need the id (autogenerated) ([c497992](https://github.com/souslesens/souslesensVocables/commit/c4979922e62050b9917e2e3d7037e75508079e2c))
+* authentication with keycloak ([f79ab96](https://github.com/souslesens/souslesensVocables/commit/f79ab96872d4fbabd3b93cb0010867c1bacf363b))
+* make userData request works with several groups for a user ([811f007](https://github.com/souslesens/souslesensVocables/commit/811f0074fc15d70497a27443376b569c93a099c3))
+* **migrations:** bcrypt password only if user is local/json ([841a40b](https://github.com/souslesens/souslesensVocables/commit/841a40bb4a39cdd43462a4735394e2fadde2341d))
+* **model/profiles:** fix config variable ([e020284](https://github.com/souslesens/souslesensVocables/commit/e0202841b6eda6aad1df418fc59a3e1651538f7c))
+* **model/source:** replace missing profileModel._read with profileModel.getAllProfiles ([df5bff7](https://github.com/souslesens/souslesensVocables/commit/df5bff7082b4da94d44cd92c404a67db4170d640))
+* **model/userData:** data_content can be anything ([b7b7ec1](https://github.com/souslesens/souslesensVocables/commit/b7b7ec1cda6cc801c23673365fe411d4e89bb699))
+* **model/userData:** taking permission into account in the UserData request ([e2d50f1](https://github.com/souslesens/souslesensVocables/commit/e2d50f1658c65fc26524bf62abb225f80a9a95a5)), closes [#1071](https://github.com/souslesens/souslesensVocables/issues/1071)
+* **model/users:** return first user when checking isAdmin ([f6d7d5d](https://github.com/souslesens/souslesensVocables/commit/f6d7d5de27946c2c939ac29a9ea66d84a5284263))
+* remove useless uitests [cypress] ([c0af01d](https://github.com/souslesens/souslesensVocables/commit/c0af01d7edcc0c6a9923467ad8a2027fbad229f2))
+* use snackbar for import info ([797a05b](https://github.com/souslesens/souslesensVocables/commit/797a05be7ad7bf98b274c7acf463376e1313d4b8))
+
+### [1.100.2](https://github.com/souslesens/souslesensVocables/compare/1.100.1...1.100.2) (2025-01-15)
+
+### [1.100.1](https://github.com/souslesens/souslesensVocables/compare/1.100.0...1.100.1) (2025-01-14)
+
+
+### Bug Fixes
+
+* tripleFactory mappingModeler ([c24d609](https://github.com/souslesens/souslesensVocables/commit/c24d6096caac17acc6f31890a8acdd56b71e3638))
+
+## [1.100.0](https://github.com/souslesens/souslesensVocables/compare/1.99.0...1.100.0) (2025-01-13)
+
+> [!IMPORTANT]
+> Updating to 1.100.0 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Various Changes
+
+* **postgresql:** prepare v2 migration by adding database config to mainConfig.json ([b4ba32c2](https://github.com/souslesens/souslesensVocables/commit/b4ba32c283e57ba6e225295c2faf0e70fc76329a))
+
+## [1.99.0](https://github.com/souslesens/souslesensVocables/compare/1.98.2...1.99.0) (2025-01-06)
+
+
+### Bug Fixes
+
+* **mainapp:** avoid to raise a ZodError when starting the application ([155c314](https://github.com/souslesens/souslesensVocables/commit/155c3140cb31f69ff99aa13c2e7880f13f46ea34))
+* **mainapp:** typing ([4848622](https://github.com/souslesens/souslesensVocables/commit/4848622465726ad552a70c129ab1569263ce51eb))
+
+### [1.98.2](https://github.com/souslesens/souslesensVocables/compare/1.98.1...1.98.2) (2024-12-20)
+
+### [1.98.1](https://github.com/souslesens/souslesensVocables/compare/1.98.0...1.98.1) (2024-12-20)
+
+## [1.98.0](https://github.com/souslesens/souslesensVocables/compare/1.97.0...1.98.0) (2024-12-20)
+
+
+### Features
+
+* **api:** GET and POST metadata ([7139090](https://github.com/souslesens/souslesensVocables/commit/713909009988bb0308a7abcbb756b27c4adb1c8e))
+* **mainapp/graphManagement:** disable metadata editing for read only sources ([ba37ba7](https://github.com/souslesens/souslesensVocables/commit/ba37ba752eaa6d012d8932e7ff2ba1d82a923b77))
+* **mainapp/graphManagement:** display metadata modal ([98b4cdf](https://github.com/souslesens/souslesensVocables/commit/98b4cdf8522a7dc92acc018fb45802b7b4d3adbb))
+
+## [1.97.0](https://github.com/souslesens/souslesensVocables/compare/1.96.0...1.97.0) (2024-12-20)
+
+
+### Features
+
+* **graphManagement:** standard searchbar ([d6f29c2](https://github.com/souslesens/souslesensVocables/commit/d6f29c2c9956666c51480c43af16a797a05278dc))
+
+
+### Bug Fixes
+
+* **docs:** build doc on master branch only ([35765bc](https://github.com/souslesens/souslesensVocables/commit/35765bc5246e92eed30eef672db648e7c00c6566))
+* **mainapp/configeditor:** do not validate own source prefix in edit mode ([d5b1781](https://github.com/souslesens/souslesensVocables/commit/d5b1781509a55fe98e82679b3dde527bb03a8698))
+* **mainapp/plugin:** do not show the error snack when fetching was successful ([9cb0cc8](https://github.com/souslesens/souslesensVocables/commit/9cb0cc8e85a88af6d6021dc9ed9056db1aab1001))
+* **mainapp:** correctly select the group in edit mode with the Source editor ([fb9047f](https://github.com/souslesens/souslesensVocables/commit/fb9047fa952bcfefa6d55147730b9f55b803fd56))
+* **mainapp:** disable autocomplete on searchbars ([47870ac](https://github.com/souslesens/souslesensVocables/commit/47870ac196eeb3965b4e62bd4a1b6ef827336a03))
+
+## [1.96.0](https://github.com/souslesens/souslesensVocables/compare/1.95.0...1.96.0) (2024-12-11)
+
+> [!IMPORTANT]
+> Updating to 1.96.0 require a data migration. Execute the following script after upgrade.
+
+```bash
+npm run migrate
+```
+
+
+### Bug Fixes
+
+* **graphManagement:** copy paste file durring upload instead of rename ([391206f](https://github.com/souslesens/souslesensVocables/commit/391206f61c8594a9c76d9ab96c866b94956c6380))
+* **graphManagement:** default is ok when downloading ([d23ada4](https://github.com/souslesens/souslesensVocables/commit/d23ada4a6f3d35eab838fcf54b38636e7501efd1))
+
 ## [1.95.0](https://github.com/souslesens/souslesensVocables/compare/1.94.0...1.95.0) (2024-11-28)
 
 ## [1.94.0](https://github.com/souslesens/souslesensVocables/compare/1.93.1...1.94.0) (2024-11-27)

@@ -256,12 +256,12 @@ indexes.push(source.toLowerCase());
 
                     function (err) {
                         return callbackWhilst(err);
-                    }
+                    },
                 );
             },
             function (err) {
                 callback(err, allClassesArray);
-            }
+            },
         );
     };
 
@@ -320,7 +320,7 @@ indexes.push(source.toLowerCase());
                 },
                 function (err) {
                     return callback(null, allHits);
-                }
+                },
             );
         } else {
             var queryObj = { match_all: {} };
@@ -372,26 +372,22 @@ indexes.push(source.toLowerCase());
         //  word=word.toLowerCase()
         var queryObj;
         if (!mode || mode == "exactMatch") {
-            var field = "label";
             queryObj = {
                 bool: {
                     must: [
                         {
-                            match: {
+                            //  match: {
+                            term: {
                                 [field]: word,
                             },
                         },
                     ],
                 },
             };
-            /* if (options.skosLabels) {
-           queryObj.bool.must.push( {
-               term: {
-                   "skoslabels.keyword": word,
-               },
-           })
-
-       }*/
+        } else if (word == "*") {
+            queryObj = {
+                match_all: {},
+            };
         } else if (word.indexOf("*") > -1) {
             queryObj = {
                 bool: {
@@ -478,13 +474,15 @@ indexes.push(source.toLowerCase());
                         return callbackEach(err);
                     }
 
+                    from += size;
+
                     allResults = allResults.concat(result);
                     callbackEach();
                 });
             },
             function (err) {
                 callback(err, allResults);
-            }
+            },
         );
     };
 
@@ -575,7 +573,7 @@ indexes.push(source.toLowerCase());
                                     function (err) {
                                         // UI.message("DONE " + sourceLabel + " total indexed : " + totalLinesAllsources, true);
                                         return callbackSeries(err);
-                                    }
+                                    },
                                 );
                             });
                         },
@@ -601,7 +599,7 @@ indexes.push(source.toLowerCase());
                                         parents = taxonomyClassesIdsMap[item.type2.value].parents.concat(item.type2.value);
                                     } else {
                                         parent = item.type2.value;
-                                        parents = [item.type2.value, sourceLabel];
+                                        parents = [sourceLabel, item.type2.value];
                                     }
 
                                     var skosLabel = item.skosPrefLabel ? item.skosPrefLabel.value : null;
@@ -680,7 +678,7 @@ indexes.push(source.toLowerCase());
                                     },
                                     function (err) {
                                         return callbackSeries(err);
-                                    }
+                                    },
                                 );
                             });
                         },
@@ -691,7 +689,7 @@ indexes.push(source.toLowerCase());
                         // UI.message("indexed " + totalLines + " in index " + sourceLabel.toLowerCase());
 
                         return callbackEachSource(err);
-                    }
+                    },
                 );
 
                 // }
@@ -705,7 +703,7 @@ indexes.push(source.toLowerCase());
                 if (callback) {
                     return callback(err);
                 }
-            }
+            },
         );
     };
 
@@ -745,7 +743,7 @@ indexes.push(source.toLowerCase());
                 },
                 function (err) {
                     return callback(err, "DONE");
-                }
+                },
             );
         });
     };
@@ -801,7 +799,7 @@ indexes.push(source.toLowerCase());
                         },
                         function (err) {
                             return callbackSeries(err);
-                        }
+                        },
                     );
                 },
                 function (callbackSeries) {
@@ -829,13 +827,13 @@ indexes.push(source.toLowerCase());
                         },
                         function (err) {
                             return callbackSeries(err);
-                        }
+                        },
                     );
                 },
             ],
             function (err) {
                 return callback(err, { data: allData, labelsMap: allLabelsMap });
-            }
+            },
         );
     };
 

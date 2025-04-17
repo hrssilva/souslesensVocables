@@ -41,6 +41,7 @@ module.exports = function () {
         },
         security: [{ restrictAdmin: [] }],
         summary: "Delete a Git Repository",
+        tags: ["Plugins"],
     };
 
     // PUT /api/v1/admin/plugins/repositories/repository/{id}
@@ -76,7 +77,7 @@ module.exports = function () {
                         message: "The repository have been updated",
                         status: 200,
                     });
-                } else  {
+                } else {
                     res.status(500).json(response);
                 }
             }
@@ -100,6 +101,7 @@ module.exports = function () {
         },
         security: [{ restrictAdmin: [] }],
         summary: "Update a Git Repository",
+        tags: ["Plugins"],
     };
 
     return operations;

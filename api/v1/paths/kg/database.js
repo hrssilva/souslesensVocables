@@ -6,7 +6,6 @@ module.exports = function () {
 
     async function GET(req, res, next) {
         try {
-            const serverId = req.params.id;
             const databases = await databaseModel.getDatabasesFromServer();
             resourceFetched(res, databases);
         } catch (error) {
@@ -19,6 +18,7 @@ module.exports = function () {
         responses: responseSchema("DatabaseNames", "GET"),
         security: [{ restrictAdmin: [] }],
         summary: "Returns all databases name",
+        tags: ["KG"],
     };
 
     return operations;
