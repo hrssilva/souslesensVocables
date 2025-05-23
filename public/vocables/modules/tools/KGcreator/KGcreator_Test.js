@@ -10,12 +10,16 @@ var KGcreator_Test= (function () {
             data: body,
             success: function (result, _textStatus, _jqXHR) {
                 self.mappingFiles = {};
+                let queryEditor = document.getElementById("KGcreator_mappingsEditor");
+                
                 if (result == null) {
                     console.log("Resultado null");
+                    queryEditor.innerText = "Resultado null";
                 }
                 else
                     KGcreator_mappings.showMappingsInEditor(result);
                     console.log(result);
+                    queryEditor.innerText = JSON.stringify(result, null, 2);
             },
             error: function () {
                 console.log("Erro!");

@@ -4,7 +4,6 @@ var fromSPARQL = (function () {
 
     self.test = function () {
         var loadData = { operationId:'query' };
-
         $.ajax({
             type: "POST",
             url: Config.apiUrl + '/jowl/ontop',
@@ -12,14 +11,17 @@ var fromSPARQL = (function () {
             data: loadData,
             success: function (result, _textStatus, _jqXHR) {
                 self.mappingFiles = {};
+                let queryEditor = document.getElementById("KGquery_queryEditor");
                 if (result == null) {
                     self.result = null;
                     console.log("Null Result");
                     KGquery.message("Null Result");
+                    queryEditor.innerText = "Null Result";
                 }
                 else{
                     self.result = result;
                     console.log(result);
+                    queryEditor.innerText = JSON.stringify(result, null, 2);
                     KGquery.message("Repository not exists");
                 }
             },
